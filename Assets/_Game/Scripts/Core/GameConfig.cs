@@ -170,12 +170,12 @@ namespace DragonHeist
             D(34, Tier.Omega,     "Хронос",            "Chronos",          "#E0C060","#FFFFFF","#2040FF", 340,7.8e9, 620,7.0f, 28, DragonFx.Stars),
             D(35, Tier.Omega,     "Абсолют",           "The Absolute",     "#FFFFFF","#000000","#FF00FF", 400,9.6e9,   700,7.5f, 4, DragonFx.Rainbow),
             // ===== Эксклюзивы Драконьего яйца (только за донат) =====
-            X(36, Tier.Mythic,    "Кристальный Страж", "Crystal Guardian", "#60E0FF","#E0FFFF","#20A0FF", 60, 2.55e4,  80, 2.5f, 45, DragonFx.Frost),
-            X(37, Tier.Divine,    "Лавовый Титан",     "Lava Titan",       "#FF4010","#FFC040","#300800", 80, 2.34e5,  120,3.0f, 28, DragonFx.Fire),
-            X(38, Tier.Secret,    "Неоновый Кибердракон","Neon Cyberdragon","#101020","#00FFC8","#FF00C8", 110,2.25e6, 170,3.5f, 17, DragonFx.Aura),
-            X(39, Tier.Celestial, "Солнечный Бог",     "Solar Deity",      "#FFD020","#FFFFFF","#FF8000", 150,1.75e7,  230,4.2f, 7, DragonFx.Halo),
-            X(40, Tier.Galactic,  "Галактический Кит", "Galaxy Leviathan", "#200050","#80FFFF","#FF60FF", 260,1.8e9,   480,6.0f, 2.5f,  DragonFx.Stars),
-            X(41, Tier.Omega,     "Дракон Бесконечности","Infinity Dragon","#FFFFFF","#FFD700","#000000", 500,1.8e10, 900,8.0f, 0.5f,  DragonFx.Rainbow),
+            X(36, Tier.Mythic,    "Кристальный Страж", "Crystal Guardian", "#60E0FF","#E0FFFF","#20A0FF", 45, 1.85e4, 65, 2.3f, 45, DragonFx.Frost),
+            X(37, Tier.Divine,    "Лавовый Титан",     "Lava Titan",       "#FF4010","#FFC040","#300800", 65, 1.4e5, 95, 3.0f, 28, DragonFx.Fire),
+            X(38, Tier.Secret,    "Неоновый Кибердракон","Neon Cyberdragon","#101020","#00FFC8","#FF00C8", 88, 1.3e6, 140, 3.6f, 17, DragonFx.Aura),
+            X(39, Tier.Celestial, "Солнечный Бог",     "Solar Deity",      "#FFD020","#FFFFFF","#FF8000", 140, 1.2e7, 230, 4.6f, 7, DragonFx.Halo),
+            X(40, Tier.Galactic,  "Галактический Кит", "Galaxy Leviathan", "#200050","#80FFFF","#FF60FF", 290, 1.2e9, 520, 6.1f, 2.5f,  DragonFx.Stars),
+            X(41, Tier.Omega,     "Дракон Бесконечности","Infinity Dragon","#FFFFFF","#FFD700","#000000", 460, 1.15e10, 800, 7.7f, 0.5f,  DragonFx.Rainbow),
         };
 
         public static readonly TreadmillDef[] Treadmills =
