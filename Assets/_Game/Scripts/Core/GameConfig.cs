@@ -135,47 +135,47 @@ namespace DragonHeist
             // id, тир, имя, цвета, +%скор, доход/с, +%прок, прыжок, вес, эффект
             D(0,  Tier.Common,    "Ящерок",            "Lizzy",            "#8FBF5A","#E8E0A0","#6E9A40", 2,  1.8,      3,  0.0f, 60, DragonFx.None),
             D(1,  Tier.Common,    "Пепельный",         "Ashling",          "#9A9A9A","#D0D0D0","#707070", 1,  2.4,      4,  0.2f, 30, DragonFx.None),
-            D(2,  Tier.Common,    "Песчаник",          "Sandy",            "#D9B870","#F5E6B8","#B08A40", 3,  3,      2,  0.1f, 10, DragonFx.None),
+            D(2,  Tier.Common,    "Песчаник",          "Sandy",            "#D9B870","#F5E6B8","#B08A40", 3,  3,      2,  0.1f, 4, DragonFx.None),
             D(3,  Tier.Uncommon,  "Листохвост",        "Leaftail",         "#3FBF4F","#B5F07A","#2A8A38", 4,  7.5,     6,  0.3f, 55, DragonFx.None),
             D(4,  Tier.Uncommon,  "Болотник",          "Swampy",           "#4E7A3A","#9AB06A","#33552A", 3,  10,     8,  0.2f, 35, DragonFx.None),
-            D(5,  Tier.Uncommon,  "Коралл",            "Coral",            "#FF7F7F","#FFD0C0","#E05050", 5,  12.5,     6,  0.3f, 10, DragonFx.Sparkle),
+            D(5,  Tier.Uncommon,  "Коралл",            "Coral",            "#FF7F7F","#FFD0C0","#E05050", 5,  12.5,     6,  0.3f, 4, DragonFx.Sparkle),
             D(6,  Tier.Rare,      "Ледяной Клык",      "Frostfang",        "#6EC8FF","#E6F7FF","#3A8FD0", 7,  40.5,     12, 0.5f, 55, DragonFx.Frost),
             D(7,  Tier.Rare,      "Грозовик",          "Stormy",           "#3050C0","#A0B8FF","#FFE040", 9,  49.5,    10, 0.6f, 35, DragonFx.Sparkle),
-            D(8,  Tier.Rare,      "Сапфир",            "Sapphire",         "#2060FF","#80C0FF","#1030A0", 8,  63,    14, 0.5f, 10, DragonFx.Frost),
+            D(8,  Tier.Rare,      "Сапфир",            "Sapphire",         "#2060FF","#80C0FF","#1030A0", 8,  63,    14, 0.5f, 4, DragonFx.Frost),
             D(9,  Tier.Epic,      "Аметистовый",       "Amethyst",         "#A040F0","#E0B0FF","#6A20B0", 12, 245,    18, 0.8f, 55, DragonFx.Sparkle),
             D(10, Tier.Epic,      "Теневой",           "Shadow",           "#2A2438","#6A5A8A","#A040F0", 15, 298,    20, 1.0f, 35, DragonFx.Void),
-            D(11, Tier.Epic,      "Токсик",            "Toxic",            "#70FF40","#D0FF80","#308020", 14, 350,   22, 0.9f, 10, DragonFx.Aura),
+            D(11, Tier.Epic,      "Токсик",            "Toxic",            "#70FF40","#D0FF80","#308020", 14, 350,   22, 0.9f, 4, DragonFx.Aura),
             D(12, Tier.Legendary, "Золотой Император", "Golden Emperor",   "#FFC820","#FFF0A0","#E08A10", 20, 1500,    30, 1.2f, 50, DragonFx.Halo),
-            D(13, Tier.Legendary, "Солнечный Феникс",  "Sun Phoenix",      "#FF8A20","#FFE060","#FF3A10", 24, 1.88e3,  32, 1.5f, 40, DragonFx.Fire),
-            D(14, Tier.Legendary, "Молниевый Рык",     "Thunder Roar",     "#FFE640","#FFFFFF","#3060FF", 26, 2.25e3,    35, 1.6f, 10, DragonFx.Sparkle),
+            D(13, Tier.Legendary, "Солнечный Феникс",  "Sun Phoenix",      "#FF8A20","#FFE060","#FF3A10", 24, 1.88e3,  32, 1.5f, 28, DragonFx.Fire),
+            D(14, Tier.Legendary, "Молниевый Рык",     "Thunder Roar",     "#FFE640","#FFFFFF","#3060FF", 26, 2.25e3,    35, 1.6f, 4, DragonFx.Sparkle),
             D(15, Tier.Mythic,    "Вулканорог",        "Volcanohorn",      "#D02020","#FF9040","#401010", 30, 1.02e4,    45, 1.8f, 50, DragonFx.Fire),
-            D(16, Tier.Mythic,    "Кровавая Луна",     "Blood Moon",       "#8A0A2A","#FF5070","#200008", 35, 1.28e4,  50, 2.0f, 40, DragonFx.Aura),
-            D(17, Tier.Mythic,    "Изумрудный Страж",  "Emerald Warden",   "#10C080","#A0FFD0","#086040", 38, 1.53e4,    55, 2.1f, 10, DragonFx.Aura),
+            D(16, Tier.Mythic,    "Кровавая Луна",     "Blood Moon",       "#8A0A2A","#FF5070","#200008", 35, 1.28e4,  50, 2.0f, 28, DragonFx.Aura),
+            D(17, Tier.Mythic,    "Изумрудный Страж",  "Emerald Warden",   "#10C080","#A0FFD0","#086040", 38, 1.53e4,    55, 2.1f, 4, DragonFx.Aura),
             D(18, Tier.Divine,    "Архангел",          "Archangel",        "#FFFFFF","#FFF4C0","#FFD860", 45, 7.8e4,    70, 2.4f, 50, DragonFx.Halo),
-            D(19, Tier.Divine,    "Громовержец",       "Thunder God",      "#F0E0A0","#FFFFFF","#60A0FF", 50, 9.75e4,  75, 2.6f, 40, DragonFx.Sparkle),
-            D(20, Tier.Divine,    "Солнцебог",         "Sun God",          "#FFB020","#FFF080","#FF6000", 55, 1.17e5,    80, 2.8f, 10, DragonFx.Fire),
+            D(19, Tier.Divine,    "Громовержец",       "Thunder God",      "#F0E0A0","#FFFFFF","#60A0FF", 50, 9.75e4,  75, 2.6f, 28, DragonFx.Sparkle),
+            D(20, Tier.Divine,    "Солнцебог",         "Sun God",          "#FFB020","#FFF080","#FF6000", 55, 1.17e5,    80, 2.8f, 4, DragonFx.Fire),
             D(21, Tier.Secret,    "Космический",       "Cosmic",           "#1A1060","#50F0FF","#FF40E0", 65, 7.2e5,    100,3.0f, 50, DragonFx.Stars),
-            D(22, Tier.Secret,    "Радужный Бог",      "Rainbow God",      "#FFFFFF","#FF60A0","#40FFB0", 70, 9e5,    110,3.5f, 40, DragonFx.Rainbow),
-            D(23, Tier.Secret,    "Пустотник",         "Voidling",         "#100818","#8030FF","#000000", 75, 1.08e6,  120,3.5f, 10, DragonFx.Void),
+            D(22, Tier.Secret,    "Радужный Бог",      "Rainbow God",      "#FFFFFF","#FF60A0","#40FFB0", 70, 9e5,    110,3.5f, 28, DragonFx.Rainbow),
+            D(23, Tier.Secret,    "Пустотник",         "Voidling",         "#100818","#8030FF","#000000", 75, 1.08e6,  120,3.5f, 4, DragonFx.Void),
             D(24, Tier.Celestial, "Звёздный Змей",     "Star Serpent",     "#3040C0","#C0D0FF","#FFFFFF", 90, 6e6,  150,4.0f, 50, DragonFx.Stars),
-            D(25, Tier.Celestial, "Галактион",         "Galaxion",         "#6020A0","#FF80FF","#20E0FF", 100,8e6,  170,4.2f, 40, DragonFx.Rainbow),
-            D(26, Tier.Celestial, "Бесконечность",     "Infinity",         "#000000","#FFFFFF","#FFD700", 120,1e7,    200,4.5f, 10, DragonFx.Halo),
+            D(25, Tier.Celestial, "Галактион",         "Galaxion",         "#6020A0","#FF80FF","#20E0FF", 100,8e6,  170,4.2f, 28, DragonFx.Rainbow),
+            D(26, Tier.Celestial, "Бесконечность",     "Infinity",         "#000000","#FFFFFF","#FFD700", 120,1e7,    200,4.5f, 4, DragonFx.Halo),
             D(27, Tier.Ancient,   "Окаменелый Титан",  "Fossil Titan",     "#A08060","#E0D0B0","#604020", 140,7e7,    240,4.8f, 50, DragonFx.Sparkle),
-            D(28, Tier.Ancient,   "Руный Змей",        "Rune Wyrm",        "#406080","#80FFFF","#203040", 150,8.75e7,  260,5.0f, 40, DragonFx.Aura),
-            D(29, Tier.Ancient,   "Первородный",       "Primordial",       "#C06020","#FFD080","#FF2000", 170,1.05e8,    300,5.2f, 10, DragonFx.Fire),
+            D(28, Tier.Ancient,   "Руный Змей",        "Rune Wyrm",        "#406080","#80FFFF","#203040", 150,8.75e7,  260,5.0f, 28, DragonFx.Aura),
+            D(29, Tier.Ancient,   "Первородный",       "Primordial",       "#C06020","#FFD080","#FF2000", 170,1.05e8,    300,5.2f, 4, DragonFx.Fire),
             D(30, Tier.Galactic,  "Туманность",        "Nebula",           "#4020C0","#FF80E0","#20C0FF", 200,6e8,   360,5.5f, 50, DragonFx.Stars),
-            D(31, Tier.Galactic,  "Квазар",            "Quasar",           "#FFFFFF","#80C0FF","#FFFF80", 220,8e8,   400,5.8f, 40, DragonFx.Halo),
-            D(32, Tier.Galactic,  "Чёрная Дыра",       "Black Hole",       "#050008","#6000FF","#FF6000", 250,1e9,   450,6.0f, 10, DragonFx.Void),
+            D(31, Tier.Galactic,  "Квазар",            "Quasar",           "#FFFFFF","#80C0FF","#FFFF80", 220,8e8,   400,5.8f, 28, DragonFx.Halo),
+            D(32, Tier.Galactic,  "Чёрная Дыра",       "Black Hole",       "#050008","#6000FF","#FF6000", 250,1e9,   450,6.0f, 4, DragonFx.Void),
             D(33, Tier.Omega,     "Омега Прайм",       "Omega Prime",      "#FF1060","#FFD0E0","#400010", 300,6e9,   550,6.5f, 50, DragonFx.Fire),
-            D(34, Tier.Omega,     "Хронос",            "Chronos",          "#E0C060","#FFFFFF","#2040FF", 340,7.8e9, 620,7.0f, 40, DragonFx.Stars),
-            D(35, Tier.Omega,     "Абсолют",           "The Absolute",     "#FFFFFF","#000000","#FF00FF", 400,9.6e9,   700,7.5f, 10, DragonFx.Rainbow),
+            D(34, Tier.Omega,     "Хронос",            "Chronos",          "#E0C060","#FFFFFF","#2040FF", 340,7.8e9, 620,7.0f, 28, DragonFx.Stars),
+            D(35, Tier.Omega,     "Абсолют",           "The Absolute",     "#FFFFFF","#000000","#FF00FF", 400,9.6e9,   700,7.5f, 4, DragonFx.Rainbow),
             // ===== Эксклюзивы Драконьего яйца (только за донат) =====
-            X(36, Tier.Mythic,    "Кристальный Страж", "Crystal Guardian", "#60E0FF","#E0FFFF","#20A0FF", 60, 2.55e4,  80, 2.5f, 39, DragonFx.Frost),
-            X(37, Tier.Divine,    "Лавовый Титан",     "Lava Titan",       "#FF4010","#FFC040","#300800", 80, 2.34e5,  120,3.0f, 25, DragonFx.Fire),
-            X(38, Tier.Secret,    "Неоновый Кибердракон","Neon Cyberdragon","#101020","#00FFC8","#FF00C8", 110,2.25e6, 170,3.5f, 20, DragonFx.Aura),
-            X(39, Tier.Celestial, "Солнечный Бог",     "Solar Deity",      "#FFD020","#FFFFFF","#FF8000", 150,1.75e7,  230,4.2f, 10, DragonFx.Halo),
-            X(40, Tier.Galactic,  "Галактический Кит", "Galaxy Leviathan", "#200050","#80FFFF","#FF60FF", 260,1.8e9,   480,6.0f, 5,  DragonFx.Stars),
-            X(41, Tier.Omega,     "Дракон Бесконечности","Infinity Dragon","#FFFFFF","#FFD700","#000000", 500,1.8e10, 900,8.0f, 1,  DragonFx.Rainbow),
+            X(36, Tier.Mythic,    "Кристальный Страж", "Crystal Guardian", "#60E0FF","#E0FFFF","#20A0FF", 60, 2.55e4,  80, 2.5f, 45, DragonFx.Frost),
+            X(37, Tier.Divine,    "Лавовый Титан",     "Lava Titan",       "#FF4010","#FFC040","#300800", 80, 2.34e5,  120,3.0f, 28, DragonFx.Fire),
+            X(38, Tier.Secret,    "Неоновый Кибердракон","Neon Cyberdragon","#101020","#00FFC8","#FF00C8", 110,2.25e6, 170,3.5f, 17, DragonFx.Aura),
+            X(39, Tier.Celestial, "Солнечный Бог",     "Solar Deity",      "#FFD020","#FFFFFF","#FF8000", 150,1.75e7,  230,4.2f, 7, DragonFx.Halo),
+            X(40, Tier.Galactic,  "Галактический Кит", "Galaxy Leviathan", "#200050","#80FFFF","#FF60FF", 260,1.8e9,   480,6.0f, 2.5f,  DragonFx.Stars),
+            X(41, Tier.Omega,     "Дракон Бесконечности","Infinity Dragon","#FFFFFF","#FFD700","#000000", 500,1.8e10, 900,8.0f, 0.5f,  DragonFx.Rainbow),
         };
 
         public static readonly TreadmillDef[] Treadmills =
@@ -254,14 +254,14 @@ namespace DragonHeist
         }
 
         /// <summary>
-        /// Шансы тира дракона из яйца тира T (как в кейсах): T-1: 25%, T: 60%, T+1: 12%, T+2: 3%.
+        /// Шансы тира дракона из яйца тира T (как в кейсах): T-1: 25%, T: 67%, T+1: 6.5%, T+2: 1.5%.
         /// Каждый уровень удачи переносит Upgrades[3].perLevel (1%) с T-1/T на T+1.
         /// </summary>
         public static float[] TierChances(Tier egg, int luckLevel)
         {
             int t = (int)egg, n = Tiers.Length;
             var c = new float[n];
-            float lower = t > 0 ? 0.25f : 0f, same = t > 0 ? 0.60f : 0.85f, up1 = 0.12f, up2 = 0.03f;
+            float lower = t > 0 ? 0.25f : 0f, same = t > 0 ? 0.67f : 0.92f, up1 = 0.065f, up2 = 0.015f;
             float shift = Mathf.Clamp(luckLevel, 0, Upgrades[3].maxLevel) * Upgrades[3].perLevel;
             float fromLower = Mathf.Min(lower, shift); lower -= fromLower; up1 += fromLower;
             float rest = shift - fromLower; same -= rest; up1 += rest;

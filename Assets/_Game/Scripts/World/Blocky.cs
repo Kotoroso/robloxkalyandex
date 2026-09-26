@@ -128,8 +128,66 @@ namespace DragonHeist
         static Material Plastic(Color c) { return Mats.Plastic(c); }
 
         // ================= ЯЙЦО =================
-        public static GameObject BuildEgg(Transform parent, Tier tier, float size)
+        /// <summary>
+        /// Донатное Драконье яйцо (по рисунку): яйцо из блоков — жёлтые верх и низ, оранжевое тело с красными полосками,
+        /// белый пояс посередине, по бокам машущие крылья (оранжевая пластина + веер жёлтых перьев).
+        /// </summary>
+        public static GameObject BuildPremiumEgg(Transform parent, float size)
         {
+            var root = new GameObject("Egg_Premium");
+            root.transform.SetParent(parent, false);
+            float u = size * 0.16f;
+            var yellow = Mats.Plastic(new Color(1f, 0.88f, 0.05f));
+            var orange = Mats.Plastic(new Color(1f, 0.47f, 0.07f));
+            var red = Mats.Plastic(new Color(0.95f, 0.08f, 0.08f));
+            var white = Mats.Glow(new Color(1f, 1f, 1f));
+            // слои снизу вверх: ширина (в блоках) и цвет
+            float[] w = { 3f, 5f, 6f, 7f, 7f, 6f, 5f, 3f };
+            Material[] m = { yellow, yellow, orange, orange, orange, orange, yellow, yellow };
+            float y = 0;
+            for (int i = 0; i < w.Length; i++)
+            {
+                if (i == 4) // белый пояс между 4-м и 5-м слоем
+                {
+                    Part(root.transform, new Vector3(0, y + 0.4f * u, 0), new Vector3(7.5f, 0.8f, 7.5f) * u, white);
+                    y += 0.8f * u;
+                }
+                Part(root.transform, new Vector3(0, y + 0.5f * u, 0), new Vector3(w[i], 1f, w[i]) * u, m[i]);
+                // красные полоски слева и справа на каждой грани (над и под поясом)
+                if (i == 3 || i == 4)
+                    for (int f = 0; f < 4; f++)
+                    {
+                        var face = Pivot(root.transform, "Face", new Vector3(0, y + 0.5f * u, 0));
+                        face.localRotation = Quaternion.Euler(0, f * 90f, 0);
+                        for (int sx = -1; sx <= 1; sx += 2)
+                            Part(face, new Vector3(sx * 2.1f * u, 0, w[i] * 0.5f * u + 0.03f * u), new Vector3(2.2f, 0.7f, 0.1f) * u, red);
+                    }
+                y += u;
+            }
+            // крылья
+            var flap = root.AddComponent<WingFlap>();
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var wing = Pivot(root.transform, side < 0 ? "WingL" : "WingR", new Vector3(side * 3.4f * u, y * 0.55f, 0));
+                var panel = Part(wing, new Vector3(side * 1.8f * u, 1.5f * u, 0), new Vector3(3.6f, 2.6f, 0.35f) * u, orange);
+                panel.localRotation = Quaternion.Euler(0, 0, side * 36f);
+                var tip = Part(wing, new Vector3(side * 3.6f * u, 3.6f * u, 0), new Vector3(1.8f, 1.8f, 0.3f) * u, orange);
+                tip.localRotation = Quaternion.Euler(0, 0, side * 50f);
+                for (int k = 0; k < 6; k++)
+                {
+                    float t = k / 5f;
+                    var fe = Part(wing, new Vector3(side * (1.0f + t * 3.8f) * u, (0.1f + t * 3.0f) * u - 0.9f * u, 0.05f * u), new Vector3(0.6f, 2.2f - t * 0.4f, 0.28f) * u, yellow);
+                    fe.localRotation = Quaternion.Euler(0, 0, side * (8f + t * 40f));
+                }
+                if (side < 0) flap.left = wing; else flap.right = wing;
+            }
+            Fx.Sparkles(root.transform, new Vector3(0, y * 0.5f, 0), new Color(1f, 0.85f, 0.3f), 3.5f * u, 4f);
+            return root;
+        }
+
+        public static GameObject BuildEgg(Transform parent, Tier tier, float size, bool premium = false)
+        {
+            if (premium) return BuildPremiumEgg(parent, size);
             var info = GameConfig.GetTier(tier);
             var root = new GameObject("Egg_" + tier);
             root.transform.SetParent(parent, false);
@@ -780,6 +838,20 @@ namespace DragonHeist
     {
         public float amount = 15f, freq = 6f;
         void Update() { transform.localRotation = Quaternion.Euler(0, Mathf.Sin(Time.time * freq) * amount, 0); }
+    }
+
+    /// <summary>Взмахи крыльев донатного яйца.</summary>
+    public class WingFlap : MonoBehaviour
+    {
+        public Transform left, right;
+        float seed;
+        void Start() { seed = Random.value * 6f; }
+        void Update()
+        {
+            float a = Mathf.Sin((Time.time + seed) * 6f) * 22f;
+            if (left) left.localRotation = Quaternion.Euler(0, a * 0.6f, -a);
+            if (right) right.localRotation = Quaternion.Euler(0, -a * 0.6f, a);
+        }
     }
 
     public class DragonIdle : MonoBehaviour

@@ -497,7 +497,7 @@ namespace DragonHeist
                 store3D.Add(new KeyValuePair<Image, DragonDef>(xi, d));
                 var chip = UIKit.Panel(c.transform, "P", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 4), new Vector2(cwx - 22, 26), k == ex.Count - 1 ? new Color(0.95f, 0.25f, 0.35f) : new Color(0.1f, 0.08f, 0.2f, 0.9f), 2f);
                 chip.raycastTarget = false;
-                UIKit.Fit(UIKit.Inset(UIKit.Label(chip.transform, d.premiumChance + "%", 17, Color.white), 3, 2), 11);
+                UIKit.Fit(UIKit.Inset(UIKit.Label(chip.transform, d.premiumChance.ToString("0.#") + "%", 17, Color.white), 3, 2), 11);
             }
             string[] ids = { "dragon_egg_1", "dragon_egg_3", "dragon_egg_10" };
             string[] labels = Loc.Ru ? new[] { "1 ЯЙЦО", "3 ЯЙЦА", "10 ЯИЦ" } : new[] { "1 EGG", "3 EGGS", "10 EGGS" };
@@ -516,6 +516,7 @@ namespace DragonHeist
             foreach (var pd in GameConfig.Products)
             {
                 if (pd.id.StartsWith("dragon_egg") || pd.id == "x2_income" || pd.id == "x2_grow") continue;
+                if (pd.kind == ProductKind.Coins || pd.kind == ProductKind.Speed) continue; // монеты и энергетик убраны из магазина
                 int col = idx % 4, row = idx / 4;
                 var card = UIKit.Panel(content, "P" + pd.id, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((col - 1.5f) * (cw + 12), -350 - row * (ch + 12)), new Vector2(cw, ch),
                     new Color(pd.color.r * 0.5f, pd.color.g * 0.5f, pd.color.b * 0.5f, 1f), 3f);

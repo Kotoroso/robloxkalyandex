@@ -90,7 +90,7 @@ namespace DragonHeist
             shownDragon = d.dragonId;
             if (d.state == (int)PlotState.Egg)
             {
-                content = Blocky.BuildEgg(eggRoot, (Tier)d.tier, 1.6f);
+                content = Blocky.BuildEgg(eggRoot, (Tier)d.tier, 1.6f, d.dragonId == GameConfig.PremiumEggMarker);
                 Fx.Sparkles(content.transform, new Vector3(0, 1.2f, 0), GameConfig.GetTier(d.tier).color, 1.2f, 6f);
             }
             else if (d.state == (int)PlotState.Dragon)
