@@ -848,6 +848,7 @@ namespace DragonHeist
                 ui.ShowAdCountdown(Mathf.CeilToInt(adCountdown));
                 if (adCountdown <= 0)
                 {
+                    adCountdown = 0f; // чтобы CancelAdNotice убрал и надпись отсчёта
                     CancelAdNotice(ui);
                     adTimer = 0;
                     YandexSDK.ShowInterstitial(true);
@@ -865,10 +866,12 @@ namespace DragonHeist
 
         void CancelAdNotice(UIManager ui)
         {
+            // паузу уведомления снимаем ВСЕГДА (SetAdNotice идемпотентен): раньше отсчёт, ушедший ниже нуля
+            // (например -0.01), считался "уже снятым" — и игра оставалась замороженной после рекламы
+            YandexSDK.SetAdNotice(false);
             if (adCountdown < 0) return;
             adCountdown = -1f;
             if (ui != null) ui.ShowAdCountdown(0);
-            YandexSDK.SetAdNotice(false);
         }
 
         public void ResetAdTimer() { adTimer = 0; }
