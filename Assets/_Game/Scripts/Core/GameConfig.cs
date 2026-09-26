@@ -77,6 +77,7 @@ namespace DragonHeist
     {
         public string id, nameRu, nameEn, descRu, descEn;
         public double baseCost, costMult;
+        public double costAccel = 1.0; // ускорение роста цены: каждый следующий уровень дорожает сильнее предыдущего
         public float perLevel;       // эффект за уровень (доля: 0.10 = +10%; для прыжка — абсолютное значение)
         public int maxLevel;
         public Color color;
@@ -190,11 +191,11 @@ namespace DragonHeist
 
         public static readonly UpgradeDef[] Upgrades =
         {
-            new UpgradeDef{ id="train",  nameRu="Тренер",        nameEn="Coach",        descRu="+10% к прокачке скорости",     descEn="+10% speed training",   baseCost=100,  costMult=2.45, perLevel=0.10f, maxLevel=30, color=new Color(0.3f,0.8f,1f) },
-            new UpgradeDef{ id="income", nameRu="Кормушка",      nameEn="Feeder",       descRu="+8% к доходу драконов",        descEn="+8% dragon income",     baseCost=250,  costMult=2.5,  perLevel=0.08f, maxLevel=30, color=new Color(1f,0.8f,0.2f) },
-            new UpgradeDef{ id="grow",   nameRu="Удобрение",     nameEn="Fertilizer",   descRu="-3% ко времени роста яиц",      descEn="-3% egg grow time",     baseCost=1e3,  costMult=5,    perLevel=0.03f, maxLevel=10, color=new Color(0.4f,0.9f,0.4f) },
-            new UpgradeDef{ id="luck",   nameRu="Удача",         nameEn="Luck",         descRu="+1% шанс на дракона тиром выше", descEn="+1% higher tier chance", baseCost=2e3, costMult=5,  perLevel=0.01f, maxLevel=10, color=new Color(0.9f,0.4f,1f) },
-            new UpgradeDef{ id="jump",   nameRu="Пружины",       nameEn="Springs",      descRu="+0.3 к прыжку",                descEn="+0.3 jump power",       baseCost=300,  costMult=3,    perLevel=0.3f,  maxLevel=8,  color=new Color(1f,0.5f,0.4f) },
+            new UpgradeDef{ id="train",  nameRu="Тренер",        nameEn="Coach",        descRu="+10% к прокачке скорости",     descEn="+10% speed training",   baseCost=60,   costMult=1.6,  costAccel=1.045, perLevel=0.10f, maxLevel=30, color=new Color(0.3f,0.8f,1f) },
+            new UpgradeDef{ id="income", nameRu="Кормушка",      nameEn="Feeder",       descRu="+8% к доходу драконов",        descEn="+8% dragon income",     baseCost=150,  costMult=1.6,  costAccel=1.045, perLevel=0.08f, maxLevel=30, color=new Color(1f,0.8f,0.2f) },
+            new UpgradeDef{ id="grow",   nameRu="Удобрение",     nameEn="Fertilizer",   descRu="-3% ко времени роста яиц",      descEn="-3% egg grow time",     baseCost=800,  costMult=2.2,  costAccel=1.25,  perLevel=0.03f, maxLevel=10, color=new Color(0.4f,0.9f,0.4f) },
+            new UpgradeDef{ id="luck",   nameRu="Удача",         nameEn="Luck",         descRu="+1% шанс на дракона тиром выше", descEn="+1% higher tier chance", baseCost=1500, costMult=2.2, costAccel=1.25, perLevel=0.01f, maxLevel=10, color=new Color(0.9f,0.4f,1f) },
+            new UpgradeDef{ id="jump",   nameRu="Пружины",       nameEn="Springs",      descRu="+0.3 к прыжку",                descEn="+0.3 jump power",       baseCost=200,  costMult=2,    costAccel=1.3,   perLevel=0.3f,  maxLevel=8,  color=new Color(1f,0.5f,0.4f) },
         };
 
         public static readonly ProductDef[] Products =
@@ -228,7 +229,7 @@ namespace DragonHeist
         public const int DragonMaxLevel = 15;
         public static float DragonLevelIncome(int lvl) { return 1f + 0.35f * (lvl - 1); }
         public static float DragonLevelStat(int lvl) { return 1f + 0.15f * (lvl - 1); }
-        public static double DragonUpgradeCost(DragonDef d, int lvl) { return d.coinsPerSec * 40 * System.Math.Pow(1.8, lvl - 1); }
+        public static double DragonUpgradeCost(DragonDef d, int lvl) { int k = lvl - 1; return d.coinsPerSec * 25 * System.Math.Pow(1.6, k) * System.Math.Pow(1.05, k * (k - 1) / 2.0); }
 
         // ===== Ежедневная награда (7 дней по кругу) =====
         public const int DailyDays = 7;
@@ -287,7 +288,8 @@ namespace DragonHeist
         public static double PlotCost(int plotsOwned) { return 400 * System.Math.Pow(12, plotsOwned - StartPlots); }
         public static float RebirthMultiplier(int rebirths) { return 1f + rebirths; }
         public static double SellPrice(DragonDef d, int lvl = 1) { return d.coinsPerSec * 90 * DragonLevelIncome(lvl); }
-        public static double UpgradeCost(int i, int level) { var u = Upgrades[i]; return u.baseCost * System.Math.Pow(u.costMult, level); }
+        /// <summary>Цена уровня: base · mult^lvl · accel^(lvl·(lvl−1)/2) — первые уровни дешёвые, дальше всё круче и круче.</summary>
+        public static double UpgradeCost(int i, int level) { var u = Upgrades[i]; return u.baseCost * System.Math.Pow(u.costMult, level) * System.Math.Pow(u.costAccel, level * (level - 1) / 2.0); }
 
         static TierInfo T(Tier t, string ru, string en, float r, float g, float b, int grow, float gs, int gc, float aggro, BrainrotKind k, float scale, double req)
         {
