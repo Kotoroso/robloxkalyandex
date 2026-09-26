@@ -696,8 +696,15 @@ namespace DragonHeist
 
             int gridN = 0; // сколько карточек в сетке — чтобы выровнять ряд по центру
             foreach (var pd in GameConfig.Products)
-                if (!pd.id.StartsWith("dragon_egg") && pd.id != "x2_income" && pd.id != "x2_grow" && pd.kind != ProductKind.Coins && pd.kind != ProductKind.Speed) gridN++;
-            const float gridY = -350f - 200f - 12f; // сетка — под блоком x2 (x2 сразу под Драконьим яйцом)
+                if (!pd.id.StartsWith("dragon_egg") && pd.id != "x2_income" && pd.id != "x2_grow" && !pd.id.StartsWith("noads") && pd.kind != ProductKind.Coins && pd.kind != ProductKind.Speed) gridN++;
+            // порядок: 1) Драконье яйцо, 2) Без рекламы навсегда, 3) Без рекламы 2 часа, 4) x2, 5) остальное
+            const float noAdsY = -350f, x2Y = noAdsY - 200f - 12f;
+            const float gridY = x2Y - 200f - 12f;
+            float halfW = (w - 12) / 2f;
+            NoAdsCard(content, "noads_forever", new Vector2(-halfW / 2f - 6, noAdsY), new Vector2(halfW, 200), new Color(0.95f, 0.3f, 0.45f),
+                Loc.Ru ? "БЕЗ РЕКЛАМЫ\nНАВСЕГДА" : "NO ADS\nFOREVER", Loc.Ru ? "Реклама отключается навсегда" : "Ads removed forever");
+            NoAdsCard(content, "noads_2h", new Vector2(halfW / 2f + 6, noAdsY), new Vector2(halfW, 200), new Color(0.55f, 0.4f, 0.95f),
+                Loc.Ru ? "БЕЗ РЕКЛАМЫ\n2 ЧАСА" : "NO ADS\n2 HOURS", Loc.Ru ? "Можно докупать — время складывается" : "Stackable — time adds up");
             // --- товары (Золотое яйцо, x2 прокачка, монеты, энергетик): сетка сразу под Драконьим яйцом ---
             int idx = 0;
             float cw = (w - 36) / 4f, ch = 250;
@@ -705,6 +712,7 @@ namespace DragonHeist
             {
                 if (pd.id.StartsWith("dragon_egg") || pd.id == "x2_income" || pd.id == "x2_grow") continue;
                 if (pd.kind == ProductKind.Coins || pd.kind == ProductKind.Speed) continue; // монеты и энергетик убраны из магазина
+                if (pd.id.StartsWith("noads")) continue; // "Без рекламы" — отдельными карточками на 2 и 3 месте
                 int col = idx % 4, row = idx / 4;
                 var card = UIKit.Panel(content, "P" + pd.id, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((col - (Mathf.Min(gridN, 4) - 1) / 2f) * (cw + 12), gridY - row * (ch + 12)), new Vector2(cw, ch),
                     new Color(pd.color.r * 0.5f, pd.color.g * 0.5f, pd.color.b * 0.5f, 1f), 3f);
@@ -719,14 +727,14 @@ namespace DragonHeist
             }
             // --- x2 Доход и x2 Рост: сразу под Драконьим яйцом ---
             float half = (w - 12) / 2f;
-            var inc = UIKit.Panel(content, "X2Income", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-half / 2f - 6, -350f), new Vector2(half, 200), new Color(1f, 0.85f, 0.2f), 3f);
+            var inc = UIKit.Panel(content, "X2Income", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-half / 2f - 6, x2Y), new Vector2(half, 200), new Color(1f, 0.85f, 0.2f), 3f);
             UIKit.Icon(inc.transform, Icons.Coin, new Vector2(0, 0.5f), new Vector2(64, 14), 110);
             UIKit.Icon(inc.transform, Icons.Coin, new Vector2(0, 0.5f), new Vector2(100, -10), 110);
             X2Badge(inc.transform, new Vector2(150, -40));
             ArtOverlay(inc.transform, "store_x2_income", new Vector2(100, 0), 170);
             UIKit.Fit(UIKit.Label(UIKit.Rect(inc.transform, "T", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -12), new Vector2(210, 56)), Loc.Ru ? "x2 Доход" : "x2 Income", 32, Color.white, TextAnchor.MiddleRight), 20);
             YanBuy(inc.transform, "x2_income", new Vector2(1, 0), new Vector2(-110, 50), new Vector2(190, 62), new Color(0.25f, 0.8f, 0.3f), 24);
-            var gr = UIKit.Panel(content, "X2Grow", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(half / 2f + 6, -350f), new Vector2(half, 200), new Color(0.4f, 0.85f, 0.95f), 3f);
+            var gr = UIKit.Panel(content, "X2Grow", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(half / 2f + 6, x2Y), new Vector2(half, 200), new Color(0.4f, 0.85f, 0.95f), 3f);
             UIKit.Icon(gr.transform, IconArt.Egg(Tier.Rare), new Vector2(0, 0.5f), new Vector2(84, 6), 150);
             X2Badge(gr.transform, new Vector2(150, -40));
             ArtOverlay(gr.transform, "store_x2_grow", new Vector2(100, 0), 170);
@@ -737,6 +745,17 @@ namespace DragonHeist
             int gridRows = (idx + 3) / 4;
             content.sizeDelta = new Vector2(body.sizeDelta.x, Mathf.Max(body.sizeDelta.y, -gridY + gridRows * (ch + 12) + 8));
             return go;
+        }
+
+        /// <summary>Большая карточка "Без рекламы": иконка слева, заголовок и подпись справа, кнопка цены.</summary>
+        void NoAdsCard(RectTransform content, string id, Vector2 pos, Vector2 size, Color color, string title, string sub)
+        {
+            var c = UIKit.Panel(content, "NoAds_" + id, new Vector2(0.5f, 1), new Vector2(0.5f, 1), pos, size, color, 3f);
+            UIKit.Icon(c.transform, Icons.Art("icon_noads") ?? Icons.Star, new Vector2(0, 0.5f), new Vector2(88, 0), 150);
+            UIKit.Fit(UIKit.Label(UIKit.Rect(c.transform, "T", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -8), new Vector2(size.x - 190, 76)), title, 28, Color.white, TextAnchor.MiddleRight), 16);
+            UIKit.Fit(UIKit.Label(UIKit.Rect(c.transform, "S", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -84), new Vector2(size.x - 190, 30)), sub, 16, new Color(1f, 0.95f, 1f), TextAnchor.MiddleRight), 11);
+            YanBuy(c.transform, id, new Vector2(1, 0), new Vector2(-110, 44), new Vector2(190, 58), new Color(0.25f, 0.8f, 0.3f), 22);
+            if (id == "noads_forever") c.gameObject.AddComponent<ShineSweep>();
         }
 
         /// <summary>Если есть своя картинка Resources/Art/&lt;name&gt;.png — кладём её поверх нарисованной иконки.</summary>
