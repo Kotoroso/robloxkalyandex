@@ -48,10 +48,24 @@ namespace DragonHeist.EditorTools
             PlayerSettings.WebGL.decompressionFallback = true;       // работает на любом хостинге
             PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.None;
             PlayerSettings.WebGL.dataCaching = true;
+            PlayerSettings.WebGL.nameFilesAsHashes = true;           // новое имя файла при изменении — кэш браузера/CDN не отдаст старую сборку
+            EditorUserBuildSettings.development = false;
+            // только WebGL 2.0 (OpenGLES3): без WebGL1-фолбэка и лишних вариантов шейдеров
+            PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.WebGL, false);
+            PlayerSettings.SetGraphicsAPIs(BuildTarget.WebGL, new[] { UnityEngine.Rendering.GraphicsDeviceType.OpenGLES3 });
+            // High: движок и BCL режутся сильнее (меньше wasm → быстрее загрузка); код игры защищён Assets/_Game/link.xml
 #if UNITY_2021_2_OR_NEWER
-            PlayerSettings.SetManagedStrippingLevel(UnityEditor.Build.NamedBuildTarget.WebGL, ManagedStrippingLevel.Medium);
+            PlayerSettings.SetManagedStrippingLevel(UnityEditor.Build.NamedBuildTarget.WebGL, ManagedStrippingLevel.High);
 #else
-            PlayerSettings.SetManagedStrippingLevel(BuildTargetGroup.WebGL, ManagedStrippingLevel.Medium);
+            PlayerSettings.SetManagedStrippingLevel(BuildTargetGroup.WebGL, ManagedStrippingLevel.High);
+#endif
+#if UNITY_2022_1_OR_NEWER
+            // IL2CPP "Faster (smaller) builds": заметно меньше wasm, на скорость этой игры почти не влияет
+            PlayerSettings.SetIl2CppCodeGeneration(UnityEditor.Build.NamedBuildTarget.WebGL, UnityEditor.Build.Il2CppCodeGeneration.OptimizeSize);
+            // память: сразу 128 МБ (мир строится кодом — без серии дорогих ростов кучи при загрузке), рост геометрический, потолок 2 ГБ
+            PlayerSettings.WebGL.initialMemorySize = 128;
+            PlayerSettings.WebGL.memoryGrowthMode = WebGLMemoryGrowthMode.Geometric;
+            PlayerSettings.WebGL.maximumMemorySize = 2048;
 #endif
             AssetDatabase.SaveAssets();
             Debug.Log("[Dragon Heist] Проект настроен под WebGL / Яндекс Игры.");
@@ -129,7 +143,8 @@ namespace DragonHeist.EditorTools
             string[] names =
             {
                 "Legacy Shaders/Particles/Alpha Blended", "Legacy Shaders/Particles/Additive",
-                "Legacy Shaders/Transparent/Diffuse", "Unlit/Color", "Skybox/Procedural"
+                "Legacy Shaders/Transparent/Diffuse", "Unlit/Color", "Skybox/Procedural",
+                "Legacy Shaders/Diffuse" // дешёвое освещение на телефонах (Mats.SetCheapLighting)
             };
             var gs = AssetDatabase.LoadAssetAtPath<Object>("ProjectSettings/GraphicsSettings.asset");
             if (gs == null) return;

@@ -1,0 +1,10 @@
+<!--
+  Защита от вырезания кода при Managed Stripping Level = High (Editor/YandexBuild.cs).
+  Код игры целиком сохраняется: поля [Serializable]-классов для JsonUtility (SaveData, каталог/покупки Яндекса)
+  и методы YandexSDK, которые JS вызывает через SendMessage (по имени, через рефлексию).
+  Агрессивно вырезаются только движок и BCL — это и уменьшает размер wasm.
+-->
+<linker>
+  <assembly fullname="Assembly-CSharp" preserve="all" />
+  <assembly fullname="UnityEngine.UI" preserve="all" />
+</linker>
