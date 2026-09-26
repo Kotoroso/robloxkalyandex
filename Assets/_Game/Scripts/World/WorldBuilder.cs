@@ -130,16 +130,16 @@ namespace DragonHeist
             var sun = new GameObject("Sun").AddComponent<Light>();
             sun.type = LightType.Directional;
             sun.transform.rotation = Quaternion.Euler(52f, -35f, 0);
-            sun.intensity = 1.05f;
+            sun.intensity = 0.95f;
             sun.color = new Color(1f, 0.97f, 0.9f);
             bool mobile = InputState.Mobile;
             sun.shadows = mobile ? LightShadows.None : LightShadows.Hard;
             sun.shadowStrength = 0.45f;
 
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.75f, 0.82f, 0.95f);
-            RenderSettings.ambientEquatorColor = new Color(0.6f, 0.65f, 0.7f);
-            RenderSettings.ambientGroundColor = new Color(0.4f, 0.4f, 0.42f);
+            RenderSettings.ambientSkyColor = new Color(0.55f, 0.62f, 0.75f);
+            RenderSettings.ambientEquatorColor = new Color(0.45f, 0.48f, 0.52f);
+            RenderSettings.ambientGroundColor = new Color(0.3f, 0.3f, 0.32f);
             RenderSettings.skybox = null;
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Linear;

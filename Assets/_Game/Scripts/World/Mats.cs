@@ -47,8 +47,8 @@ namespace DragonHeist
         /// <summary>Пластик со студами. tiling = размер детали в студах.</summary>
         public static Material Studs(Color c, float tx, float ty)
         {
-            tx = Mathf.Max(1, Mathf.Round(tx / 2f)); // 1 стад = 2 юнита
-            ty = Mathf.Max(1, Mathf.Round(ty / 2f));
+            tx = Mathf.Max(1, Mathf.Round(tx)); // 1 стад = 1 юнит (персонаж ~5 студов ростом, как в Роблоксе)
+            ty = Mathf.Max(1, Mathf.Round(ty));
             string key = "s" + ColorUtility.ToHtmlStringRGB(c) + "_" + tx + "_" + ty;
             Material m;
             if (cache.TryGetValue(key, out m)) return m;
@@ -117,19 +117,19 @@ namespace DragonHeist
                 for (int y = 0; y < N; y++)
                     for (int x = 0; x < N; x++)
                     {
-                        float v = 1f;
+                        float v = 0.97f;
                         // лёгкий шов по краю плитки
-                        if (x == 0 || y == 0) v = 0.86f;
+                        if (x == 0 || y == 0) v = 0.9f;
                         Vector2 p = new Vector2(x + 0.5f, y + 0.5f);
                         float d = Vector2.Distance(p, c);
-                        if (d < 17f)
+                        if (d < 18f)
                         {
-                            // стад: верх светлее, низ темнее
-                            float light = Mathf.Clamp01((p.y - c.y) / 17f * 0.5f + 0.5f);
-                            v = Mathf.Lerp(0.88f, 1.08f, light);
-                            if (d > 15f) v = 0.8f;
+                            // стад: верх чуть светлее, низ чуть темнее — мягко, без пересвета
+                            float light = Mathf.Clamp01((p.y - c.y) / 18f * 0.5f + 0.5f);
+                            v = Mathf.Lerp(0.92f, 1f, light);
+                            if (d > 16f) v = 0.88f;
                         }
-                        else if (d < 19f && p.y < c.y) v = 0.82f; // тень от стада
+                        else if (d < 20f && p.y < c.y) v = 0.9f; // тень от стада
                         px[y * N + x] = new UnityEngine.Color(v, v, v);
                     }
                 studTex.SetPixels(px);
@@ -150,16 +150,15 @@ namespace DragonHeist
                 var px = new UnityEngine.Color[N * N];
                 for (int i = 0; i < px.Length; i++) px[i] = UnityEngine.Color.white;
                 UnityEngine.Color black = new UnityEngine.Color(0.08f, 0.08f, 0.08f);
-                // глаза (овалы)
+                // глаза (овалы) и широкая улыбка — классический роблокс-смайлик
                 for (int y = 0; y < N; y++)
                     for (int x = 0; x < N; x++)
                     {
-                        float ex1 = (x - 22) / 3.2f, ey = (y - 38) / 5.5f, ex2 = (x - 42) / 3.2f;
+                        float ex1 = (x - 22) / 4.2f, ey = (y - 40) / 7.5f, ex2 = (x - 42) / 4.2f;
                         if (ex1 * ex1 + ey * ey < 1 || ex2 * ex2 + ey * ey < 1) px[y * N + x] = black;
-                        // улыбка — дуга
-                        float dx = x - 32, dy = y - 34;
+                        float dx = x - 32, dy = y - 36;
                         float r = Mathf.Sqrt(dx * dx + dy * dy);
-                        if (r > 13 && r < 16.5f && dy < -6) px[y * N + x] = black;
+                        if (r > 17f && r < 21.5f && dy < -9f) px[y * N + x] = black;
                     }
                 faceTex.SetPixels(px);
                 faceTex.Apply();

@@ -20,6 +20,11 @@ namespace DragonHeist
             return m;
         }
 
+        /// <summary>Когда true, кубы строятся со скруглёнными краями (персонажи, брейнроты, драконы).</summary>
+        public static bool Round;
+        public static float RoundFactor = 0.2f;
+        public static int RoundSteps = 1; // 1 = фаска (дёшево для мобилок), 2+ = плавнее
+
         public static Transform Part(Transform parent, Vector3 localPos, Vector3 size, Material mat,
             bool collider = false, PrimitiveType type = PrimitiveType.Cube)
         {
@@ -27,8 +32,17 @@ namespace DragonHeist
             var t = go.transform;
             t.SetParent(parent, false);
             t.localPosition = localPos;
-            t.localScale = size;
-            go.AddComponent<MeshFilter>().sharedMesh = GetMesh(type);
+            if (Round && type == PrimitiveType.Cube && !collider)
+            {
+                float minSide = Mathf.Min(size.x, Mathf.Min(size.y, size.z));
+                t.localScale = Vector3.one;
+                go.AddComponent<MeshFilter>().sharedMesh = RoundedMesh.Box(size, minSide * RoundFactor, RoundSteps);
+            }
+            else
+            {
+                t.localScale = size;
+                go.AddComponent<MeshFilter>().sharedMesh = GetMesh(type);
+            }
             go.AddComponent<MeshRenderer>().sharedMaterial = mat;
             if (collider)
             {
@@ -74,23 +88,32 @@ namespace DragonHeist
             var m = a.model;
 
             var skinM = Plastic(skin); var shirtM = Plastic(shirt); var pantsM = Plastic(pants);
-            // Торс
+            Round = true;
+            RoundSteps = 2;
+            // Торс 2x2x1 (пропорции R6)
+            RoundFactor = 0.12f;
             Part(m, new Vector3(0, 3f, 0), new Vector3(2f, 2f, 1f), shirtM);
-            // Голова + лицо
-            a.head = Pivot(m, "Head", new Vector3(0, 4.6f, 0));
-            Part(a.head, Vector3.zero, new Vector3(1.25f, 1.2f, 1.25f), skinM);
-            var face = Part(a.head, new Vector3(0, 0, 0.63f), new Vector3(1.1f, 1.05f, 0.02f), Mats.Face(skin));
-            face.localRotation = Quaternion.Euler(0, 180, 0);
-            // Руки (пивот в плече)
-            a.lArm = Pivot(m, "LArm", new Vector3(-1.5f, 3.9f, 0));
-            Part(a.lArm, new Vector3(0, -0.9f, 0), new Vector3(1f, 2f, 1f), skinM);
-            a.rArm = Pivot(m, "RArm", new Vector3(1.5f, 3.9f, 0));
-            Part(a.rArm, new Vector3(0, -0.9f, 0), new Vector3(1f, 2f, 1f), skinM);
-            // Ноги (пивот в бедре)
+            // Руки и ноги 1x2x1 с маленькими зазорами, чтобы детали читались как отдельные "кубики"
+            a.lArm = Pivot(m, "LArm", new Vector3(-1.52f, 3.9f, 0));
+            Part(a.lArm, new Vector3(0, -0.9f, 0), new Vector3(0.98f, 2f, 0.98f), skinM);
+            a.rArm = Pivot(m, "RArm", new Vector3(1.52f, 3.9f, 0));
+            Part(a.rArm, new Vector3(0, -0.9f, 0), new Vector3(0.98f, 2f, 0.98f), skinM);
             a.lLeg = Pivot(m, "LLeg", new Vector3(-0.5f, 2f, 0));
-            Part(a.lLeg, new Vector3(0, -1f, 0), new Vector3(1f, 2f, 1f), pantsM);
+            Part(a.lLeg, new Vector3(0, -1f, 0), new Vector3(0.96f, 2f, 0.98f), pantsM);
             a.rLeg = Pivot(m, "RLeg", new Vector3(0.5f, 2f, 0));
-            Part(a.rLeg, new Vector3(0, -1f, 0), new Vector3(1f, 2f, 1f), pantsM);
+            Part(a.rLeg, new Vector3(0, -1f, 0), new Vector3(0.96f, 2f, 0.98f), pantsM);
+            // Голова: круглая "роблокс-голова" с крупным смайликом
+            a.head = Pivot(m, "Head", new Vector3(0, 4.62f, 0));
+            RoundFactor = 0.3f;
+            var headT = new GameObject("HeadMesh").transform;
+            headT.SetParent(a.head, false);
+            headT.gameObject.AddComponent<MeshFilter>().sharedMesh = RoundedMesh.Box(new Vector3(1.2f, 1.2f, 1.2f), 0.36f, 4);
+            headT.gameObject.AddComponent<MeshRenderer>().sharedMaterial = skinM;
+            var face = Part(a.head, new Vector3(0, 0.02f, 0.602f), new Vector3(0.62f, 0.62f, 1f), Mats.Face(skin), false, PrimitiveType.Quad);
+            face.localRotation = Quaternion.Euler(0, 180, 0);
+            Round = false;
+            RoundFactor = 0.2f;
+            RoundSteps = 1;
 
             a.carryPoint = Pivot(m, "Carry", new Vector3(0, 6.6f, 0));
             return a;
@@ -134,6 +157,7 @@ namespace DragonHeist
             var body = Plastic(d.body); var belly = Plastic(d.belly); var wing = Plastic(d.wing);
             var dark = Plastic(new Color(0.08f, 0.08f, 0.08f)); var white = Plastic(Color.white);
             var horn = Plastic(Color.Lerp(d.belly, Color.white, 0.4f));
+            Round = true;
 
             Part(m, new Vector3(0, 1.3f, 0), new Vector3(1.6f, 1.3f, 2.4f), body);
             Part(m, new Vector3(0, 1.05f, 0.25f), new Vector3(1.3f, 0.9f, 1.9f), belly);
@@ -175,6 +199,7 @@ namespace DragonHeist
             for (int i = 0; i < (int)d.tier; i++)
                 Part(m, new Vector3(0, 2.0f, 0.8f - i * 0.45f), new Vector3(0.12f, 0.4f, 0.3f), wing);
 
+            Round = false;
             var idle = root.AddComponent<DragonIdle>();
             idle.lWing = lw; idle.rWing = rw; idle.head = head; idle.model = m;
             return root;
@@ -197,6 +222,7 @@ namespace DragonHeist
             g.model = Pivot(g.root.transform, "Model", Vector3.zero);
             g.model.localScale = Vector3.one * scale;
             var m = g.model;
+            Round = true;
             var white = Plastic(Color.white); var black = Plastic(new Color(0.07f, 0.07f, 0.07f));
             var red = Plastic(new Color(0.85f, 0.15f, 0.15f));
             Transform l1, l2, a1 = null, a2 = null;
@@ -325,6 +351,7 @@ namespace DragonHeist
                     break;
                 }
             }
+            Round = false;
             g.legs = new[] { l1, l2 };
             g.arms = a1 != null ? new[] { a1, a2 } : new Transform[0];
             return g;
