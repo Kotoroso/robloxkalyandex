@@ -28,7 +28,8 @@ namespace DragonHeist
         public bool Owns(string id) { return D.ownedProducts.Contains(id); }
         public float CoinMultiplier { get { return GameConfig.RebirthMultiplier(D.rebirths) * (1f + UpgEffect(1)) * (Owns("x2_income") ? 2f : 1f); } }
         public float TrainMultiplier { get { return GameConfig.RebirthMultiplier(D.rebirths) * (1f + UpgEffect(0)) * (1f + DragonTrainPct / 100f) * (Owns("x2_train") ? 2f : 1f) * TrailMultiplier; } }
-        public float TrailMultiplier { get { int t = D.equippedTrail; return t >= 0 && t < GameConfig.Trails.Length ? GameConfig.Trails[t].mult : 1f; } }
+        /// <summary>Трейлы — только красота: скорость не увеличивают.</summary>
+        public float TrailMultiplier { get { return 1f; } }
         public float GrowFactor { get { return (1f - UpgEffect(2)) * (Owns("x2_grow") ? 0.5f : 1f); } }
         public int LuckLevel { get { return UpgLevel(3); } }
         public double CoinsPerSec { get { return DragonCps * CoinMultiplier; } }
@@ -820,26 +821,40 @@ namespace DragonHeist
         {
             var ui = UIManager.Instance;
             UpdateBanner(dt);
-            if (AdsDisabled) { if (adCountdown >= 0) { adCountdown = -1f; if (ui != null) ui.ShowAdCountdown(0); } adTimer = 0; return; }
-            if (ui == null || InputState.Blocked || YandexSDK.AdOpen) return;
+            if (AdsDisabled) { CancelAdNotice(ui); adTimer = 0; return; }
+            // реклама открыта / вкладка скрыта / game_api_pause / меню или рулетка — таймер стоит, предупреждение снимаем
+            if (ui == null || InputState.Blocked || YandexSDK.Paused) { CancelAdNotice(ui); return; }
             var p = PlayerController.Instance;
+            // логическая пауза: не несём яйцо, не крутится рулетка, яйцо не открывается
             bool safe = p != null && p.Carrying == null && !Roulette.Active && !Opening;
             if (adCountdown >= 0)
             {
-                if (!safe) { adCountdown = -1f; return; }
+                if (!safe) { CancelAdNotice(ui); return; }
                 adCountdown -= dt;
                 ui.ShowAdCountdown(Mathf.CeilToInt(adCountdown));
                 if (adCountdown <= 0)
                 {
-                    adCountdown = -1f;
+                    CancelAdNotice(ui);
                     adTimer = 0;
-                    ui.ShowAdCountdown(0);
                     YandexSDK.ShowInterstitial(true);
                 }
                 return;
             }
             adTimer += dt;
-            if (adTimer >= GameConfig.AdInterval && safe) adCountdown = 3f;
+            if (adTimer >= GameConfig.AdInterval && safe)
+            {
+                // требование 4.4: уведомление ~2 секунды, игра на паузе во время уведомления и показа
+                adCountdown = 2f;
+                YandexSDK.SetAdNotice(true);
+            }
+        }
+
+        void CancelAdNotice(UIManager ui)
+        {
+            if (adCountdown < 0) return;
+            adCountdown = -1f;
+            if (ui != null) ui.ShowAdCountdown(0);
+            YandexSDK.SetAdNotice(false);
         }
 
         public void ResetAdTimer() { adTimer = 0; }

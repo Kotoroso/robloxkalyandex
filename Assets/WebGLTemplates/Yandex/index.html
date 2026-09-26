@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=yes">
@@ -8,7 +8,8 @@
   <script src="/sdk.js"></script>
   <style>
     html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #1b2a3a;
-      touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+      touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent; overscroll-behavior: none; position: fixed; }
     #unity-canvas { width: 100%; height: 100%; display: block; background: #1b2a3a; outline: none; }
     #loader { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
       font-family: Arial, sans-serif; color: #fff; background: linear-gradient(#3aa0ff, #1b5fa8); }
@@ -24,19 +25,62 @@
     window.ysdk = null;
     window.yplayer = null;
     window.unityInstance = null;
+    window.ygApiPaused = false;
+
+    function ygSend(method, arg) {
+      if (window.unityInstance) window.unityInstance.SendMessage("YandexSDK", method, arg || "");
+    }
+
+    // Отложенные вызовы из Unity (YandexBridge.jslib): LoadingAPI.ready() и GameplayAPI.start/stop,
+    // если Unity дошла до них раньше, чем завершился YaGames.init().
+    window.ygFlushPending = function () {
+      var sdk = window.ysdk;
+      if (!sdk || !sdk.features) return;
+      try {
+        if (window.ygReadyPending && !window.ygReadySent && sdk.features.LoadingAPI) {
+          window.ygReadySent = true;
+          sdk.features.LoadingAPI.ready();
+        }
+        // разметку геймплея шлём только после ready()
+        if (window.ygReadySent && window.ygGameplayPending && sdk.features.GameplayAPI) {
+          var g = window.ygGameplayPending;
+          window.ygGameplayPending = null;
+          if (g === "start") sdk.features.GameplayAPI.start(); else sdk.features.GameplayAPI.stop();
+        }
+      } catch (e) { console.warn(e); }
+    };
 
     function initYandex() {
-      if (typeof YaGames === "undefined") { window.yplayerFailed = true; return; }
+      if (typeof YaGames === "undefined") { window.ysdkFailed = true; window.yplayerFailed = true; return; }
       YaGames.init().then(function (sdk) {
         window.ysdk = sdk;
+        // Пауза/возобновление от платформы: реклама при запуске (без колбэков), диалог покупки, смена вкладки.
+        // Платформа сама вызывает GameplayAPI.stop()/start(); игра глушит звук и ставит паузу.
+        if (typeof sdk.on === "function") {
+          sdk.on("game_api_pause", function () { window.ygApiPaused = true; ygSend("OnGameApiPause"); });
+          sdk.on("game_api_resume", function () { window.ygApiPaused = false; ygSend("OnGameApiResume"); });
+        }
+        window.ygFlushPending();
         sdk.getPlayer({ scopes: false }).then(function (p) { window.yplayer = p; })
           .catch(function () { window.yplayerFailed = true; });
-      }).catch(function (e) { console.warn("YaGames init failed", e); window.yplayerFailed = true; });
+      }).catch(function (e) { console.warn("YaGames init failed", e); window.ysdkFailed = true; window.yplayerFailed = true; });
     }
     initYandex();
 
     document.addEventListener("visibilitychange", function () {
-      if (window.unityInstance) window.unityInstance.SendMessage("YandexSDK", "OnVisibility", document.hidden ? "0" : "1");
+      ygSend("OnVisibility", document.hidden ? "0" : "1");
+    });
+
+    // Без контекстного меню, выделения, скролла/зума страницы (длинный тап, колесо, пинч, пробел/стрелки)
+    document.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    document.addEventListener("selectstart", function (e) { e.preventDefault(); });
+    document.addEventListener("touchmove", function (e) { e.preventDefault(); }, { passive: false });
+    document.addEventListener("touchstart", function (e) { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+    document.addEventListener("gesturestart", function (e) { e.preventDefault(); });
+    document.addEventListener("dblclick", function (e) { e.preventDefault(); });
+    window.addEventListener("wheel", function (e) { e.preventDefault(); }, { passive: false });
+    window.addEventListener("keydown", function (e) {
+      if ([32, 33, 34, 35, 36, 37, 38, 39, 40].indexOf(e.keyCode) >= 0) e.preventDefault();
     });
 
     var canvas = document.querySelector("#unity-canvas");
@@ -67,6 +111,9 @@
       }).then(function (instance) {
         window.unityInstance = instance;
         document.querySelector("#loader").style.display = "none";
+        // события, пришедшие до старта Unity (реклама при запуске, скрытая вкладка)
+        if (window.ygApiPaused) ygSend("OnGameApiPause");
+        if (document.hidden) ygSend("OnVisibility", "0");
         canvas.focus();
       }).catch(function (message) { console.error(message); });
     };

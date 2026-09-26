@@ -36,7 +36,7 @@ mergeInto(LibraryManager.library, {
 
   YG_Purchase: function (idPtr) {
     var id = UTF8ToString(idPtr);
-    if (!window.ypayments) { window.unityInstance.SendMessage("YandexSDK", "OnPurchaseFailed", id); return; }
+    if (!window.ypayments) { window.unityInstance && window.unityInstance.SendMessage("YandexSDK", "OnPurchaseFailed", id); return; }
     window.ypayments.purchase({ id: id }).then(function (pur) {
       window.unityInstance.SendMessage("YandexSDK", "OnPurchaseSuccess", JSON.stringify({ id: pur.productID, token: pur.purchaseToken }));
     }).catch(function () {
@@ -49,34 +49,32 @@ mergeInto(LibraryManager.library, {
     if (window.ypayments) window.ypayments.consumePurchase(token).catch(function (e) { console.warn("consume", e); });
   },
 
+  // 1 — SDK готов ИЛИ точно недоступен (нет sdk.js / init упал), чтобы Unity не ждала зря
   YG_IsReady: function () {
-    return window.ysdk ? 1 : 0;
+    return (window.ysdk || window.ysdkFailed) ? 1 : 0;
   },
 
+  // LoadingAPI.ready(). Если SDK ещё инициализируется — index.html вызовет ready() сразу после YaGames.init()
   YG_GameReady: function () {
-    try {
-      if (window.ysdk && window.ysdk.features && window.ysdk.features.LoadingAPI)
-        window.ysdk.features.LoadingAPI.ready();
-    } catch (e) { console.warn(e); }
+    window.ygReadyPending = true;
+    if (window.ygFlushPending) window.ygFlushPending();
   },
 
+  // GameplayAPI.start()/stop(): запоминаем желаемое состояние; если SDK ещё нет — применится после init
   YG_GameplayStart: function () {
-    try {
-      if (window.ysdk && window.ysdk.features && window.ysdk.features.GameplayAPI)
-        window.ysdk.features.GameplayAPI.start();
-    } catch (e) { }
+    window.ygGameplayPending = "start";
+    if (window.ygFlushPending) window.ygFlushPending();
   },
 
   YG_GameplayStop: function () {
-    try {
-      if (window.ysdk && window.ysdk.features && window.ysdk.features.GameplayAPI)
-        window.ysdk.features.GameplayAPI.stop();
-    } catch (e) { }
+    window.ygGameplayPending = "stop";
+    if (window.ygFlushPending) window.ygFlushPending();
   },
 
   YG_GetLang: function () {
-    var lang = "ru";
-    try { if (window.ysdk) lang = window.ysdk.environment.i18n.lang; } catch (e) { }
+    // язык интерфейса портала (требование 2.14: язык определяется автоматически); "" — SDK нет, Unity возьмёт язык системы
+    var lang = "";
+    try { if (window.ysdk) lang = window.ysdk.environment.i18n.lang || ""; } catch (e) { }
     var size = lengthBytesUTF8(lang) + 1;
     var buf = _malloc(size);
     stringToUTF8(lang, buf, size);
@@ -97,7 +95,8 @@ mergeInto(LibraryManager.library, {
       callbacks: {
         onOpen: function () { window.unityInstance && window.unityInstance.SendMessage("YandexSDK", "OnAdOpen", ""); },
         onClose: function () { window.unityInstance && window.unityInstance.SendMessage("YandexSDK", "OnAdClose", ""); },
-        onError: function () { window.unityInstance && window.unityInstance.SendMessage("YandexSDK", "OnAdClose", ""); }
+        onError: function () { window.unityInstance && window.unityInstance.SendMessage("YandexSDK", "OnAdClose", ""); },
+        onOffline: function () { window.unityInstance && window.unityInstance.SendMessage("YandexSDK", "OnAdClose", ""); }
       }
     });
   },
@@ -120,25 +119,29 @@ mergeInto(LibraryManager.library, {
   YG_SaveData: function (jsonPtr) {
     var json = UTF8ToString(jsonPtr);
     try { localStorage.setItem("dragon_heist_backup", json); } catch (e) { }
-    if (window.yplayer) {
+    // пишем в облако только после успешного чтения облака — иначе можно затереть прогресс игрока
+    if (window.yplayer && window.ygCloudRead) {
       window.yplayer.setData({ save: json }, false).catch(function (e) { console.warn("setData", e); });
     }
   },
 
   YG_LoadData: function () {
-    var send = function (s) {
+    var send = function (m, s) {
       // Unity-инстанс может быть ещё не присвоен — ждём его
-      if (window.unityInstance) window.unityInstance.SendMessage("YandexSDK", "OnCloudData", s || "");
-      else setTimeout(function () { send(s); }, 100);
+      if (window.unityInstance) window.unityInstance.SendMessage("YandexSDK", m, s || "");
+      else setTimeout(function () { send(m, s); }, 100);
     };
     var tryLoad = function (attempt) {
       if (window.yplayer) {
-        window.yplayer.getData(["save"]).then(function (d) { send(d && d.save ? d.save : ""); })
-          .catch(function () { send(""); });
-      } else if (attempt < 30 && !window.yplayerFailed) {
+        window.yplayer.getData(["save"]).then(function (d) {
+          window.ygCloudRead = true;
+          send("OnCloudData", d && d.save ? d.save : "");
+        }).catch(function (e) { console.warn("getData", e); send("OnCloudFailed", ""); });
+      } else if (attempt < 100 && !window.yplayerFailed) {
         setTimeout(function () { tryLoad(attempt + 1); }, 100);
       } else {
-        send("");
+        // игрок недоступен — только локальное сохранение, облако не трогаем
+        send("OnCloudFailed", "");
       }
     };
     tryLoad(0);

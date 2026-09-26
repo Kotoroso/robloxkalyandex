@@ -630,7 +630,7 @@ namespace DragonHeist
                 if (trailArt == null) shoe.color = Color.Lerp(t.a, Color.white, 0.4f);
                 var band = UIKit.Panel(card.transform, "Band", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 92), new Vector2(cw - 20, 50), new Color(0, 0, 0, 0.25f));
                 band.raycastTarget = false;
-                UIKit.Fit(UIKit.Label(band.transform, (Loc.Ru ? "Скорость x" : "Speed x") + t.mult.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture), 24, Color.white), 15);
+                UIKit.Fit(UIKit.Label(band.transform, Loc.Ru ? "Красивый след" : "Cool trail", 24, Color.white), 15); // трейлы скорость не дают
                 var cb = UIKit.Button(card.transform, "Coin", "", new Vector2(0, 0), new Vector2(0, 0), new Vector2(10, 12), new Vector2(160, 66), new Color(0.25f, 0.85f, 0.3f), () => { GameManager.Instance.BuyTrailForCoins(k); RefreshPanels(); }, 24);
                 trailCoinBtn[i] = cb.GetComponentInChildren<Text>();
                 var yb = UIKit.Button(card.transform, "Yan", "", new Vector2(1, 0), new Vector2(1, 0), new Vector2(-10, 12), new Vector2(92, 66), new Color(0.85f, 0.25f, 0.9f), () => YandexSDK.Purchase(GameConfig.Trails[k].productId), 17);
