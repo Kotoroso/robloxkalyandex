@@ -32,7 +32,10 @@ namespace DragonHeist
         public float TrailMultiplier { get { return 1f; } }
         public float GrowFactor { get { return (1f - UpgEffect(2)) * (Owns("x2_grow") ? 0.5f : 1f); } }
         public int LuckLevel { get { return UpgLevel(3); } }
+        /// <summary>Монеты приносят только НАДЕТЫЕ драконы (5 слотов); драконы на грядках ничего не дают.</summary>
         public double CoinsPerSec { get { return DragonCps * CoinMultiplier; } }
+        /// <summary>Типичная ценность дракона высшего открытого тира (для наград в монетах).</summary>
+        public double TierCoinValue { get { double v = 0; foreach (var dd in GameConfig.Dragons) if (!dd.exclusive && dd.tier == (Tier)HighestUnlockedTier) { v = dd.coinsPerSec; break; } return v; } }
 
         public float WalkSpeed
         {
@@ -71,13 +74,9 @@ namespace DragonHeist
         public void RecalcStats()
         {
             float sp = 0, tp = 0, j = 0; double cps = 0; int n = 0;
+            // драконы на грядках ничего не дают — только считаем их
             for (int i = 0; i < D.plotsOwned && i < D.plots.Count; i++)
-            {
-                var p = D.plots[i];
-                if (p.state != (int)PlotState.Dragon) continue;
-                var d = GameConfig.GetDragon(p.dragonId);
-                cps += d.coinsPerSec * GameConfig.DragonLevelIncome(p.level); n++;
-            }
+                if (D.plots[i].state == (int)PlotState.Dragon) n++;
             for (int i = 0; i < D.dragonInv.Count; i++)
             {
                 int id = D.dragonInv[i];
@@ -85,6 +84,7 @@ namespace DragonHeist
                 var d = GameConfig.GetDragon(id);
                 float ls = GameConfig.DragonLevelStat(D.dragonInvLvl[i]);
                 sp += d.speedPct * ls; tp += d.trainPct * ls; j += d.jumpBonus;
+                cps += d.coinsPerSec * GameConfig.DragonLevelIncome(D.dragonInvLvl[i]); // доход — только от надетых
             }
             DragonSpeedPct = sp; DragonTrainPct = tp; DragonJump = j; DragonCps = cps; DragonCount = n;
         }
@@ -366,7 +366,7 @@ namespace DragonHeist
         void Update()
         {
             float dt = Time.deltaTime;
-            D.coins += CoinsPerSec * dt;
+            D.coins += CoinsPerSec * dt; // доход — только от надетых драконов
             UpdateAdTimer(Time.unscaledDeltaTime);
 
             // яйца из инвентаря игрок сажает сам (окно "Яйца": выбор яйца → "Посадить")
@@ -696,7 +696,7 @@ namespace DragonHeist
 
         public double DailyCoins(int day)
         {
-            double baseC = System.Math.Max(300, CoinsPerSec * 300);
+            double baseC = System.Math.Max(300, System.Math.Max(CoinsPerSec * 300, TierCoinValue * 300));
             double[] mult = { 1, 0, 2, 0, 4, 0, 6 };
             return baseC * mult[(day - 1) % 7];
         }
@@ -762,7 +762,7 @@ namespace DragonHeist
             {
                 case ProductKind.Coins:
                 {
-                    double c = System.Math.Max(2000 * def.amount / 15.0, CoinsPerSec * 60 * def.amount);
+                    double c = System.Math.Max(2000 * def.amount / 15.0, TierCoinValue * 200 * def.amount);
                     D.coins += c;
                     msg = "+" + Loc.Num(c) + (Loc.Ru ? " монет" : " coins");
                     break;

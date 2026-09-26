@@ -561,10 +561,10 @@ namespace DragonHeist
                 };
                 System.Action endSection = () => { if (n > 0) y += ((n + cols - 1) / cols) * (ch + gap) + 6; n = 0; };
 
-                header((Loc.Ru ? "Надетые " : "Equipped ") + eq.Count + "/" + GameConfig.InventorySlots + (Loc.Ru ? "  — дают бонусы" : "  — give bonuses"));
+                header((Loc.Ru ? "Надетые " : "Equipped ") + eq.Count + "/" + GameConfig.InventorySlots + (Loc.Ru ? "  — приносят монеты и бонусы" : "  — earn coins and bonuses"));
                 foreach (var i in eq) item(0, i, d.dragonInv[i], d.dragonInvLvl[i]);
                 endSection();
-                header((Loc.Ru ? "На грядках " : "On plots ") + pl.Count + "/" + GameConfig.MaxPlots + (Loc.Ru ? "  — приносят монеты" : "  — earn coins"));
+                header((Loc.Ru ? "На грядках " : "On plots ") + pl.Count + "/" + GameConfig.MaxPlots + (Loc.Ru ? "  — ничего не дают" : "  — do nothing"));
                 foreach (var i in pl) item(1, i, d.plots[i].dragonId, d.plots[i].level);
                 endSection();
                 header((Loc.Ru ? "В сумке " : "In bag ") + d.dragonStore.Count + "/" + GameConfig.StorageSlots + (Loc.Ru ? "  — просто хранятся" : "  — just stored"));
@@ -594,9 +594,9 @@ namespace DragonHeist
             dragBig.sprite = IconArt.Dragon(sd);
             dragTitle.text = "<color=#" + Hex(Color.Lerp(stc, Color.white, 0.3f)) + ">" + Loc.DragonName(sd) + "</color>";
             float ls = GameConfig.DragonLevelStat(slvl);
-            string where = dragSelKind == 0 ? (Loc.Ru ? "Надет — даёт бонусы" : "Equipped — gives bonuses") : dragSelKind == 1 ? (Loc.Ru ? "На грядке — приносит монеты" : "On a plot — earns coins") : (Loc.Ru ? "В сумке — бонусов не даёт" : "In the bag — no bonuses");
+            string where = dragSelKind == 0 ? (Loc.Ru ? "Надет — приносит монеты и даёт бонусы" : "Equipped — earns coins and gives bonuses") : dragSelKind == 1 ? (Loc.Ru ? "На грядке — ничего не даёт, надень его" : "On a plot — does nothing, equip it") : (Loc.Ru ? "В сумке — ничего не даёт" : "In the bag — does nothing");
             dragInfo.text = Loc.TierName(sd.tier) + "   <color=#FFD84A>" + (Loc.Ru ? "Ур. " : "Lv. ") + slvl + "</color>\n"
-                + "<color=#9CFF8A>$" + Loc.Num(sd.coinsPerSec * GameConfig.DragonLevelIncome(slvl)) + (Loc.Ru ? "/сек на грядке</color>\n" : "/s on a plot</color>\n")
+                + "<color=#9CFF8A>$" + Loc.Num(sd.coinsPerSec * GameConfig.DragonLevelIncome(slvl) * gm.CoinMultiplier) + (Loc.Ru ? "/сек, если надет</color>\n" : "/s when equipped</color>\n")
                 + "<color=#8FE8FF>+" + (sd.speedPct * ls).ToString("0") + (Loc.Ru ? "% скорость   +" : "% speed   +") + (sd.trainPct * ls).ToString("0") + (Loc.Ru ? "% прокачка</color>\n" : "% training</color>\n")
                 + "<size=14><color=#AAB4D0>" + where + "</color></size>";
             bool slotsFull = gm.FreeSlot() < 0, bagFull = gm.StoreFull, noPlot = gm.FreePlotCount == 0;

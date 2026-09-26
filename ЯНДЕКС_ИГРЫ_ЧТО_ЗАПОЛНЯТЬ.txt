@@ -77,8 +77,8 @@
   Посади яйцо на грядку, дождись, пока оно созреет, и открой его: рулетка решит, какой дракон
   вылупится. Больше 40 драконов 12 редкостей — от Обычных до Омега, а ещё эксклюзивные драконы
   из Драконьего яйца.
-  Драконы на грядках приносят монеты, а надетые драконы дают бонусы к скорости и прыжку и
-  летают рядом с тобой. Качайся на беговых дорожках, прокачивай навыки, открывай новые зоны с
+  Надень до 5 драконов: они приносят монеты, дают бонусы к скорости и прыжку и летают
+  рядом с тобой. Ещё 15 драконов можно хранить в сумке, а лишних — продать. Качайся на беговых дорожках, прокачивай навыки, открывай новые зоны с
   более редкими яйцами и более быстрыми охранниками.
   Вся карта — огромная механическая клавиатура: каждый шаг щёлкает, как настоящая кнопка!
   Ежедневные награды, красивые трейлы, облачные сохранения и игра на ПК и телефоне.
@@ -90,8 +90,8 @@
   4. Принеси яйцо в зелёную зону «Сдай яйцо сюда» — оно посадится на свободную грядку.
      Лишние яйца попадают в инвентарь «Яйца», оттуда их можно посадить позже.
   5. Когда яйцо созреет, нажми E на грядке и открой его — выпадет дракон.
-  6. Драконы на грядках приносят монеты. Нажми E на грядке, чтобы надеть дракона: надетые
-     драконы (до 5) дают бонусы и летают рядом. Ещё 15 можно хранить в сумке.
+  6. Нажми E на грядке, чтобы надеть дракона: надетые драконы (до 5) приносят монеты, дают
+     бонусы и летают рядом. Ещё 15 можно хранить в сумке.
   7. Трать монеты на навыки, дорожки и трейлы. Продавай лишних драконов продавцу.
   Управление на ПК: WASD или стрелки — ходьба, зажатая правая кнопка мыши — камера,
   колесо — зум, пробел — прыжок, E — действие.
@@ -117,8 +117,8 @@ About the game (≤1000):
   Plant the egg on a plot, wait until it grows and open it: a roulette decides which dragon
   hatches. More than 40 dragons of 12 rarities — from Common to Omega — plus exclusive dragons
   from the Dragon Egg.
-  Dragons on plots earn coins, and equipped dragons boost your speed and jump and fly next to
-  you. Train on treadmills, upgrade your skills and unlock new zones with rarer eggs and faster
+  Equip up to 5 dragons: they earn coins, boost your speed and jump and fly next to you. Keep
+  15 more in your bag and sell the extras. Train on treadmills, upgrade your skills and unlock new zones with rarer eggs and faster
   guards.
   The whole map is a giant mechanical keyboard — every step clicks like a real key!
   Daily rewards, cool trails, cloud saves, and it plays on PC and mobile.
@@ -130,8 +130,8 @@ How to play (≤1000):
   4. Bring the egg to the green "Bring eggs here" zone — it is planted on a free plot.
      Extra eggs go to the Eggs inventory, where you can plant them later.
   5. When the egg is ready, press E on the plot to open it and get a dragon.
-  6. Dragons on plots earn coins. Press E on a plot to equip the dragon: equipped dragons (up to
-     5) give bonuses and fly next to you. You can keep 15 more in your bag.
+  6. Press E on a plot to equip the dragon: equipped dragons (up to 5) earn coins, give bonuses
+     and fly next to you. You can keep 15 more in your bag.
   7. Spend coins on skills, treadmills and trails. Sell extra dragons to the merchant.
   PC controls: WASD or arrows — move, hold right mouse button — camera, wheel — zoom,
   Space — jump, E — action.
@@ -149,7 +149,7 @@ ID товара должен совпадать ТОЧНО (маленькими
  dragon_egg_3     | 3 Драконьих яйца         | 3 Dragon Eggs        | 399  | Эксклюзивные драконы / Exclusive dragons
  dragon_egg_10    | 10 Драконьих яиц         | 10 Dragon Eggs       | 699  | Эксклюзивные драконы / Exclusive dragons
  legend_egg       | Золотое яйцо             | Golden Egg           | 79   | Яйцо высшего открытого тира +1 / Egg of your best tier +1
- x2_income        | x2 Доход навсегда        | x2 Income forever    | 299  | Все драконы приносят вдвое больше / All dragons earn double
+ x2_income        | x2 Доход навсегда        | x2 Income forever    | 299  | Надетые драконы приносят вдвое больше / Equipped dragons earn double
  x2_grow          | x2 Скорость роста яиц    | x2 Egg Growth        | 199  | Яйца растут вдвое быстрее / Eggs grow twice as fast
  x2_train         | x2 Прокачка навсегда     | x2 Training forever  | 99   | Дорожки качают вдвое быстрее / Treadmills train twice as fast
  noads_2h         | Без рекламы 2 часа       | No ads for 2 hours   | 50   | Никакой рекламы 2 часа / No ads for 2 hours

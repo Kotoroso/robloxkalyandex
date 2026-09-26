@@ -399,6 +399,10 @@ namespace DragonHeist
             var head = UIKit.Panel(rt, "Head", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 10), new Vector2(34, 34), gold, 2f);
             head.raycastTarget = false;
             head.rectTransform.localRotation = Quaternion.Euler(0, 0, 45f);
+            // своя канва с высоким порядком — стрелка поверх всего HUD (не прячется под кнопкой «Магазин»)
+            var cv = rt.gameObject.AddComponent<Canvas>();
+            cv.overrideSorting = true;
+            cv.sortingOrder = 500;
             return rt;
         }
     }

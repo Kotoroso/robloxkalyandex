@@ -214,7 +214,7 @@ namespace DragonHeist
             new ProductDef{ id="dragon_egg_3",  kind=ProductKind.Egg, amount=3,  nameRu="3 Драконьих яйца",  nameEn="3 Dragon Eggs",  descRu="Эксклюзивные драконы", descEn="Exclusive dragons", color=new Color(1f,0.75f,0.1f), fallbackPrice="399" },
             new ProductDef{ id="dragon_egg_10", kind=ProductKind.Egg, amount=10, nameRu="10 Драконьих яиц",  nameEn="10 Dragon Eggs", descRu="Эксклюзивные драконы", descEn="Exclusive dragons", color=new Color(1f,0.75f,0.1f), fallbackPrice="699" },
             new ProductDef{ id="x2_grow",      kind=ProductKind.Permanent, amount=2, nameRu="x2 Скорость роста яиц", nameEn="x2 Egg Growth", descRu="Яйца растут вдвое быстрее", descEn="Eggs grow twice as fast", color=new Color(0.4f,0.9f,1f), fallbackPrice="199" },
-            new ProductDef{ id="x2_income",    kind=ProductKind.Permanent, amount=2, nameRu="x2 Доход навсегда",  nameEn="x2 Income forever",   descRu="Все драконы приносят вдвое больше", descEn="All dragons earn double", color=new Color(0.3f,0.85f,0.4f), fallbackPrice="299" },
+            new ProductDef{ id="x2_income",    kind=ProductKind.Permanent, amount=2, nameRu="x2 Доход навсегда",  nameEn="x2 Income forever",   descRu="Надетые драконы приносят вдвое больше", descEn="Equipped dragons earn double", color=new Color(0.3f,0.85f,0.4f), fallbackPrice="299" },
             new ProductDef{ id="noads_2h",     kind=ProductKind.NoAdsTimed, amount=2, nameRu="Без рекламы 2 часа", nameEn="No ads for 2 hours", descRu="Никакой рекламы между играми 2 часа", descEn="No ads between rounds for 2 hours", color=new Color(0.55f,0.4f,0.95f), fallbackPrice="50" },
             new ProductDef{ id="noads_forever", kind=ProductKind.Permanent, amount=1, nameRu="Без рекламы навсегда", nameEn="No ads forever", descRu="Реклама отключается навсегда", descEn="Ads are removed forever", color=new Color(0.95f,0.3f,0.45f), fallbackPrice="500" },
             new ProductDef{ id="x2_train",     kind=ProductKind.Permanent, amount=2, nameRu="x2 Прокачка навсегда", nameEn="x2 Training forever", descRu="Дорожки качают вдвое быстрее",   descEn="Treadmills train twice as fast", color=new Color(0.35f,0.6f,1f), fallbackPrice="99" },
@@ -294,6 +294,7 @@ namespace DragonHeist
         public static int RebirthReqTier(int rebirths) { return Mathf.Min(3 + rebirths, 11); }
         public static double PlotCost(int plotsOwned) { return 400 * System.Math.Pow(12, plotsOwned - StartPlots); }
         public static float RebirthMultiplier(int rebirths) { return 1f + rebirths; }
+        /// <summary>Цена продажи — 90 секунд дохода дракона (доход дают только надетые драконы).</summary>
         public static double SellPrice(DragonDef d, int lvl = 1) { return d.coinsPerSec * 90 * DragonLevelIncome(lvl); }
         /// <summary>Цена уровня: base · mult^lvl · accel^(lvl·(lvl−1)/2) — первые уровни дешёвые, дальше всё круче и круче.</summary>
         public static double UpgradeCost(int i, int level) { var u = Upgrades[i]; return u.baseCost * System.Math.Pow(u.costMult, level) * System.Math.Pow(u.costAccel, level * (level - 1) / 2.0); }
