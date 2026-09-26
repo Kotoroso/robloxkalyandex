@@ -56,6 +56,7 @@ namespace DragonHeist
             YandexSDK.InitPayments();
             YandexSDK.FlushPending();
             YandexSDK.ShowBanner();
+            UIManager.Instance.StartGame();
         }
 
         void Update()

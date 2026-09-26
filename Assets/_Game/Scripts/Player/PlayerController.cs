@@ -146,6 +146,7 @@ namespace DragonHeist
 
             if (!subscribed && gm != null) { gm.OnHeldChanged += RebuildHeld; gm.OnTrailChanged += RebuildTrail; subscribed = true; RebuildHeld(); RebuildTrail(); }
             UpdateTrail(dt, InputState.Move.sqrMagnitude > 0.05f && !InputState.Blocked);
+            UpdateKeyClicks(dt, cc.isGrounded);
             for (int k = 0; k < GameConfig.InventorySlots; k++)
                 if (Input.GetKeyDown(KeyCode.Alpha1 + k) && gm != null && !InputState.Blocked) gm.SelectSlot(k);
 
@@ -229,6 +230,48 @@ namespace DragonHeist
             Fx.SetRate(trailSparks, moving ? 20f : 0f);
         }
 
+        // ===== ASMR-клавиатура по всей карте: щелчок свитча и RGB-вспышка на каждой "клавише" =====
+        Vector2Int keyCell = new Vector2Int(int.MinValue, 0);
+        readonly List<Transform> keyFlashes = new List<Transform>();
+        readonly List<float> keyFlashLife = new List<float>();
+        int keyFlashNext;
+
+        void UpdateKeyClicks(float dt, bool grounded)
+        {
+            if (keyFlashes.Count == 0)
+            {
+                for (int i = 0; i < 6; i++)
+                {
+                    var q = Blocky.Part(null, Vector3.zero, new Vector3(1.8f, 1.8f, 1f), Mats.UnlitAlpha(new Color(1f, 1f, 1f, 0.9f), Mats.RingTexture), false, PrimitiveType.Quad);
+                    q.rotation = Quaternion.Euler(90, 0, 0);
+                    Blocky.NoShadows(q.gameObject);
+                    q.gameObject.SetActive(false);
+                    keyFlashes.Add(q); keyFlashLife.Add(0);
+                }
+            }
+            for (int i = 0; i < keyFlashes.Count; i++)
+            {
+                if (keyFlashLife[i] <= 0) continue;
+                keyFlashLife[i] -= dt;
+                float k = Mathf.Clamp01(keyFlashLife[i] / 0.35f);
+                keyFlashes[i].localScale = new Vector3(1.9f * (1.3f - k * 0.3f), 1.9f * (1.3f - k * 0.3f), 1f);
+                if (keyFlashLife[i] <= 0) keyFlashes[i].gameObject.SetActive(false);
+            }
+            if (!grounded || OnTreadmill) return;
+            Vector3 p = transform.position;
+            var cell = new Vector2Int(Mathf.FloorToInt(p.x / 2f), Mathf.FloorToInt(p.z / 2f));
+            if (cell == keyCell) return;
+            bool first = keyCell.x == int.MinValue;
+            keyCell = cell;
+            if (first) return;
+            GameAudio.PlaySwitch(SaveManager.Data.switchType, true);
+            var f = keyFlashes[keyFlashNext];
+            keyFlashLife[keyFlashNext] = 0.35f;
+            keyFlashNext = (keyFlashNext + 1) % keyFlashes.Count;
+            f.gameObject.SetActive(true);
+            f.position = new Vector3(cell.x * 2f + 1f, p.y + 0.06f, cell.y * 2f + 1f);
+        }
+
         void DetectTreadmill()
         {
             OnTreadmill = false;
@@ -295,7 +338,7 @@ namespace DragonHeist
             if (grounded && amount > 0.1f)
             {
                 stepTimer -= dt * Mathf.Lerp(1f, 3.2f, Mathf.Clamp01(speed / 50f));
-                if (stepTimer <= 0) { stepTimer = 0.3f; GameAudio.Play(Sfx.Step, 0.35f); }
+                if (stepTimer <= 0) { stepTimer = 0.3f; }
             }
         }
 

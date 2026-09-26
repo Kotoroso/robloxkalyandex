@@ -10,8 +10,9 @@ namespace DragonHeist
     /// </summary>
     public static class WorldBuilder
     {
-        public static Vector3 SpawnPoint = new Vector3(-3f, 1f, 2f);
-        public const float BaseHalfWidth = 40f;
+        public static Vector3 SpawnPoint = new Vector3(0f, 1f, -8f);
+        public const float BaseHalfWidth = 46f;
+        public static readonly List<Vector3> BotHomes = new List<Vector3>();
 
         static Transform staticRoot, dynamicRoot, signs;
         static System.Random rnd;
@@ -20,6 +21,7 @@ namespace DragonHeist
         {
             SetupLighting();
             rnd = new System.Random(42);
+            BotHomes.Clear();
 
             staticRoot = new GameObject("World_Static").transform;
             dynamicRoot = new GameObject("World_Dynamic").transform;
@@ -31,7 +33,7 @@ namespace DragonHeist
             // ===== ЗЕМЛЯ =====
             float groundLen = endZ + 200f;
             var grass = new Color(0.27f, 0.8f, 0.2f);
-            Blocky.Part(staticRoot, new Vector3(0, -0.5f, groundLen / 2f - 100f), new Vector3(320f, 1f, groundLen), Mats.Studs(grass), true);
+            Blocky.Part(staticRoot, new Vector3(0, -0.5f, groundLen / 2f - 100f), new Vector3(320f, 1f, groundLen), Mats.Keycaps(GrassKeys), true);
 
             BuildBase(gm, half);
             BuildRunway(gm, half, endZ);
@@ -42,70 +44,127 @@ namespace DragonHeist
         }
 
         // ============================ БАЗА ============================
+        // Палитра спавна: мягкие, приятные цвета (без "вырвиглаза")
+        static readonly Color BaseFloor = new Color(0.86f, 0.9f, 0.97f);
+        static readonly Color BaseTrim = new Color(0.45f, 0.62f, 0.95f);
+        static readonly Color GrassKeys = new Color(0.46f, 0.82f, 0.42f);
+
+        /// <summary>
+        /// Спавн по образцу роблокс-режимов: просторная площадка с клавиатурным полом, высокие стены-каньон,
+        /// в стенах вырезаны 3 "стойла" фейк-игроков, у тебя 6 грядок, 7 беговых дорожек, продавец,
+        /// магазин трейлов, таблички управления и площадка сдачи яиц у ворот.
+        /// </summary>
         static void BuildBase(GameManager gm, float half)
         {
             float bx = BaseHalfWidth, minZ = GameConfig.BaseMinZ, maxZ = GameConfig.BaseMaxZ, midZ = (minZ + maxZ) / 2f, depth = maxZ - minZ;
-            // пол базы со светлой плиткой и синей каймой
-            Blocky.Part(staticRoot, new Vector3(0, 0.05f, midZ), new Vector3(bx * 2 + 2f, 0.1f, depth + 2f), Mats.Studs(new Color(0.3f, 0.55f, 0.95f)), true);
-            Blocky.Part(staticRoot, new Vector3(0, 0.08f, midZ), new Vector3(bx * 2 - 1f, 0.1f, depth - 1f), Mats.Studs(new Color(0.88f, 0.9f, 0.94f)), true);
+            // пол базы (клавиши) с каймой
+            Blocky.Part(staticRoot, new Vector3(0, 0.05f, midZ), new Vector3(bx * 2 + 2f, 0.1f, depth + 2f), Mats.Keycaps(BaseTrim), true);
+            Blocky.Part(staticRoot, new Vector3(0, 0.08f, midZ), new Vector3(bx * 2 - 2f, 0.1f, depth - 2f), Mats.Keycaps(BaseFloor), true);
 
-            // стены-замок с зубцами
-            var wall = Mats.Studs(new Color(0.82f, 0.8f, 0.76f));
-            CastleWall(new Vector3(0, 0, minZ - 0.5f), bx * 2 + 1f, true, wall);
-            CastleWall(new Vector3(-bx - 0.5f, 0, midZ), depth + 1f, false, wall);
-            CastleWall(new Vector3(bx + 0.5f, 0, midZ), depth + 1f, false, wall);
+            // стены с вырезами под стойла: слева, справа и сзади
+            float aZ0 = -40f, aZ1 = -20f, aDepth = 18f;      // боковые стойла по z
+            float bX = 10f, bDepth = 16f;                     // заднее стойло по x
+            WallZ(-bx - 1f, minZ, aZ0); WallZ(-bx - 1f, aZ1, maxZ);
+            WallZ(bx + 1f, minZ, aZ0); WallZ(bx + 1f, aZ1, maxZ);
+            WallX(minZ - 1f, -bx - 1f, -bX); WallX(minZ - 1f, bX, bx + 1f);
             float gap = half, seg = bx - gap;
-            CastleWall(new Vector3(-(gap + seg / 2f), 0, maxZ), seg, true, wall);
-            CastleWall(new Vector3(gap + seg / 2f, 0, maxZ), seg, true, wall);
+            WallX(maxZ, -bx - 1f, -gap); WallX(maxZ, gap, bx + 1f);
+            // стойла
+            Stall(new Vector3(-bx - aDepth / 2f, 0, (aZ0 + aZ1) / 2f), new Vector2(aDepth, aZ1 - aZ0), 0, new Color(1f, 0.6f, 0.55f));
+            Stall(new Vector3(bx + aDepth / 2f, 0, (aZ0 + aZ1) / 2f), new Vector2(aDepth, aZ1 - aZ0), 1, new Color(0.6f, 0.8f, 1f));
+            Stall(new Vector3(0, 0, minZ - bDepth / 2f), new Vector2(bX * 2f, bDepth), 2, new Color(1f, 0.85f, 0.5f));
 
-            // башни по углам и у ворот
-            Tower(new Vector3(-bx - 0.5f, 0, minZ - 0.5f), new Color(0.3f, 0.55f, 1f));
-            Tower(new Vector3(bx + 0.5f, 0, minZ - 0.5f), new Color(0.3f, 0.55f, 1f));
-            Tower(new Vector3(-bx - 0.5f, 0, maxZ), new Color(1f, 0.45f, 0.3f));
-            Tower(new Vector3(bx + 0.5f, 0, maxZ), new Color(1f, 0.45f, 0.3f));
-            Tower(new Vector3(-gap - 1.5f, 0, maxZ), new Color(1f, 0.85f, 0.2f));
-            Tower(new Vector3(gap + 1.5f, 0, maxZ), new Color(1f, 0.85f, 0.2f));
+            Blocky.Label(signs, Loc.T("base"), new Vector3(0, 15f, maxZ), 2.6f, new Color(1f, 0.93f, 0.55f));
+            Arch(new Vector3(0, 0, maxZ), gap - 0.5f, BaseTrim);
+            // площадка сдачи яиц у ворот (светящееся кольцо)
+            Blocky.Part(staticRoot, new Vector3(0, 0.12f, maxZ - 5f), new Vector3(12f, 0.06f, 7f), Mats.Glow(new Color(1f, 0.85f, 0.3f)));
+            Blocky.Part(staticRoot, new Vector3(0, 0.13f, maxZ - 5f), new Vector3(11f, 0.06f, 6f), Mats.Keycaps(new Color(1f, 0.92f, 0.6f)));
+            Blocky.Label(signs, Loc.Ru ? "СДАЙ ЯЙЦО СЮДА" : "BRING EGGS HERE", new Vector3(0, 3.4f, maxZ - 5f), 1.3f, new Color(1f, 0.9f, 0.55f));
 
-            Blocky.Label(signs, Loc.T("base"), new Vector3(0, 11.5f, maxZ), 3f, new Color(1f, 0.92f, 0.3f));
-            // площадка сдачи яиц у ворот
-            Blocky.Part(staticRoot, new Vector3(0, 0.12f, maxZ - 4f), new Vector3(12f, 0.06f, 6f), Mats.Glow(new Color(0.3f, 1f, 0.45f)));
-            Blocky.Part(staticRoot, new Vector3(0, 0.13f, maxZ - 4f), new Vector3(10.8f, 0.06f, 4.8f), Mats.Studs(new Color(0.25f, 0.7f, 0.3f)));
-            Blocky.Label(signs, Loc.Ru ? "СДАЙ ЯЙЦО СЮДА" : "BRING EGGS HERE", new Vector3(0, 3.2f, maxZ - 4f), 1.4f, new Color(0.5f, 1f, 0.6f));
-            Arch(new Vector3(0, 0, maxZ), gap - 0.5f, new Color(0.3f, 0.55f, 1f));
-
-            // Грядки: 3 колонки x 4 ряда справа
+            // 6 грядок игрока справа (2 ряда по 3)
             int idx = 0;
-            for (int row = 0; row < 4; row++)
+            for (int row = 0; row < 2; row++)
                 for (int col = 0; col < 3; col++)
-                    gm.Plots.Add(BasePlot.Build(dynamicRoot, idx++, new Vector3(14f + col * 8.6f, 0, -29f + row * 8.6f)));
+                    gm.Plots.Add(BasePlot.Build(dynamicRoot, idx++, new Vector3(17f + col * 9f, 0.1f, -30f + row * 9.5f)));
+            Blocky.Label(signs, Loc.Ru ? "ТВОИ ГРЯДКИ" : "YOUR PLOTS", new Vector3(26f, 6.5f, -35.5f), 1.4f, new Color(0.7f, 1f, 0.7f));
 
-            // Беговые дорожки слева у задней стены
+            // 7 беговых дорожек в ряд у задней стены слева
             for (int i = 0; i < GameConfig.Treadmills.Length; i++)
-                Treadmill.Build(dynamicRoot, i, new Vector3(-36f + i * 6f, 0.1f, -26f), 0f);
+                Treadmill.Build(dynamicRoot, i, new Vector3(-42.5f + i * 5.8f, 0.1f, -44f), 0f);
 
-            // ASMR-клавиатура и продавец
-            KeyboardFloor.Build(dynamicRoot, new Vector3(-37f, 0.1f, -16.5f), 10, 5, 2.2f);
-            SellerNPC.Build(dynamicRoot, new Vector3(-31f, 0.1f, 4.2f), 180f);
-            SellerNPC.Build(dynamicRoot, new Vector3(5f, 0.1f, -9f), -50f, true);
+            // продавец и магазин трейлов
+            SellerNPC.Build(dynamicRoot, new Vector3(-41f, 0.1f, 0f), 90f);
+            SellerNPC.Build(dynamicRoot, new Vector3(41f, 0.1f, 0f), -90f, true);
 
             // спавн-площадка
             Blocky.Round = true; Blocky.RoundFactor = 0.4f;
-            Blocky.Part(staticRoot, new Vector3(SpawnPoint.x, 0.2f, SpawnPoint.z), new Vector3(5f, 0.25f, 5f), Mats.Plastic(new Color(0.95f, 0.95f, 0.98f)));
-            Blocky.Part(staticRoot, new Vector3(SpawnPoint.x, 0.28f, SpawnPoint.z), new Vector3(3.6f, 0.2f, 3.6f), Mats.Plastic(new Color(0.3f, 0.55f, 1f)));
+            Blocky.Part(staticRoot, new Vector3(SpawnPoint.x, 0.2f, SpawnPoint.z), new Vector3(7f, 0.25f, 7f), Mats.Plastic(new Color(0.96f, 0.96f, 1f)));
+            Blocky.Part(staticRoot, new Vector3(SpawnPoint.x, 0.28f, SpawnPoint.z), new Vector3(5f, 0.2f, 5f), Mats.Plastic(BaseTrim));
             Blocky.Round = false; Blocky.RoundFactor = 0.2f;
 
             SpawnBoards();
-            BotPlayer.SpawnAll(dynamicRoot, 7);
+            BotPlayer.SpawnAll(dynamicRoot, BotHomes);
 
-            // фонари и клумбы
-            for (int i = 0; i < 4; i++)
+            // фонари и клумбы вдоль стен
+            for (int i = 0; i < 3; i++)
             {
-                Lamp(new Vector3(-bx + 2f, 0, minZ + 6f + i * 10f));
-                Lamp(new Vector3(bx - 2f, 0, minZ + 6f + i * 10f));
+                Lamp(new Vector3(-bx + 2f, 0, -8f + i * 7f));
+                Lamp(new Vector3(bx - 2f, 0, -8f + i * 7f));
             }
-            FlowerBed(new Vector3(-8f, 0.1f, 5.5f), 6f, 1.6f);
-            FlowerBed(new Vector3(-16f, 0.1f, 5.5f), 6f, 1.6f);
-            FlowerBed(new Vector3(12f, 0.1f, 5.5f), 10f, 1.6f);
+            FlowerBed(new Vector3(-12f, 0.1f, 5f), 8f, 1.6f);
+            FlowerBed(new Vector3(12f, 0.1f, 5f), 8f, 1.6f);
+        }
+
+        static void WallZ(float x, float z0, float z1) { CastleWall(new Vector3(x, 0, (z0 + z1) / 2f), Mathf.Abs(z1 - z0), false, null); }
+        static void WallX(float z, float x0, float x1) { CastleWall(new Vector3((x0 + x1) / 2f, 0, z), Mathf.Abs(x1 - x0), true, null); }
+
+        /// <summary>Стойло фейк-игрока: ниша в стене с полом, 6 грядками с драконами/яйцами и флажком.</summary>
+        static void Stall(Vector3 center, Vector2 size, int index, Color accent)
+        {
+            float hx = size.x / 2f, hz = size.y / 2f;
+            Blocky.Part(staticRoot, center + new Vector3(0, 0.08f, 0), new Vector3(size.x, 0.1f, size.y), Mats.Keycaps(Color.Lerp(BaseFloor, accent, 0.35f)), true);
+            // внешние стены ниши
+            if (index < 2)
+            {
+                float outer = center.x + (index == 0 ? -hx - 1f : hx + 1f);
+                WallZ(outer, center.z - hz - 1f, center.z + hz + 1f);
+                WallX(center.z - hz - 1f, center.x - hx - 1f, center.x + hx + 1f);
+                WallX(center.z + hz + 1f, center.x - hx - 1f, center.x + hx + 1f);
+            }
+            else
+            {
+                WallX(center.z - hz - 1f, center.x - hx - 1f, center.x + hx + 1f);
+                WallZ(center.x - hx - 1f, center.z - hz - 1f, center.z + hz + 1f);
+                WallZ(center.x + hx + 1f, center.z - hz - 1f, center.z + hz + 1f);
+            }
+            // 6 декоративных грядок с драконами и яйцами
+            var rnd2 = new System.Random(100 + index);
+            for (int i = 0; i < 6; i++)
+            {
+                float gx = (i % 3 - 1) * (index < 2 ? hx * 0.55f : hx * 0.6f);
+                float gz = (i / 3 - 0.5f) * (index < 2 ? hz * 0.9f : hz * 0.8f);
+                Vector3 p = center + (index < 2 ? new Vector3(gz, 0, gx) : new Vector3(gx, 0, gz));
+                Blocky.Part(staticRoot, p + new Vector3(0, 0.2f, 0), new Vector3(4.6f, 0.3f, 4.6f), Mats.Studs(new Color(0.35f, 0.72f, 0.32f)), false);
+                Blocky.Part(staticRoot, p + new Vector3(0, 0.38f, 0), new Vector3(3.6f, 0.1f, 3.6f), Mats.Studs(new Color(0.48f, 0.33f, 0.2f)), false);
+                if (rnd2.Next(3) == 0)
+                {
+                    var egg = Blocky.BuildEgg(dynamicRoot, (Tier)rnd2.Next(0, 5), 1.3f);
+                    egg.transform.position = p + new Vector3(0, 0.45f, 0);
+                }
+                else
+                {
+                    var list = new List<DragonDef>();
+                    int maxT = 2 + index * 2;
+                    foreach (var dd in GameConfig.Dragons) if (!dd.exclusive && (int)dd.tier <= maxT) list.Add(dd);
+                    var dr = Blocky.BuildDragon(dynamicRoot, list[rnd2.Next(list.Count)]);
+                    dr.transform.position = p + new Vector3(0, 0.45f, 0);
+                    dr.transform.localScale = Vector3.one * 0.7f;
+                    dr.transform.rotation = Quaternion.Euler(0, rnd2.Next(360), 0);
+                }
+            }
+            // флажок стойла
+            Blocky.Part(staticRoot, center + new Vector3(0, 4f, 0) + (index < 2 ? new Vector3(index == 0 ? -hx + 1f : hx - 1f, 0, 0) : new Vector3(0, 0, -hz + 1f)), new Vector3(0.2f, 8f, 0.2f), Mats.Plastic(new Color(0.35f, 0.25f, 0.18f)));
+            BotHomes.Add(center);
         }
 
         static readonly Color WallBrown = new Color(0.74f, 0.52f, 0.33f);
@@ -130,7 +189,7 @@ namespace DragonHeist
             bool mobile = InputState.Mobile;
             bool ru = Loc.Ru;
             // "Передвижение": клавиши WASD или джойстик
-            var b1 = Board(new Vector3(-13f, 0.1f, 6.5f), mobile ? (ru ? "Джойстик слева" : "Left joystick") : (ru ? "Передвижение" : "Movement"));
+            var b1 = Board(new Vector3(-14f, 0.1f, 0f), mobile ? (ru ? "Джойстик слева" : "Left joystick") : (ru ? "Передвижение" : "Movement"));
             if (!mobile)
             {
                 Key3D(b1, "W", new Vector3(0, 3.1f, -0.6f));
@@ -144,7 +203,7 @@ namespace DragonHeist
                 Blocky.Part(b1, new Vector3(0.6f, 2.5f, -0.6f), new Vector3(1.3f, 1.3f, 0.2f), Mats.Plastic(new Color(1f, 0.8f, 0.2f)), false, PrimitiveType.Cylinder).localRotation = Quaternion.Euler(90, 0, 0);
             }
             // "Поворот камеры": мышь с зажатой правой кнопкой или свайп
-            var b2 = Board(new Vector3(7f, 0.1f, 6.5f), mobile ? (ru ? "Свайп справа — камера" : "Swipe right — camera") : (ru ? "Поворот камеры" : "Camera"));
+            var b2 = Board(new Vector3(14f, 0.1f, 0f), mobile ? (ru ? "Свайп справа — камера" : "Swipe right — camera") : (ru ? "Поворот камеры" : "Camera"));
             Blocky.Round = true; Blocky.RoundFactor = 0.45f; Blocky.RoundSteps = 2;
             Blocky.Part(b2, new Vector3(0, 2.2f, -0.6f), new Vector3(1.8f, 2.8f, 0.9f), Mats.Plastic(Color.white));
             Blocky.RoundFactor = 0.3f;
@@ -220,7 +279,7 @@ namespace DragonHeist
         {
             float startZ = GameConfig.BaseMaxZ, runLen = endZ - startZ;
             Blocky.Part(staticRoot, new Vector3(0, 0.04f, startZ + runLen / 2f), new Vector3(GameConfig.RunwayWidth, 0.1f, runLen),
-                Mats.Studs(new Color(0.72f, 0.7f, 0.66f)), true);
+                Mats.Keycaps(new Color(0.93f, 0.88f, 0.78f)), true);
             // невидимые стены + деревянный забор
             AddWall(new Vector3(-half - 0.5f, 3f, startZ + runLen / 2f), new Vector3(1f, 6f, runLen));
             AddWall(new Vector3(half + 0.5f, 3f, startZ + runLen / 2f), new Vector3(1f, 6f, runLen));
@@ -233,8 +292,8 @@ namespace DragonHeist
             {
                 var info = GameConfig.Tiers[t];
                 float cz = GameConfig.ZoneCenterZ(t);
-                Color floor = Color.Lerp(info.color, new Color(0.55f, 0.55f, 0.55f), 0.5f);
-                Blocky.Part(staticRoot, new Vector3(0, 0.07f, cz), new Vector3(GameConfig.RunwayWidth, 0.1f, GameConfig.ZoneLength), Mats.Studs(floor), true);
+                Color floor = Color.Lerp(info.color, Color.white, 0.45f);
+                Blocky.Part(staticRoot, new Vector3(0, 0.07f, cz), new Vector3(GameConfig.RunwayWidth, 0.1f, GameConfig.ZoneLength), Mats.Keycaps(floor), true);
                 Blocky.Part(staticRoot, new Vector3(0, 0.09f, cz - GameConfig.ZoneLength / 2f + 0.5f), new Vector3(GameConfig.RunwayWidth, 0.1f, 1f), Mats.Glow(info.color), false);
 
                 float archZ = cz - GameConfig.ZoneLength / 2f;

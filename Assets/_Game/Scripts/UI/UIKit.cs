@@ -8,7 +8,30 @@ namespace DragonHeist
     /// <summary>Хелперы uGUI в стиле роблокс-симуляторов: скруглённые панели с толстой обводкой, глянцевые кнопки, текст с контуром.</summary>
     public static class UIKit
     {
-        static Sprite rounded, circle, gloss;
+        static Sprite rounded, circle, gloss, pattern;
+
+        /// <summary>Лёгкий ромбовидный узор поверх кнопок (как в роблокс-магазинах).</summary>
+        static Sprite Pattern
+        {
+            get
+            {
+                if (pattern != null) return pattern;
+                const int N = 32;
+                var tex = new Texture2D(N, N, TextureFormat.RGBA32, false);
+                tex.wrapMode = TextureWrapMode.Repeat;
+                var px = new Color[N * N];
+                for (int y = 0; y < N; y++)
+                    for (int x = 0; x < N; x++)
+                    {
+                        float a = Mathf.Abs(((x + y) % 16) - 8) < 1.2f || Mathf.Abs(((x - y + 64) % 16) - 8) < 1.2f ? 0.09f : 0f;
+                        px[y * N + x] = new Color(1, 1, 1, a);
+                    }
+                tex.SetPixels(px);
+                tex.Apply();
+                pattern = Sprite.Create(tex, new Rect(0, 0, N, N), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+                return pattern;
+            }
+        }
         public static readonly Color Stroke = new Color(0.08f, 0.07f, 0.12f, 1f);
 
         public static Sprite Rounded
@@ -25,7 +48,9 @@ namespace DragonHeist
                     {
                         float cx = Mathf.Clamp(x + 0.5f, R, N - R), cy = Mathf.Clamp(y + 0.5f, R, N - R);
                         float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(cx, cy));
-                        px[y * N + x] = new Color(1, 1, 1, Mathf.Clamp01(R - d + 0.5f));
+                        // мягкий вертикальный градиент: верх светлее, низ темнее — объём как у роблокс-кнопок
+                        float g = Mathf.Lerp(0.8f, 1f, Mathf.Clamp01((y - 6f) / (N - 12f)));
+                        px[y * N + x] = new Color(g, g, g, Mathf.Clamp01(R - d + 0.5f));
                     }
                 tex.SetPixels(px);
                 tex.Apply();
@@ -169,6 +194,11 @@ namespace DragonHeist
             Stretch(g, 3);
             var gi = g.gameObject.AddComponent<Image>();
             gi.sprite = Gloss; gi.type = Image.Type.Sliced; gi.raycastTarget = false;
+            var pt = Rect(img.transform, "Pattern", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            Stretch(pt, 5);
+            var pi = pt.gameObject.AddComponent<Image>();
+            pi.sprite = Pattern; pi.type = Image.Type.Tiled; pi.raycastTarget = false;
+            pt.SetAsFirstSibling();
 
             if (icon != null)
             {

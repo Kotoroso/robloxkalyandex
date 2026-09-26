@@ -28,25 +28,23 @@ namespace DragonHeist
         Treadmill mill;
         System.Random rnd;
 
-        public static void SpawnAll(Transform parent, int count)
+        Vector3 home;
+
+        /// <summary>3 фейк-игрока без ников, у каждого своё стойло (дом).</summary>
+        public static void SpawnAll(Transform parent, List<Vector3> homes)
         {
             var rnd = new System.Random(7);
-            var used = new HashSet<int>();
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < homes.Count; i++)
             {
-                int n;
-                do n = rnd.Next(Names.Length); while (used.Contains(n) && used.Count < Names.Length);
-                used.Add(n);
-                var go = new GameObject("Bot_" + Names[n]);
+                var go = new GameObject("Bot_" + i);
                 go.transform.SetParent(parent, false);
-                go.transform.position = RandomBasePoint(rnd);
+                go.transform.position = homes[i] + new Vector3(0, 0.15f, 0);
                 var b = go.AddComponent<BotPlayer>();
+                b.home = homes[i];
                 b.rnd = new System.Random(100 + i);
-                b.av = Blocky.BuildAvatar(go.transform, Skins[rnd.Next(Skins.Length)], Shirts[rnd.Next(Shirts.Length)], Pants[rnd.Next(Pants.Length)], 0.6f);
-                Hair(b.av.head, Hairs[rnd.Next(Hairs.Length)], rnd.Next(3));
-                var label = Blocky.Label(go.transform, Names[n], new Vector3(0, 4.4f, 0), 0.8f, Color.white);
-                label.maxDistance = 45f;
-                b.speed = 9f + (float)rnd.NextDouble() * 8f;
+                b.av = Blocky.BuildAvatar(go.transform, Skins[rnd.Next(Skins.Length)], Shirts[(i * 2 + 1) % Shirts.Length], Pants[rnd.Next(Pants.Length)], 0.6f);
+                Hair(b.av.head, Hairs[rnd.Next(Hairs.Length)], i % 3);
+                b.speed = 10f + (float)rnd.NextDouble() * 5f;
                 b.PickTask();
             }
         }
@@ -97,7 +95,8 @@ namespace DragonHeist
                     return;
                 }
             }
-            if (roll < 70) { mode = Mode.Walk; target = RandomBasePoint(rnd); timer = 20f; }
+            if (roll < 55) { mode = Mode.Walk; target = home + new Vector3((float)rnd.NextDouble() * 10f - 5f, 0.15f, (float)rnd.NextDouble() * 10f - 5f); timer = 20f; }
+            else if (roll < 70) { mode = Mode.Walk; target = RandomBasePoint(rnd); timer = 20f; }
             else if (roll < 85) { mode = Mode.Idle; timer = 2f + (float)rnd.NextDouble() * 4f; }
             else { mode = Mode.Jump; timer = 3f + (float)rnd.NextDouble() * 3f; }
         }

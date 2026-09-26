@@ -13,7 +13,7 @@ namespace DragonHeist
     {
         static Material baseMat;
         static readonly Dictionary<string, Material> cache = new Dictionary<string, Material>();
-        static Texture2D studTex, faceTex, eggSpotTex, smoothTex, softDot, chevronTex, ringTex, beamTex, squareTex;
+        static Texture2D studTex, faceTex, eggSpotTex, smoothTex, softDot, chevronTex, ringTex, beamTex, squareTex, keycapTex;
         static Font font;
 
         /// <summary>Сколько студов на 1 юнит мира (персонаж ≈ 3 юнита ≈ 5 студов, как в Роблоксе).</summary>
@@ -63,6 +63,55 @@ namespace DragonHeist
             SetGloss(m, 0.2f);
             cache[key] = m;
             return m;
+        }
+
+        /// <summary>Пол из механических клавиш (ASMR-клавиатура по всей карте). Одна клавиша = 2x2 юнита.</summary>
+        public static Material Keycaps(Color c)
+        {
+            string key = "kc" + ColorUtility.ToHtmlStringRGBA(c);
+            Material m;
+            if (cache.TryGetValue(key, out m)) return m;
+            m = new Material(Base) { color = c, mainTexture = KeycapTexture };
+            m.mainTextureScale = new Vector2(0.5f, 0.5f);
+            SetGloss(m, 0.35f);
+            cache[key] = m;
+            return m;
+        }
+
+        public static Texture2D KeycapTexture
+        {
+            get
+            {
+                if (keycapTex != null) return keycapTex;
+                const int N = 64;
+                keycapTex = NewTex(N, N, false, true, "keycap");
+                keycapTex.anisoLevel = 4;
+                var px = new Color[N * N];
+                for (int y = 0; y < N; y++)
+                    for (int x = 0; x < N; x++)
+                    {
+                        float fx = x + 0.5f, fy = y + 0.5f;
+                        // расстояние до края скруглённого квадрата клавиши
+                        float m1 = 5f, r = 7f;
+                        float cx = Mathf.Clamp(fx, m1 + r, N - m1 - r), cy = Mathf.Clamp(fy, m1 + r, N - m1 - r);
+                        float d = Vector2.Distance(new Vector2(fx, fy), new Vector2(cx, cy)) - r; // <0 внутри
+                        float v;
+                        if (d > 0.5f) v = 0.42f;                        // щель между клавишами
+                        else
+                        {
+                            // верх клавиши: чуть вогнутый, светлее к центру; скос по краю
+                            float inner = Mathf.Clamp01(-d / 6f);
+                            float dx = (fx - N / 2f) / (N / 2f), dy = (fy - N / 2f) / (N / 2f);
+                            float dish = 1f - (dx * dx + dy * dy) * 0.06f;
+                            v = Mathf.Lerp(0.78f, 1f, inner) * dish;
+                            if (fy > N * 0.62f && inner > 0.5f) v = Mathf.Min(1f, v + 0.03f); // блик сверху
+                        }
+                        px[y * N + x] = new Color(v, v, v);
+                    }
+                keycapTex.SetPixels(px);
+                keycapTex.Apply(true);
+                return keycapTex;
+            }
         }
 
         /// <summary>Совместимость со старыми вызовами (тайлинг теперь берётся из UV меша).</summary>

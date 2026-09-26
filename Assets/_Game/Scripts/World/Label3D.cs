@@ -32,16 +32,16 @@ namespace DragonHeist
             var rt = go.GetComponent<RectTransform>();
             rt.SetParent(parent, false);
             rt.localPosition = localPos;
-            rt.sizeDelta = new Vector2(1000, 300);
-            rt.localScale = Vector3.one * 0.0065f * size;
+            rt.sizeDelta = new Vector2(1500, 450);
+            rt.localScale = Vector3.one * 0.0043f * size; // крупный шрифт + мелкий масштаб = чёткие буквы
             var canvas = go.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
             canvas.sortingOrder = 5;
 
-            var trt = UIKit.Rect(go.transform, "Text", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1000, 300));
+            var trt = UIKit.Rect(go.transform, "Text", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1500, 450));
             var t = trt.gameObject.AddComponent<Text>();
             t.font = Mats.UIFont;
-            t.fontSize = 64;
+            t.fontSize = 96;
             t.alignment = TextAnchor.MiddleCenter;
             t.horizontalOverflow = HorizontalWrapMode.Overflow;
             t.verticalOverflow = VerticalWrapMode.Overflow;
@@ -51,10 +51,10 @@ namespace DragonHeist
             t.lineSpacing = 0.9f;
             var o = trt.gameObject.AddComponent<Outline>();
             o.effectColor = new Color(0, 0, 0, 1f);
-            o.effectDistance = new Vector2(4, -4);
+            o.effectDistance = new Vector2(5, -5);
             var o2 = trt.gameObject.AddComponent<Outline>();
             o2.effectColor = new Color(0, 0, 0, 0.9f);
-            o2.effectDistance = new Vector2(-3, 3);
+            o2.effectDistance = new Vector2(-4, 4);
 
             var l = go.AddComponent<Label3D>();
             l.txt = t;

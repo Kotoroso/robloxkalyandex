@@ -42,15 +42,18 @@ namespace DragonHeist
             if (clip == null) return;
             var src = inst.NextSource();
             src.pitch = s == Sfx.Step ? Random.Range(0.9f, 1.1f) * pitch : pitch;
-            src.PlayOneShot(clip, vol);
+            src.PlayOneShot(clip, vol * SfxVolume);
         }
+
+        /// <summary>Общая громкость эффектов (было громко — теперь спокойнее).</summary>
+        public const float SfxVolume = 0.45f;
 
         public static void PlaySwitch(int type, bool down)
         {
             if (inst == null || inst.switches == null) return;
             var src = inst.NextSource();
             src.pitch = Random.Range(0.94f, 1.06f);
-            src.PlayOneShot(inst.switches[Mathf.Clamp(type, 0, 2), down ? 0 : 1], down ? 0.9f : 0.6f);
+            src.PlayOneShot(inst.switches[Mathf.Clamp(type, 0, 2), down ? 0 : 1], (down ? 0.55f : 0.35f) * SfxVolume * 1.6f);
         }
 
         AudioSource NextSource()
@@ -86,13 +89,13 @@ namespace DragonHeist
                 float seg = (t % 0.15f) / 0.15f;
                 return Saw(240 + Mathf.Sin(t * 50) * 30, t) * (seg < 0.6f ? Mathf.Sin(seg / 0.6f * Mathf.PI) : 0) * 0.2f;
             });
-            clips[(int)Sfx.Success] = Load("success") ?? Make("success", 0.7f, (t, d) => Bell(Arp(t, 0.09f, 784, 988, 1175, 1568), t % 0.09f + (t > 0.27f ? t - 0.27f : 0)) * 0.6f);
+            clips[(int)Sfx.Success] = Make("success", 0.7f, (t, d) => Bell(Arp(t, 0.08f, 659, 784, 988), t % 0.08f + (t > 0.16f ? t - 0.16f : 0)) * 0.35f);
             clips[(int)Sfx.Plant] = Load("plant") ?? Make("plant", 0.3f, (t, d) => (Sin(Lerp(200, 80, t / d), t) * 0.8f + LP(Noise(), 0.15f) * 0.3f * Mathf.Exp(-t * 20)) * Env(t, d, 0.003f));
             clips[(int)Sfx.Hatch] = Load("hatch") ?? Make("hatch", 1.3f, (t, d) =>
                 (Bell(Arp(t, 0.07f, 523, 659, 784, 1047, 1319, 1568, 2093), t % 0.07f + (t > 0.42f ? t - 0.42f : 0)) * 0.5f + LP(Noise(), 0.5f) * 0.15f * Mathf.Exp(-t * 12)));
             clips[(int)Sfx.Coin] = Load("coin") ?? Make("coin", 0.4f, (t, d) => Bell(t < 0.06f ? 1319 : 1760, t < 0.06f ? t : t - 0.06f) * 0.6f);
             clips[(int)Sfx.Buy] = Load("buy") ?? Make("buy", 0.45f, (t, d) => (Bell(t < 0.08f ? 880 : 1319, t < 0.08f ? t : t - 0.08f) * 0.6f));
-            clips[(int)Sfx.Error] = Load("error") ?? Make("error", 0.3f, (t, d) => (Sq(180, t) * 0.15f + Sq(190, t) * 0.15f) * Env(t, d, 0.004f));
+            clips[(int)Sfx.Error] = Make("error", 0.3f, (t, d) => (Sq(180, t) * 0.15f + Sq(190, t) * 0.15f) * Env(t, d, 0.004f));
             clips[(int)Sfx.Rebirth] = Load("rebirth") ?? Make("rebirth", 1.8f, (t, d) =>
                 (Sin(Lerp(150, 900, t / d), t) * 0.2f + Bell(Arp(t, 0.12f, 523, 659, 784, 1047, 1319, 1568), t % 0.12f + (t > 0.6f ? t - 0.6f : 0)) * 0.45f) * Env(t, d, 0.01f));
             clips[(int)Sfx.Tick] = Load("tick") ?? Make("tick", 0.05f, (t, d) => Sin(1600, t) * Mathf.Exp(-t * 90) * 0.35f);
@@ -104,7 +107,7 @@ namespace DragonHeist
             music = gameObject.AddComponent<AudioSource>();
             music.loop = true;
             var mclip = Load("music");
-            music.volume = mclip != null ? 0.35f : 0.3f;
+            music.volume = mclip != null ? 0.18f : 0.16f;
             music.clip = mclip != null ? mclip : BuildMusic();
             music.Play();
             SetEnabled(SaveManager.Data.soundOn);

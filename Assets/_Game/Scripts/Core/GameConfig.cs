@@ -89,8 +89,8 @@ namespace DragonHeist
     {
         public const float BaseWalkSpeed = 12f;
         public const float BaseJump = 7.5f;
-        public const int StartPlots = 4;
-        public const int MaxPlots = 12;
+        public const int StartPlots = 3;
+        public const int MaxPlots = 6;
         public const int InventorySlots = 5;
         public const float AdSpeedupFactor = 0.1f;      // реклама режет оставшееся время на 90%
         public const float InterstitialCooldown = 60f;
@@ -99,7 +99,7 @@ namespace DragonHeist
         public const int OfflineMaxSeconds = 2 * 3600;
 
         // Геометрия мира
-        public const float BaseMinZ = -34f, BaseMaxZ = 8f;
+        public const float BaseMinZ = -50f, BaseMaxZ = 8f;
         public const float RunwayWidth = 34f;
         public const float FirstZoneZ = 52f;
         public const float ZoneStep = 50f;
@@ -123,9 +123,9 @@ namespace DragonHeist
             T(Tier.Divine,    "Божественное", "Divine",    1f,0.95f,0.6f,     720,  47f,  4, 15f, BrainrotKind.VacaSaturno, 1.7f, 5e8),
             T(Tier.Secret,    "Секретное",    "Secret",    0.1f,1f,0.95f,     1080, 55f,  4, 16f, BrainrotKind.Bombardiro,  2.0f, 1.5e10),
             T(Tier.Celestial, "Небесное",     "Celestial", 0.55f,0.45f,1f,    1500, 63f,  5, 17f, BrainrotKind.TungSahur,   2.3f, 4e11),
-            T(Tier.Ancient,   "Древнее",      "Ancient",   0.85f,0.52f,0.25f, 1800, 72f,  5, 18f, BrainrotKind.Tralalero,   2.5f, 2.5e13),
-            T(Tier.Galactic,  "Галактическое","Galactic",  0.25f,0.35f,0.95f, 2400, 78f,  5, 19f, BrainrotKind.Patapim,     2.7f, 5e14),
-            T(Tier.Omega,     "Омега",        "Omega",     1f,0.15f,0.6f,     3000, 88f,  6, 20f, BrainrotKind.VacaSaturno, 3.0f, 5e16),
+            T(Tier.Ancient,   "Древнее",      "Ancient",   0.85f,0.52f,0.25f, 1800, 72f,  5, 18f, BrainrotKind.Tralalero,   2.5f, 1e13),
+            T(Tier.Galactic,  "Галактическое","Galactic",  0.25f,0.35f,0.95f, 2400, 78f,  5, 19f, BrainrotKind.Patapim,     2.7f, 2e14),
+            T(Tier.Omega,     "Омега",        "Omega",     1f,0.15f,0.6f,     3000, 88f,  6, 20f, BrainrotKind.VacaSaturno, 3.0f, 2e16),
         };
 
         public static readonly DragonDef[] Dragons =
@@ -181,10 +181,10 @@ namespace DragonHeist
             new TreadmillDef{ nameRu="Дорожка",          nameEn="Treadmill",        gainPerSec=2,     price=0,    rebirthsRequired=0, color=new Color(0.2f,0.8f,0.3f) },
             new TreadmillDef{ nameRu="Быстрая дорожка",  nameEn="Fast Treadmill",   gainPerSec=8,     price=0,    rebirthsRequired=0, adsRequired=2, color=new Color(0.2f,0.5f,1f) },
             new TreadmillDef{ nameRu="Турбо дорожка",    nameEn="Turbo Treadmill",  gainPerSec=120,   price=2.5e4, rebirthsRequired=0, color=new Color(0.8f,0.3f,1f) },
-            new TreadmillDef{ nameRu="Ракетная дорожка", nameEn="Rocket Treadmill", gainPerSec=6e3,   price=2e6,  rebirthsRequired=1, color=new Color(1f,0.5f,0.1f) },
-            new TreadmillDef{ nameRu="Космо дорожка",    nameEn="Cosmic Treadmill", gainPerSec=1.5e5, price=1e9,  rebirthsRequired=3, color=new Color(0.1f,1f,0.95f) },
-            new TreadmillDef{ nameRu="Гипер дорожка",    nameEn="Hyper Treadmill",  gainPerSec=5e6,   price=3e10, rebirthsRequired=6, color=new Color(1f,0.85f,0.2f) },
-            new TreadmillDef{ nameRu="Омега дорожка",    nameEn="Omega Treadmill",  gainPerSec=2e8,   price=2e13, rebirthsRequired=8, color=new Color(1f,0.15f,0.6f) },
+            new TreadmillDef{ nameRu="Ракетная дорожка", nameEn="Rocket Treadmill", gainPerSec=6e3,   price=2e6,  rebirthsRequired=0, color=new Color(1f,0.5f,0.1f) },
+            new TreadmillDef{ nameRu="Космо дорожка",    nameEn="Cosmic Treadmill", gainPerSec=1.5e5, price=1e9,  rebirthsRequired=0, color=new Color(0.1f,1f,0.95f) },
+            new TreadmillDef{ nameRu="Гипер дорожка",    nameEn="Hyper Treadmill",  gainPerSec=5e6,   price=3e10, rebirthsRequired=0, color=new Color(1f,0.85f,0.2f) },
+            new TreadmillDef{ nameRu="Омега дорожка",    nameEn="Omega Treadmill",  gainPerSec=2e8,   price=2e13, rebirthsRequired=0, color=new Color(1f,0.15f,0.6f) },
         };
 
         public static readonly UpgradeDef[] Upgrades =
@@ -283,7 +283,7 @@ namespace DragonHeist
         public static double RebirthCost(int rebirths) { return 2e5 * System.Math.Pow(4.5, rebirths); }
         /// <summary>Для перерождения нужно в этой жизни дойти до зоны этого тира (скорость сбрасывается).</summary>
         public static int RebirthReqTier(int rebirths) { return Mathf.Min(3 + rebirths, 11); }
-        public static double PlotCost(int plotsOwned) { return 500 * System.Math.Pow(3.5, plotsOwned - StartPlots); }
+        public static double PlotCost(int plotsOwned) { return 400 * System.Math.Pow(12, plotsOwned - StartPlots); }
         public static float RebirthMultiplier(int rebirths) { return 1f + rebirths; }
         public static double SellPrice(DragonDef d, int lvl = 1) { return d.coinsPerSec * 90 * DragonLevelIncome(lvl); }
         public static double UpgradeCost(int i, int level) { var u = Upgrades[i]; return u.baseCost * System.Math.Pow(u.costMult, level); }
