@@ -87,9 +87,26 @@ namespace DragonHeist
             return sp;
         }
 
+        /// <summary>
+        /// Своя картинка из проекта (если есть): Assets/_Game/Resources/Art/&lt;name&gt;.png — PNG с прозрачным фоном.
+        /// Так можно подменить любую иконку картинкой из нейросети.
+        /// </summary>
+        static Sprite Custom(string name)
+        {
+            string key = "art_" + name;
+            Sprite sp;
+            if (cache.TryGetValue(key, out sp)) return sp;
+            var tex = Resources.Load<Texture2D>("Art/" + name);
+            sp = tex != null ? Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f)) : null;
+            cache[key] = sp;
+            return sp;
+        }
+
         // ===================== дракон =====================
         public static Sprite Dragon(DragonDef d)
         {
+            var custom = Custom("dragon_" + d.id);
+            if (custom != null) return custom;
             Color body = Vivid(d.body), belly = Vivid(d.belly), wing = Vivid(d.wing);
             Color horn = Color.Lerp(belly, Color.white, 0.5f);
             bool rainbow = d.fx == DragonFx.Rainbow;
@@ -156,6 +173,8 @@ namespace DragonHeist
         // ===================== яйцо =====================
         public static Sprite Egg(Tier t, bool premium = false)
         {
+            var custom = Custom(premium ? "egg_premium" : "egg_" + (int)t);
+            if (custom != null) return custom;
             Color c = premium ? new Color(1f, 0.78f, 0.15f) : Vivid(GameConfig.GetTier(t).color);
             Color spot = Color.Lerp(c, premium ? new Color(1f, 0.45f, 0.05f) : Color.white, 0.45f);
             Color glow = t >= Tier.Legendary || premium ? new Color(c.r, c.g, c.b, 0.5f) : new Color(0, 0, 0, 0);

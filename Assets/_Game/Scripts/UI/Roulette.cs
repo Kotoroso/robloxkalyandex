@@ -45,8 +45,10 @@ namespace DragonHeist
             title.gameObject.AddComponent<TitleWobble>();
 
             // окно ленты
-            var frame = UIKit.Panel(rt, "Frame", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 20), new Vector2(980, 210), new Color(0.1f, 0.09f, 0.16f, 1f), 5f);
-            var mask = UIKit.Rect(frame.transform, "Mask", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(960, 190));
+            // ширина ленты — по экрану, чтобы рулетка не вылезала за края
+            float fw = Mathf.Clamp(rt.rect.width - 60f, 420f, 980f);
+            var frame = UIKit.Panel(rt, "Frame", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 20), new Vector2(fw, 214), new Color(0.1f, 0.09f, 0.16f, 1f), 5f);
+            var mask = UIKit.Rect(frame.transform, "Mask", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(fw - 20f, 196));
             mask.gameObject.AddComponent<RectMask2D>();
             strip = UIKit.Rect(mask, "Strip", new Vector2(0.5f, 0.5f), new Vector2(0, 0.5f), Vector2.zero, new Vector2(Count * (CardW + Gap), 180));
 

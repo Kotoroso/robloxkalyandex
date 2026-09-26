@@ -10,6 +10,8 @@ namespace DragonHeist
     {
         static Sprite rounded, circle, gloss, pattern;
 
+        public static Sprite PatternSprite { get { return Pattern; } }
+
         /// <summary>Лёгкий ромбовидный узор поверх кнопок (как в роблокс-магазинах).</summary>
         static Sprite Pattern
         {

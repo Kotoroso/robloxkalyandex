@@ -32,6 +32,8 @@ namespace DragonHeist
         GameObject trailsPanel, eggsPanel;
         Text[] trailCoinBtn, trailYanBtn; Button[] trailYanButtons; Image[] trailCards;
         Text eggsBody; Text[] equipTexts; Button[] equipBtns; Button[] unequipBtns; Text[] unequipTexts;
+        readonly List<KeyValuePair<Image, DragonDef>> store3D = new List<KeyValuePair<Image, DragonDef>>();
+        bool store3DDone;
         readonly Dictionary<string, Text> yanPriceById = new Dictionary<string, Text>();
         readonly Dictionary<string, Button> yanBtnById = new Dictionary<string, Button>();
         readonly List<GameObject> panels = new List<GameObject>();
@@ -245,15 +247,30 @@ namespace DragonHeist
         }
 
         // ============================ ПАНЕЛИ ============================
+        /// <summary>
+        /// Каркас окна: шапка цвета раздела на всю ширину с иконкой и крупным заголовком,
+        /// тёмно-синее тело с лёгким узором, красная квадратная кнопка закрытия, "поп" при открытии.
+        /// </summary>
         GameObject Modal(string title, Color color, Vector2 size, out RectTransform body)
         {
-            var bg = UIKit.Panel(root, "Modal_" + title, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -10), size, new Color(0.13f, 0.12f, 0.2f, 0.97f), 4f);
-            var header = UIKit.Panel(bg.transform, "Header", new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -4), new Vector2(size.x * 0.62f, 64), color, 4f);
-            UIKit.Label(header.transform, title, 34, Color.white);
+            Vector2 sz = new Vector2(Mathf.Min(size.x, 1180f), size.y);
+            var bg = UIKit.Panel(root, "Modal_" + title, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -6), sz, new Color(0.12f, 0.15f, 0.3f, 0.98f), 5f);
+            var pat = UIKit.Rect(bg.transform, "Pattern", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            UIKit.Stretch(pat, 8);
+            var pi = pat.gameObject.AddComponent<Image>();
+            pi.sprite = UIKit.PatternSprite; pi.type = Image.Type.Tiled; pi.raycastTarget = false; pi.color = new Color(1, 1, 1, 0.5f);
+            var header = UIKit.Panel(bg.transform, "Header", new Vector2(0.5f, 1), new Vector2(0.5f, 1), Vector2.zero, new Vector2(sz.x, 86), color, 5f);
+            var hrt = header.rectTransform;
+            hrt.anchorMin = new Vector2(0, 1); hrt.anchorMax = new Vector2(1, 1);
+            hrt.offsetMin = new Vector2(0, -86); hrt.offsetMax = new Vector2(0, 0);
+            var hg = UIKit.Rect(header.transform, "HeaderGloss", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -4), new Vector2(sz.x - 16, 34));
+            var hgi = hg.gameObject.AddComponent<Image>(); hgi.sprite = UIKit.Rounded; hgi.type = Image.Type.Sliced; hgi.color = new Color(1, 1, 1, 0.18f); hgi.raycastTarget = false;
+            var tl = UIKit.Label(header.transform, title.ToUpper(), 42, Color.white);
+            foreach (var o in tl.GetComponents<Outline>()) o.effectDistance *= 1.4f;
             var go = bg.gameObject;
-            UIKit.Button(bg.transform, "Close", "X", new Vector2(1, 1), new Vector2(0.5f, 0.5f), new Vector2(-14, -14), new Vector2(58, 58),
-                new Color(0.92f, 0.25f, 0.28f), () => go.SetActive(false), 30);
-            body = UIKit.Rect(bg.transform, "Body", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -16), new Vector2(size.x - 40, size.y - 90));
+            UIKit.Button(header.transform, "Close", "X", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-14, 0), new Vector2(66, 62),
+                new Color(0.93f, 0.22f, 0.28f), () => go.SetActive(false), 34);
+            body = UIKit.Rect(bg.transform, "Body", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -44), new Vector2(sz.x - 40, sz.y - 120));
             go.AddComponent<PopIn>();
             go.SetActive(false);
             panels.Add(go);
@@ -371,11 +388,34 @@ namespace DragonHeist
             RectTransform body;
             var go = Modal(Loc.Ru ? "МАГАЗИН" : "STORE", new Color(0.2f, 0.45f, 1f), new Vector2(900, 620), out body);
             var content = UIKit.Scroll(body, new Vector2(0.5f, 0.5f), Vector2.zero, body.sizeDelta, false);
-            content.sizeDelta = new Vector2(body.sizeDelta.x, 1080);
+            content.sizeDelta = new Vector2(body.sizeDelta.x, 1400);
             float w = body.sizeDelta.x - 20;
 
+            // --- Витрина: 3 самых редких эксклюзивных дракона (3D-рендеры моделей) ---
+            var show = UIKit.Panel(content, "Showcase", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -6), new Vector2(w, 310), new Color(0.5f, 0.22f, 0.9f), 3f);
+            show.gameObject.AddComponent<ShineSweep>();
+            UIKit.Label(UIKit.Rect(show.transform, "T", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -6), new Vector2(w, 44)), Loc.Ru ? "ЭКСКЛЮЗИВНЫЕ ДРАКОНЫ" : "EXCLUSIVE DRAGONS", 34, new Color(1f, 0.92f, 0.5f));
+            var rare = new List<DragonDef>();
+            foreach (var d in GameConfig.Dragons) if (d.exclusive) rare.Add(d);
+            rare.Sort((a, b) => a.premiumChance.CompareTo(b.premiumChance));
+            for (int i = 0; i < 3 && i < rare.Count; i++)
+            {
+                var d = rare[i];
+                float x = (i - 1) * (w / 3f);
+                var tc = GameConfig.GetTier(d.tier).color;
+                var halo = UIKit.Icon(show.transform, UIKit.Circle, new Vector2(0.5f, 0.5f), new Vector2(x, 0), 210);
+                halo.color = new Color(tc.r, tc.g, tc.b, 0.45f);
+                halo.gameObject.AddComponent<PulseScale>();
+                var img = UIKit.Icon(show.transform, IconArt.Dragon(d), new Vector2(0.5f, 0.5f), new Vector2(x, 4), 240);
+                store3D.Add(new KeyValuePair<Image, DragonDef>(img, d));
+                UIKit.Label(UIKit.Rect(show.transform, "N" + i, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(x, 38), new Vector2(w / 3f - 10, 34)), Loc.DragonName(d), 22, Color.white);
+                var chip = UIKit.Panel(show.transform, "C" + i, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(x, 6), new Vector2(120, 30), i == 0 ? new Color(0.95f, 0.25f, 0.35f) : new Color(0.2f, 0.15f, 0.35f), 2f);
+                chip.raycastTarget = false;
+                UIKit.Label(chip.transform, d.premiumChance + "%", 20, Color.white);
+            }
+
             // --- Драконье яйцо ---
-            var egg = UIKit.Panel(content, "DragonEgg", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -6), new Vector2(w, 270), new Color(1f, 0.72f, 0.12f), 3f);
+            var egg = UIKit.Panel(content, "DragonEgg", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -326), new Vector2(w, 270), new Color(1f, 0.72f, 0.12f), 3f);
             var eggIcon = UIKit.Icon(egg.transform, IconArt.Egg(Tier.Legendary, true), new Vector2(0, 0.5f), new Vector2(110, 10), 210);
             eggIcon.gameObject.AddComponent<TitleWobble>();
             var nw = UIKit.Panel(egg.transform, "New", new Vector2(0, 1), new Vector2(0, 1), new Vector2(10, -8), new Vector2(110, 40), new Color(0.9f, 0.2f, 0.2f), 3f);
@@ -386,7 +426,8 @@ namespace DragonHeist
             {
                 if (!d.exclusive) continue;
                 var c = UIKit.Panel(egg.transform, "X" + k, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-120 + k * 96, -52), new Vector2(88, 96), new Color(d.body.r * 0.5f, d.body.g * 0.5f, d.body.b * 0.5f, 1f), 2f);
-                UIKit.Icon(c.transform, IconArt.Dragon(d), new Vector2(0.5f, 0.5f), new Vector2(0, 8), 96);
+                var xi = UIKit.Icon(c.transform, IconArt.Dragon(d), new Vector2(0.5f, 0.5f), new Vector2(0, 8), 104);
+                store3D.Add(new KeyValuePair<Image, DragonDef>(xi, d));
                 UIKit.Label(UIKit.Rect(c.transform, "P", new Vector2(1, 0), new Vector2(1, 0), new Vector2(-2, 2), new Vector2(60, 26)), d.premiumChance + "%", 17, Color.white, TextAnchor.LowerRight);
                 k++;
             }
@@ -402,13 +443,13 @@ namespace DragonHeist
 
             // --- x2 Доход и x2 Рост ---
             float half = (w - 12) / 2f;
-            var inc = UIKit.Panel(content, "X2Income", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-half / 2f - 6, -290), new Vector2(half, 200), new Color(1f, 0.85f, 0.2f), 3f);
+            var inc = UIKit.Panel(content, "X2Income", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-half / 2f - 6, -610), new Vector2(half, 200), new Color(1f, 0.85f, 0.2f), 3f);
             UIKit.Icon(inc.transform, Icons.Coin, new Vector2(0, 0.5f), new Vector2(64, 14), 110);
             UIKit.Icon(inc.transform, Icons.Coin, new Vector2(0, 0.5f), new Vector2(100, -10), 110);
             X2Badge(inc.transform, new Vector2(150, -40));
             UIKit.Label(UIKit.Rect(inc.transform, "T", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -12), new Vector2(250, 50)), Loc.Ru ? "x2 Доход" : "x2 Income", 32, Color.white, TextAnchor.MiddleRight);
             YanBuy(inc.transform, "x2_income", new Vector2(1, 0), new Vector2(-110, 50), new Vector2(190, 62), new Color(0.25f, 0.8f, 0.3f), 24);
-            var gr = UIKit.Panel(content, "X2Grow", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(half / 2f + 6, -290), new Vector2(half, 200), new Color(0.4f, 0.85f, 0.95f), 3f);
+            var gr = UIKit.Panel(content, "X2Grow", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(half / 2f + 6, -610), new Vector2(half, 200), new Color(0.4f, 0.85f, 0.95f), 3f);
             UIKit.Icon(gr.transform, IconArt.Egg(Tier.Rare), new Vector2(0, 0.5f), new Vector2(84, 6), 150);
             X2Badge(gr.transform, new Vector2(150, -40));
             UIKit.Label(UIKit.Rect(gr.transform, "T", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -8), new Vector2(260, 70)), Loc.Ru ? "x2 Скорость\nроста яиц" : "x2 Egg\nGrowth", 26, Color.white, TextAnchor.MiddleRight);
@@ -421,7 +462,7 @@ namespace DragonHeist
             {
                 if (pd.id.StartsWith("dragon_egg") || pd.id == "x2_income" || pd.id == "x2_grow") continue;
                 int col = idx % 4, row = idx / 4;
-                var card = UIKit.Panel(content, "P" + pd.id, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((col - 1.5f) * (cw + 12), -506 - row * (ch + 12)), new Vector2(cw, ch),
+                var card = UIKit.Panel(content, "P" + pd.id, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((col - 1.5f) * (cw + 12), -826 - row * (ch + 12)), new Vector2(cw, ch),
                     new Color(pd.color.r * 0.5f, pd.color.g * 0.5f, pd.color.b * 0.5f, 1f), 3f);
                 var icon = pd.kind == ProductKind.Coins ? Icons.Coin : pd.kind == ProductKind.Speed ? Icons.Bolt : pd.kind == ProductKind.Egg ? Icons.Egg : Icons.Star;
                 UIKit.Icon(card.transform, icon, new Vector2(0.5f, 1), new Vector2(0, -52), 78);
@@ -887,6 +928,11 @@ namespace DragonHeist
             }
             if (yanPanel.activeSelf)
             {
+                if (!store3DDone)
+                {
+                    store3DDone = true;
+                    foreach (var kv in store3D) { var sp3 = ModelRenderer.Dragon(kv.Value); if (sp3 != null) kv.Key.sprite = sp3; }
+                }
                 foreach (var pd in GameConfig.Products)
                 {
                     Text t; Button bt;
@@ -1016,6 +1062,31 @@ namespace DragonHeist
             float x = w / 2f + 85f;
             left.anchoredPosition = new Vector2(-x, left.anchoredPosition.y);
             right.anchoredPosition = new Vector2(x, right.anchoredPosition.y);
+        }
+    }
+
+    /// <summary>Блик, пробегающий по витрине (как в роблокс-магазинах).</summary>
+    public class ShineSweep : MonoBehaviour
+    {
+        RectTransform shine;
+        void Start()
+        {
+            var rt = (RectTransform)transform;
+            var s = UIKit.Rect(rt, "Shine", new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(80, rt.rect.height * 1.4f));
+            var img = s.gameObject.AddComponent<Image>();
+            img.color = new Color(1, 1, 1, 0.12f);
+            img.raycastTarget = false;
+            s.localRotation = Quaternion.Euler(0, 0, -20f);
+            s.SetAsFirstSibling();
+            shine = s;
+            gameObject.AddComponent<RectMask2D>();
+        }
+        void Update()
+        {
+            if (shine == null) return;
+            float w = ((RectTransform)transform).rect.width;
+            float t = Mathf.Repeat(Time.unscaledTime * 0.35f, 1.6f);
+            shine.anchoredPosition = new Vector2(-100 + t * (w + 200) / 1.6f, 0);
         }
     }
 
