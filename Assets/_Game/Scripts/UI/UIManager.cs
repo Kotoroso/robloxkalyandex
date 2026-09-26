@@ -100,10 +100,10 @@ namespace DragonHeist
             var brown = new Color(0.32f, 0.23f, 0.18f, 0.95f);
             float cb = mobile ? 76 : 96;
             // круглые кнопки слева сверху: улучшения (сумка), перерождение (книга)
-            var sb = UIKit.CircleButton(h, "BtnShop", Icons.Bag, new Vector2(0, 1), new Vector2(0, 1), new Vector2(16, -12), cb, brown, () => OnMenuButton(0));
-            HudCaption(sb.transform, Loc.Ru ? "Улучшения" : "Upgrades", cb);
+            var sb = UIKit.CircleButton(h, "BtnShop", Icons.Skills, new Vector2(0, 1), new Vector2(0, 1), new Vector2(16, -12), cb, brown, () => OnMenuButton(0));
+            HudCaption(sb.transform, Loc.Ru ? "Навыки" : "Skills", cb);
             var rb = UIKit.CircleButton(h, "BtnTrails", Icons.Shoe, new Vector2(0, 1), new Vector2(0, 1), new Vector2(26 + cb, -12), cb, brown, () => OpenTrails());
-            rebirthText = UIKit.Label(UIKit.Rect(rb.transform, "R", new Vector2(0.5f, 0), new Vector2(0.5f, 1), new Vector2(0, 8), new Vector2(cb + 20, 26)), Loc.Ru ? "Трейлы" : "Trails", 17, Color.white);
+            rebirthText = UIKit.Label(UIKit.Rect(rb.transform, "R", new Vector2(0.5f, 0), new Vector2(0.5f, 1), new Vector2(0, -3), new Vector2(cb + 20, 24)), Loc.Ru ? "Трейлы" : "Trails", 17, Color.white);
             UIKit.Fit(rebirthText, 12);
             // зелёная "Магазин NEW!" (донат за Яны)
             float shopW = mobile ? 170 : 216, shopH = mobile ? 70 : 92;
@@ -127,12 +127,12 @@ namespace DragonHeist
             UIKit.Button(h, "BtnDragons", Loc.Ru ? "Драконы" : "Dragons", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-16, (mobile ? 120 : 60) - sq - 10), new Vector2(sq, sq), red, () => OnMenuButton(2), 16, Icons.Paw);
 
             // скорость (кроссовок) и деньги: на ПК — слева снизу, на телефоне — под верхними кнопками (снизу джойстик)
-            // Телефон (от верха экрана): кнопки 12..88, подпись "Трейлы" до ~106, скорость 114..158, деньги 162..218, доход 218..266;
+            // Телефон (от верха экрана): кнопки 12..88, подписи под ними 91..115, скорость 118..162, деньги 166..222, доход 222..270;
             //   ширина колонки <= 374, чтобы не заезжать на обучение/тост (они начинаются правее, x >= ~390).
             // ПК (от низа экрана): деньги 14..110 (x 90..440, левее слотов), скорость 134..204, кроссовок 124..212.
             Vector2 statAnchor = mobile ? new Vector2(0, 1) : new Vector2(0, 0);
-            Vector2 speedPos = mobile ? new Vector2(12, -114) : new Vector2(14, 134);
-            Vector2 moneyPos = mobile ? new Vector2(12, -162) : new Vector2(90, 14);
+            Vector2 speedPos = mobile ? new Vector2(12, -118) : new Vector2(14, 134);
+            Vector2 moneyPos = mobile ? new Vector2(12, -166) : new Vector2(90, 14);
             var shoe = UIKit.Icon(h, Icons.Shoe, statAnchor, speedPos + new Vector2(mobile ? 28 : 44, mobile ? -22 : 34), mobile ? 56 : 88);
             speedText = UIKit.Label(UIKit.Rect(h, "Speed", statAnchor, new Vector2(0, mobile ? 1 : 0), speedPos + new Vector2(mobile ? 60 : 100, 0), new Vector2(300, mobile ? 44 : 70)),
                 "", mobile ? 30 : 48, Cyan, TextAnchor.MiddleLeft);
@@ -144,7 +144,7 @@ namespace DragonHeist
             foreach (var o in speedText.GetComponents<Outline>()) o.effectDistance *= 1.5f;
             // доход в секунду — справа снизу (на ПК)
             cpsText = UIKit.Label(UIKit.Rect(h, "Cps", mobile ? new Vector2(0, 1) : new Vector2(1, 0), mobile ? new Vector2(0, 1) : new Vector2(1, 0),
-                mobile ? new Vector2(14, -218) : new Vector2(-16, 14), new Vector2(360, 48)), "", mobile ? 20 : 30, new Color(1f, 0.95f, 0.6f), mobile ? TextAnchor.MiddleLeft : TextAnchor.MiddleRight);
+                mobile ? new Vector2(14, -222) : new Vector2(-16, 14), new Vector2(360, 48)), "", mobile ? 20 : 30, new Color(1f, 0.95f, 0.6f), mobile ? TextAnchor.MiddleLeft : TextAnchor.MiddleRight);
             UIKit.Fit(cpsText, 14);
             // над слотами (слоты 16..~103 с учётом увеличения выбранного): "выбран дракон" и под ним "яиц в инвентаре"
             invText = UIKit.Fit(UIKit.Label(UIKit.Rect(h, "Inv", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, mobile ? 134 : 130), new Vector2(380, 26)), "", 17, new Color(1f, 0.85f, 0.4f)), 12);
@@ -212,7 +212,7 @@ namespace DragonHeist
         /// <summary>Подпись под круглой кнопкой HUD (белый текст с обводкой).</summary>
         static void HudCaption(Transform button, string text, float cb)
         {
-            var t = UIKit.Label(UIKit.Rect(button, "Caption", new Vector2(0.5f, 0), new Vector2(0.5f, 1), new Vector2(0, 8), new Vector2(cb + 24, 26)), text, 17, Color.white);
+            var t = UIKit.Label(UIKit.Rect(button, "Caption", new Vector2(0.5f, 0), new Vector2(0.5f, 1), new Vector2(0, -3), new Vector2(cb + 24, 24)), text, 17, Color.white);
             UIKit.Fit(t, 11);
         }
 

@@ -28,7 +28,7 @@ namespace DragonHeist
             { "rebirth_cost", new[]{ "Цена: {0} монет", "Cost: {0} coins" } },
             { "rebirth_done", new[]{ "Перерождение! Множитель x{0}", "Rebirth! Multiplier x{0}" } },
             { "dragons",      new[]{ "Драконы", "Dragons" } },
-            { "shop",         new[]{ "Магазин", "Shop" } },
+            { "shop",         new[]{ "Навыки", "Skills" } },
             { "close",        new[]{ "Закрыть", "Close" } },
             { "buy_plot",     new[]{ "Купить грядку ({0})", "Buy plot ({0})" } },
             { "plots_max",    new[]{ "Все грядки куплены", "All plots owned" } },

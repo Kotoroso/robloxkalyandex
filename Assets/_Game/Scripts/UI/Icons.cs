@@ -14,6 +14,8 @@ namespace DragonHeist
         public static Sprite Star { get { return Get("star", DrawStar); } }
         public static Sprite Gear { get { return Get("gear", DrawGear); } }
         public static Sprite Bag { get { return Get("bag", DrawBag); } }
+        /// <summary>Навыки: бегущий человечек со стрелкой вверх (картинка Art/icon_skills, запасной вариант — сумка).</summary>
+        public static Sprite Skills { get { return Get("skills", DrawBag); } }
         public static Sprite Egg { get { return Get("egg", DrawEgg); } }
         public static Sprite Dragon { get { return Get("dragon", DrawDragon); } }
         public static Sprite Paw { get { return Get("paw", DrawPaw); } }
