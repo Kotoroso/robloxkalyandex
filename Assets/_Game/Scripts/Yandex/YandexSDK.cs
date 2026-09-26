@@ -22,6 +22,11 @@ namespace DragonHeist
         [DllImport("__Internal")] static extern string YG_GetLang();
         [DllImport("__Internal")] static extern int YG_IsMobile();
         [DllImport("__Internal")] static extern int YG_IsReady();
+        [DllImport("__Internal")] static extern void YG_ShowBanner();
+        [DllImport("__Internal")] static extern void YG_HideBanner();
+        [DllImport("__Internal")] static extern void YG_InitPayments();
+        [DllImport("__Internal")] static extern void YG_Purchase(string id);
+        [DllImport("__Internal")] static extern void YG_Consume(string token);
 #endif
 
         public static YandexSDK Instance;
@@ -107,7 +112,7 @@ namespace DragonHeist
         }
 
         /// <summary>Полноэкранная реклама (с кулдауном, как требует модерация).</summary>
-        public static void ShowInterstitial()
+        public static void ShowInterstitial(bool fromTimer = false)
         {
             if (Time.realtimeSinceStartup - lastInterstitial < GameConfig.InterstitialCooldown) return;
             lastInterstitial = Time.realtimeSinceStartup;
@@ -145,6 +150,132 @@ namespace DragonHeist
             Time.timeScale = pause ? 0f : 1f;
         }
 
+        // ===== Стики-баннер =====
+        public static void ShowBanner()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            try { YG_ShowBanner(); } catch { }
+#endif
+        }
+
+        public static void HideBanner()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            try { YG_HideBanner(); } catch { }
+#endif
+        }
+
+        // ===== Покупки =====
+        [Serializable] public class CatalogItem { public string id; public string price; public string priceValue; public string currency; }
+        [Serializable] class CatalogList { public CatalogItem[] items; }
+        [Serializable] class PurchaseItem { public string id; public string token; }
+        [Serializable] class PurchaseList { public PurchaseItem[] items; }
+
+        public static readonly System.Collections.Generic.Dictionary<string, CatalogItem> Catalog = new System.Collections.Generic.Dictionary<string, CatalogItem>();
+        public static bool PaymentsReady;
+        static readonly System.Collections.Generic.List<string> pendingOwned = new System.Collections.Generic.List<string>();
+
+        public static void InitPayments()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            try { YG_InitPayments(); } catch { }
+#else
+            PaymentsReady = true;
+#endif
+        }
+
+        public static string PriceText(ProductDef p)
+        {
+            CatalogItem c;
+            if (Catalog.TryGetValue(p.id, out c) && !string.IsNullOrEmpty(c.priceValue)) return c.priceValue + (Loc.Ru ? " ян" : " YAN");
+            return p.fallbackPrice + (Loc.Ru ? " ян" : " YAN");
+        }
+
+        public static void Purchase(string id)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            try { YG_Purchase(id); } catch { }
+#else
+            // в редакторе — сразу "покупаем"
+            if (GameManager.Instance != null) GameManager.Instance.GrantProduct(id);
+#endif
+        }
+
+        static void Consume(string token)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (!string.IsNullOrEmpty(token)) { try { YG_Consume(token); } catch { } }
+#endif
+        }
+
+        static void Grant(string id, string token)
+        {
+            var gm = GameManager.Instance;
+            if (gm == null) { pendingOwned.Add(id + "|" + token); return; }
+            bool consumable = gm.GrantProduct(id);
+            if (consumable) Consume(token);
+        }
+
+        /// <summary>Вызывается, когда игра загрузилась — выдаёт покупки, пришедшие раньше.</summary>
+        public static void FlushPending()
+        {
+            var list = new System.Collections.Generic.List<string>(pendingOwned);
+            pendingOwned.Clear();
+            foreach (var s in list)
+            {
+                int k = s.IndexOf('|');
+                Grant(s.Substring(0, k), s.Substring(k + 1));
+            }
+        }
+
+        public void OnCatalog(string json)
+        {
+            try
+            {
+                var list = JsonUtility.FromJson<CatalogList>(json);
+                if (list != null && list.items != null) foreach (var it in list.items) Catalog[it.id] = it;
+                PaymentsReady = true;
+            }
+            catch (Exception e) { Debug.LogWarning(e.Message); }
+        }
+
+        /// <summary>Незавершённые покупки при старте: постоянные — восстанавливаем, расходуемые — выдаём и consume.</summary>
+        public void OnPurchases(string json)
+        {
+            try
+            {
+                var list = JsonUtility.FromJson<PurchaseList>(json);
+                if (list == null || list.items == null) return;
+                foreach (var it in list.items)
+                {
+                    bool permanent = false;
+                    foreach (var p in GameConfig.Products) if (p.id == it.id && p.kind == ProductKind.Permanent) permanent = true;
+                    if (permanent)
+                    {
+                        if (!SaveManager.Data.ownedProducts.Contains(it.id)) SaveManager.Data.ownedProducts.Add(it.id);
+                    }
+                    else Grant(it.id, it.token);
+                }
+                if (GameManager.Instance != null) GameManager.Instance.RecalcStats();
+            }
+            catch (Exception e) { Debug.LogWarning(e.Message); }
+        }
+
+        public void OnPurchaseSuccess(string json)
+        {
+            try
+            {
+                var it = JsonUtility.FromJson<PurchaseItem>(json);
+                Grant(it.id, it.token);
+            }
+            catch (Exception e) { Debug.LogWarning(e.Message); }
+        }
+
+        public void OnPurchaseFailed(string id)
+        {
+            if (UIManager.Instance != null) UIManager.Instance.Toast(Loc.Ru ? "Покупка отменена" : "Purchase cancelled", new Color(1f, 0.6f, 0.4f));
+        }
+
         // ===== Колбэки из JS (SendMessage) =====
         public void OnAdOpen(string _)
         {
@@ -156,6 +287,7 @@ namespace DragonHeist
         public void OnAdClose(string _)
         {
             AdOpen = false;
+            if (GameManager.Instance != null) GameManager.Instance.ResetAdTimer();
             ApplyPause();
             GameplayStart();
         }

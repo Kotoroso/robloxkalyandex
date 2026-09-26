@@ -48,6 +48,18 @@ namespace DragonHeist
         public Color color;
     }
 
+    public enum ProductKind { Coins, Speed, Egg, Permanent }
+
+    /// <summary>Товар за Яны. ID должны совпадать с товарами в консоли разработчика Яндекс Игр.</summary>
+    public class ProductDef
+    {
+        public string id, nameRu, nameEn, descRu, descEn;
+        public ProductKind kind;
+        public float amount;         // множитель награды (для монет/скорости — "минут дохода")
+        public Color color;
+        public string fallbackPrice; // показывается, пока не загрузился каталог
+    }
+
     public class UpgradeDef
     {
         public string id, nameRu, nameEn, descRu, descEn;
@@ -68,7 +80,8 @@ namespace DragonHeist
         public const int MaxPlots = 12;
         public const int InventorySlots = 5;
         public const float AdSpeedupFactor = 0.1f;      // реклама режет оставшееся время на 90%
-        public const float InterstitialCooldown = 90f;
+        public const float InterstitialCooldown = 60f;
+        public const float AdInterval = 120f;           // полноэкранная реклама каждые 2 минуты игры
         public const float OfflineIncomeFactor = 0.5f;
         public const int OfflineMaxSeconds = 2 * 3600;
 
@@ -163,6 +176,26 @@ namespace DragonHeist
             new UpgradeDef{ id="jump",   nameRu="Пружины",       nameEn="Springs",      descRu="+0.5 к прыжку",                descEn="+0.5 jump power",       baseCost=300,  costMult=2.6, maxLevel=10, color=new Color(1f,0.5f,0.4f) },
         };
 
+        public static readonly ProductDef[] Products =
+        {
+            new ProductDef{ id="coins_small",  kind=ProductKind.Coins,  amount=15,  nameRu="Мешок монет",     nameEn="Coin Bag",       descRu="Доход за 15 минут",        descEn="15 minutes of income",   color=new Color(1f,0.8f,0.2f),  fallbackPrice="19" },
+            new ProductDef{ id="coins_medium", kind=ProductKind.Coins,  amount=90,  nameRu="Сундук монет",    nameEn="Coin Chest",     descRu="Доход за 1.5 часа",        descEn="1.5 hours of income",    color=new Color(1f,0.65f,0.1f), fallbackPrice="49" },
+            new ProductDef{ id="coins_big",    kind=ProductKind.Coins,  amount=600, nameRu="Гора монет",      nameEn="Coin Mountain",  descRu="Доход за 10 часов",        descEn="10 hours of income",     color=new Color(1f,0.5f,0.1f),  fallbackPrice="149" },
+            new ProductDef{ id="speed_pack",   kind=ProductKind.Speed,  amount=30,  nameRu="Энергетик",       nameEn="Energy Drink",   descRu="Скорость за 30 минут бега", descEn="30 minutes of training", color=new Color(0.3f,0.9f,1f),  fallbackPrice="29" },
+            new ProductDef{ id="legend_egg",   kind=ProductKind.Egg,    amount=1,   nameRu="Золотое яйцо",    nameEn="Golden Egg",     descRu="Яйцо высшего открытого тира +1", descEn="Egg of your best tier +1", color=new Color(1f,0.85f,0.3f), fallbackPrice="79" },
+            new ProductDef{ id="x2_income",    kind=ProductKind.Permanent, amount=2, nameRu="x2 Доход навсегда",  nameEn="x2 Income forever",   descRu="Все драконы приносят вдвое больше", descEn="All dragons earn double", color=new Color(0.3f,0.85f,0.4f), fallbackPrice="99" },
+            new ProductDef{ id="x2_train",     kind=ProductKind.Permanent, amount=2, nameRu="x2 Прокачка навсегда", nameEn="x2 Training forever", descRu="Дорожки качают вдвое быстрее",   descEn="Treadmills train twice as fast", color=new Color(0.35f,0.6f,1f), fallbackPrice="99" },
+        };
+
+        // ===== Прокачка драконов за монеты =====
+        public const int DragonMaxLevel = 15;
+        public static float DragonLevelIncome(int lvl) { return 1f + 0.6f * (lvl - 1); }
+        public static float DragonLevelStat(int lvl) { return 1f + 0.25f * (lvl - 1); }
+        public static double DragonUpgradeCost(DragonDef d, int lvl) { return d.coinsPerSec * 40 * System.Math.Pow(1.9, lvl - 1); }
+
+        // ===== Ежедневная награда (7 дней по кругу) =====
+        public const int DailyDays = 7;
+
         public static TierInfo GetTier(Tier t) { return Tiers[(int)t]; }
         public static TierInfo GetTier(int t) { return Tiers[Mathf.Clamp(t, 0, Tiers.Length - 1)]; }
 
@@ -214,7 +247,7 @@ namespace DragonHeist
         public static double RebirthCost(int rebirths) { return 1e5 * System.Math.Pow(4.5, rebirths); }
         public static double PlotCost(int plotsOwned) { return 500 * System.Math.Pow(3.5, plotsOwned - StartPlots); }
         public static float RebirthMultiplier(int rebirths) { return 1f + rebirths; }
-        public static double SellPrice(DragonDef d) { return d.coinsPerSec * 90; }
+        public static double SellPrice(DragonDef d, int lvl = 1) { return d.coinsPerSec * 90 * DragonLevelIncome(lvl); }
         public static double UpgradeCost(int i, int level) { var u = Upgrades[i]; return u.baseCost * System.Math.Pow(u.costMult, level); }
 
         static TierInfo T(Tier t, string ru, string en, float r, float g, float b, int grow, float gs, int gc, float aggro, BrainrotKind k, float scale, double req)

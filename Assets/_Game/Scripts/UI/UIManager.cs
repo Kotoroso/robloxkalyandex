@@ -23,7 +23,12 @@ namespace DragonHeist
         Text promptText, promptKey;
         float toastTimer;
         GameObject hud, menu;
-        GameObject shopPanel, rebirthPanel, dragonsPanel, settingsPanel, sellPanel;
+        GameObject shopPanel, rebirthPanel, dragonsPanel, settingsPanel, sellPanel, yanPanel, dailyPanel;
+        Text[] yanPrices; Text[] yanNames;
+        Text[] dayTexts; Image[] dayCards; Button dailyClaim, dailyDouble;
+        Image adBg; Text adText;
+        Image[] dragCards; Text[] dragTexts; Text[] dragBtnTexts; Button[] dragBtns;
+        Text dragTotals;
         readonly List<GameObject> panels = new List<GameObject>();
         Text rebirthBody, dragonsBody, plotBtnText;
         Text[] upgLevel, upgCost;
@@ -81,6 +86,7 @@ namespace DragonHeist
 
             hud = UIKit.Rect(root, "HUD", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero).gameObject;
             UIKit.Stretch((RectTransform)hud.transform);
+            hud.AddComponent<SafeArea>();
             var h = hud.transform;
 
             // ===== Статы слева сверху (пилюли с иконками) =====
@@ -88,42 +94,58 @@ namespace DragonHeist
             cpsText = UIKit.Label(UIKit.Rect(h, "Cps", new Vector2(0, 1), new Vector2(0, 1), new Vector2(76, -66), new Vector2(260, 26)), "", 18, new Color(1f, 0.95f, 0.65f), TextAnchor.MiddleLeft);
             speedText = StatPill(h, 1, Icons.Bolt, Cyan);
             rebirthText = StatPill(h, 2, Icons.Star, Pink);
-            invText = UIKit.Label(UIKit.Rect(h, "Inv", new Vector2(0, 1), new Vector2(0, 1), new Vector2(18, -262), new Vector2(360, 30)), "", 18, new Color(1f, 0.85f, 0.4f), TextAnchor.MiddleLeft);
+            invText = UIKit.Label(UIKit.Rect(h, "Inv", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, mobile ? 136 : 128), new Vector2(500, 26)), "", 17, new Color(1f, 0.85f, 0.4f));
 
-            // ===== Кнопки меню слева по центру =====
-            float bs = mobile ? 88 : 84;
-            string[] names = { Loc.T("shop"), Loc.T("rebirth"), Loc.T("dragons"), Loc.T("settings") };
-            Sprite[] icons = { Icons.Bag, Icons.Star, Icons.Dragon, Icons.Gear };
-            Color[] cols = { new Color(0.25f, 0.78f, 0.35f), new Color(0.78f, 0.32f, 0.95f), new Color(1f, 0.55f, 0.15f), new Color(0.45f, 0.5f, 0.62f) };
-            for (int i = 0; i < 4; i++)
+            // ===== Кнопки меню: ПК — колонка слева, телефон — ряд справа сверху =====
+            string[] names = { Loc.T("shop"), Loc.T("rebirth"), Loc.T("dragons"), Loc.Ru ? "Донат" : "Store", Loc.T("settings") };
+            Sprite[] icons = { Icons.Bag, Icons.Star, Icons.Dragon, Icons.Coin, Icons.Gear };
+            Color[] cols = { new Color(0.25f, 0.78f, 0.35f), new Color(0.78f, 0.32f, 0.95f), new Color(1f, 0.55f, 0.15f), new Color(1f, 0.78f, 0.1f), new Color(0.45f, 0.5f, 0.62f) };
+            for (int i = 0; i < names.Length; i++)
             {
                 int k = i;
-                float y = (1.5f - i) * (bs + 16);
-                UIKit.Button(h, "Menu" + i, names[i], new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(16, y + (mobile ? 40 : 0)), new Vector2(bs, bs),
-                    cols[i], () => OnMenuButton(k), 15, icons[i]);
+                if (mobile)
+                {
+                    float bs = 72;
+                    UIKit.Button(h, "Menu" + i, names[i], new Vector2(1, 1), new Vector2(1, 1), new Vector2(-12 - (names.Length - 1 - i) * (bs + 8), -12), new Vector2(bs, bs),
+                        cols[i], () => OnMenuButton(k), 13, icons[i]);
+                }
+                else
+                {
+                    float bs = 74;
+                    float y = (2 - i) * (bs + 10) - 60;
+                    UIKit.Button(h, "Menu" + i, names[i], new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(16, y), new Vector2(bs, bs),
+                        cols[i], () => OnMenuButton(k), 14, icons[i]);
+                }
             }
+            // ежедневная награда — кнопка-подарок
+            var dailyBtn = UIKit.Button(h, "DailyBtn", Loc.Ru ? "Награда" : "Daily", mobile ? new Vector2(1, 1) : new Vector2(1, 1), new Vector2(1, 1),
+                mobile ? new Vector2(-12, -94) : new Vector2(-16, -16), new Vector2(mobile ? 72 : 80, mobile ? 72 : 80),
+                new Color(0.95f, 0.3f, 0.45f), () => ShowOnly(dailyPanel), 13, Icons.Egg);
+            Destroy(dailyBtn.GetComponent<ButtonBounce>());
+            dailyBtn.gameObject.AddComponent<DailyBadge>();
 
             // ===== Слоты драконов снизу =====
             BuildHotbar(h);
             heldText = UIKit.Label(UIKit.Rect(h, "Held", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, mobile ? 112 : 104), new Vector2(700, 30)), "", 18, new Color(0.7f, 1f, 0.85f));
 
             // ===== Обучение (сверху по центру) =====
-            var tp = UIKit.Panel(h, "Tutorial", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(720, 96), new Color(0.12f, 0.1f, 0.25f, 0.88f), 3f);
+            float tw = mobile ? 470 : 720, tx = mobile ? -70 : 0;
+            var tp = UIKit.Panel(h, "Tutorial", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(tx, -12), new Vector2(tw, 104), new Color(0.12f, 0.1f, 0.25f, 0.88f), 3f);
             tutPanel = tp.gameObject;
             var tTitle = UIKit.Label(UIKit.Rect(tp.transform, "T", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -2), new Vector2(700, 26)), Loc.T("tut_title"), 17, Gold);
             tTitle.alignment = TextAnchor.MiddleCenter;
-            tutText = UIKit.Label(UIKit.Rect(tp.transform, "B", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-40, 8), new Vector2(600, 62)), "", 21, Color.white);
-            UIKit.Button(tp.transform, "Skip", Loc.T("skip"), new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-10, -8), new Vector2(110, 38),
+            tutText = UIKit.Label(UIKit.Rect(tp.transform, "B", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-50, 6), new Vector2(tw - 130, 72)), "", mobile ? 17 : 21, Color.white);
+            UIKit.Button(tp.transform, "Skip", Loc.T("skip"), new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-10, -8), new Vector2(100, 38),
                 new Color(0.5f, 0.5f, 0.6f), () => { if (Tutorial.Instance != null) Tutorial.Instance.Skip(); }, 16);
             tutPanel.SetActive(false);
 
             // ===== Тост и баннер переноски =====
-            toastBg = UIKit.Panel(h, "Toast", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -118), new Vector2(680, 54), new Color(0.05f, 0.05f, 0.1f, 0.75f), 2f);
-            toastText = UIKit.Label(toastBg.transform, "", 23, Color.white);
+            toastBg = UIKit.Panel(h, "Toast", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(tx, -126), new Vector2(mobile ? 470 : 680, 54), new Color(0.05f, 0.05f, 0.1f, 0.75f), 2f);
+            toastText = UIKit.Label(toastBg.transform, "", mobile ? 19 : 23, Color.white);
             toastBg.raycastTarget = false;
             toastBg.gameObject.SetActive(false);
 
-            carryBg = UIKit.Panel(h, "Carry", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -178), new Vector2(560, 48), new Color(0.9f, 0.2f, 0.2f, 0.85f), 3f);
+            carryBg = UIKit.Panel(h, "Carry", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(tx, -186), new Vector2(mobile ? 470 : 560, 48), new Color(0.9f, 0.2f, 0.2f, 0.85f), 3f);
             carryText = UIKit.Label(carryBg.transform, "", 21, Color.white);
             carryBg.raycastTarget = false;
             carryBg.gameObject.SetActive(false);
@@ -132,16 +154,24 @@ namespace DragonHeist
 
             BuildPrompt(h);
 
+            adBg = UIKit.Panel(h, "AdCountdown", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 120), new Vector2(420, 70), new Color(0.1f, 0.1f, 0.18f, 0.9f), 3f);
+            adText = UIKit.Label(adBg.transform, "", 26, Gold);
+            adBg.raycastTarget = false;
+            adBg.gameObject.SetActive(false);
+
             // ===== Панели =====
             shopPanel = BuildShop();
             rebirthPanel = BuildRebirth();
             dragonsPanel = BuildDragons();
             settingsPanel = BuildSettings();
             sellPanel = BuildSell();
+            yanPanel = BuildYanShop();
+            dailyPanel = BuildDaily();
 
             if (mobile) hud.AddComponent<MobileControls>().Build(h);
 
             BuildMenu();
+            gameObject.AddComponent<ResponsiveCanvas>().Init(scaler, mobile, root);
         }
 
         Text StatPill(Transform parent, int line, Sprite icon, Color color)
@@ -255,9 +285,99 @@ namespace DragonHeist
         GameObject BuildDragons()
         {
             RectTransform body;
-            var go = Modal(Loc.T("dragons"), new Color(1f, 0.55f, 0.15f), new Vector2(760, 560), out body);
-            dragonsBody = UIKit.Label(body, "", 17, Color.white, TextAnchor.UpperLeft);
+            var go = Modal(Loc.T("dragons"), new Color(1f, 0.55f, 0.15f), new Vector2(900, 620), out body);
+            dragTotals = UIKit.Label(UIKit.Rect(body, "Tot", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, 0), new Vector2(860, 34)), "", 17, Gold);
+            int n = GameConfig.MaxPlots;
+            dragCards = new Image[n]; dragTexts = new Text[n]; dragBtnTexts = new Text[n]; dragBtns = new Button[n];
+            float cw = 280, ch = 118;
+            for (int i = 0; i < n; i++)
+            {
+                int k = i;
+                int col = i % 3, row = i / 3;
+                var card = UIKit.Panel(body, "D" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((col - 1) * (cw + 10), -40 - row * (ch + 8)), new Vector2(cw, ch), new Color(0.2f, 0.19f, 0.3f), 2f);
+                dragCards[i] = card;
+                dragTexts[i] = UIKit.Label(UIKit.Rect(card.transform, "T", new Vector2(0, 1), new Vector2(0, 1), new Vector2(8, -4), new Vector2(cw - 16, 70)), "", 15, Color.white, TextAnchor.UpperLeft);
+                dragBtns[i] = UIKit.Button(card.transform, "Up", "", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 6), new Vector2(cw - 20, 38),
+                    new Color(0.25f, 0.78f, 0.35f), () => { if (GameManager.Instance.TryUpgradeDragon(k)) RefreshPanels(); }, 16);
+                dragBtnTexts[i] = dragBtns[i].GetComponentInChildren<Text>();
+            }
             return go;
+        }
+
+        GameObject BuildYanShop()
+        {
+            RectTransform body;
+            var go = Modal(Loc.Ru ? "Магазин" : "Store", new Color(1f, 0.72f, 0.1f), new Vector2(900, 600), out body);
+            int n = GameConfig.Products.Length;
+            yanPrices = new Text[n]; yanNames = new Text[n];
+            float cw = 205, ch = 230;
+            for (int i = 0; i < n; i++)
+            {
+                int k = i;
+                var pd = GameConfig.Products[i];
+                int col = i % 4, row = i / 4;
+                var card = UIKit.Panel(body, "P" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((col - 1.5f) * (cw + 12), -row * (ch + 12)), new Vector2(cw, ch),
+                    new Color(pd.color.r * 0.45f, pd.color.g * 0.45f, pd.color.b * 0.45f, 1f), 3f);
+                var icon = pd.kind == ProductKind.Coins ? Icons.Coin : pd.kind == ProductKind.Speed ? Icons.Bolt : pd.kind == ProductKind.Egg ? Icons.Egg : Icons.Star;
+                UIKit.Icon(card.transform, icon, new Vector2(0.5f, 1), new Vector2(0, -50), 76);
+                yanNames[i] = UIKit.Label(UIKit.Rect(card.transform, "N", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -98), new Vector2(cw - 10, 30)), Loc.Ru ? pd.nameRu : pd.nameEn, 18, Color.white);
+                UIKit.Label(UIKit.Rect(card.transform, "D", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -136), new Vector2(cw - 12, 44)), Loc.Ru ? pd.descRu : pd.descEn, 14, new Color(0.9f, 0.9f, 1f));
+                var b = UIKit.Button(card.transform, "Buy", "", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 8), new Vector2(cw - 24, 46),
+                    new Color(0.3f, 0.8f, 0.35f), () => YandexSDK.Purchase(GameConfig.Products[k].id), 19);
+                yanPrices[i] = b.GetComponentInChildren<Text>();
+            }
+            return go;
+        }
+
+        GameObject BuildDaily()
+        {
+            RectTransform body;
+            var go = Modal(Loc.Ru ? "Ежедневная награда" : "Daily reward", new Color(0.95f, 0.3f, 0.45f), new Vector2(900, 470), out body);
+            int n = GameConfig.DailyDays;
+            dayTexts = new Text[n]; dayCards = new Image[n];
+            float cw = 116;
+            for (int i = 0; i < n; i++)
+            {
+                var card = UIKit.Panel(body, "Day" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((i - 3) * (cw + 6), -6), new Vector2(cw, 220), new Color(0.2f, 0.19f, 0.3f), 2f);
+                dayCards[i] = card;
+                UIKit.Label(UIKit.Rect(card.transform, "H", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -4), new Vector2(cw, 30)), (Loc.Ru ? "День " : "Day ") + (i + 1), 17, Gold);
+                UIKit.Icon(card.transform, i == 3 || i == 6 ? Icons.Egg : (i == 1 || i == 5 ? Icons.Bolt : Icons.Coin), new Vector2(0.5f, 1), new Vector2(0, -68), 56);
+                dayTexts[i] = UIKit.Label(UIKit.Rect(card.transform, "T", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 6), new Vector2(cw - 6, 110)), "", 13, Color.white);
+            }
+            dailyClaim = UIKit.Button(body, "Claim", Loc.Ru ? "Забрать" : "Claim", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-150, 0), new Vector2(260, 64),
+                new Color(0.3f, 0.8f, 0.35f), () => { GameManager.Instance.ClaimDaily(false); RefreshPanels(); }, 26);
+            dailyDouble = UIKit.Button(body, "Double", Loc.Ru ? "x2 за рекламу" : "x2 for ad", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(150, 0), new Vector2(260, 64),
+                new Color(1f, 0.6f, 0.15f), () => YandexSDK.ShowRewarded(ok =>
+                {
+                    if (ok) GameManager.Instance.ClaimDaily(true);
+                    else Toast(Loc.T("ad_fail"), new Color(1f, 0.6f, 0.4f));
+                    RefreshPanels();
+                }), 24);
+            return go;
+        }
+
+        public void ShowAdCountdown(int n)
+        {
+            if (adBg == null) return;
+            bool show = n > 0;
+            if (adBg.gameObject.activeSelf != show) adBg.gameObject.SetActive(show);
+            if (show) adText.text = (Loc.Ru ? "Реклама через " : "Ad in ") + n + "...";
+        }
+
+        /// <summary>После "Играть": мини-обучение управлению (один раз), потом ежедневная награда.</summary>
+        void AfterPlay()
+        {
+            var gm = GameManager.Instance;
+            if (!SaveManager.Data.controlsSeen)
+            {
+                ControlsGuide.Show(root, mobile, () =>
+                {
+                    SaveManager.Data.controlsSeen = true;
+                    if (gm != null) gm.SaveNow(false);
+                    if (gm != null && gm.DailyAvailable) ShowOnly(dailyPanel);
+                });
+            }
+            else if (gm != null && gm.DailyAvailable) ShowOnly(dailyPanel);
         }
 
         GameObject BuildSettings()
@@ -310,7 +430,7 @@ namespace DragonHeist
 
         void OnMenuButton(int i)
         {
-            var p = i == 0 ? shopPanel : i == 1 ? rebirthPanel : i == 2 ? dragonsPanel : settingsPanel;
+            var p = i == 0 ? shopPanel : i == 1 ? rebirthPanel : i == 2 ? dragonsPanel : i == 3 ? yanPanel : settingsPanel;
             if (p.activeSelf) p.SetActive(false); else ShowOnly(p);
         }
 
@@ -385,6 +505,7 @@ namespace DragonHeist
             GameAudio.Play(Sfx.Success);
             YandexSDK.GameplayStart();
             Toast(Loc.T("hint_start"), Color.white, 5f);
+            AfterPlay();
         }
 
         // ============================ РУЛЕТКА ============================
@@ -545,21 +666,55 @@ namespace DragonHeist
             }
             if (dragonsPanel.activeSelf)
             {
-                var sb = new StringBuilder();
-                sb.AppendLine("<color=#FFD84A>" + Loc.F("total_bonus", gm.DragonSpeedPct.ToString("0"), Loc.Num(gm.CoinsPerSec),
-                    gm.DragonTrainPct.ToString("0"), gm.DragonJump.ToString("0.#")).Replace("\n", "   ") + "</color>");
-                sb.AppendLine();
-                if (gm.DragonCount == 0) sb.Append(Loc.T("no_dragons"));
-                for (int i = 0; i < d.plotsOwned; i++)
+                dragTotals.text = Loc.F("total_bonus", gm.DragonSpeedPct.ToString("0"), Loc.Num(gm.CoinsPerSec),
+                    gm.DragonTrainPct.ToString("0"), gm.DragonJump.ToString("0.#")).Replace("\n", "   ");
+                for (int i = 0; i < dragCards.Length; i++)
                 {
+                    bool owned = i < d.plotsOwned && d.plots[i].state == (int)PlotState.Dragon;
+                    dragCards[i].gameObject.SetActive(owned);
+                    if (!owned) continue;
                     var pl = d.plots[i];
-                    if (pl.state != (int)PlotState.Dragon) continue;
                     var def = GameConfig.GetDragon(pl.dragonId);
-                    string hex = ColorUtility.ToHtmlStringRGB(GameConfig.GetTier(def.tier).color);
-                    sb.AppendLine("<color=#" + hex + ">" + Loc.DragonName(def) + " [" + Loc.TierName(def.tier) + "]</color>  +" + def.speedPct + "% "
-                        + (Loc.Ru ? "скор." : "spd") + ", " + Loc.Num(def.coinsPerSec) + (Loc.Ru ? "/сек, +" : "/s, +") + def.trainPct + (Loc.Ru ? "% прок." : "% train"));
+                    var tc = GameConfig.GetTier(def.tier).color;
+                    dragCards[i].color = new Color(tc.r * 0.35f, tc.g * 0.35f, tc.b * 0.35f, 1f);
+                    float ls = GameConfig.DragonLevelStat(pl.level);
+                    dragTexts[i].text = "<color=#" + ColorUtility.ToHtmlStringRGB(Color.Lerp(tc, Color.white, 0.3f)) + ">" + Loc.DragonName(def) + "</color>  <color=#FFD84A>"
+                        + (Loc.Ru ? "Ур." : "Lv.") + pl.level + "</color>\n"
+                        + Loc.Num(def.coinsPerSec * GameConfig.DragonLevelIncome(pl.level)) + (Loc.Ru ? "/сек  +" : "/s  +") + (def.speedPct * ls).ToString("0") + (Loc.Ru ? "% скор.\n+" : "% spd\n+")
+                        + (def.trainPct * ls).ToString("0") + (Loc.Ru ? "% прокачки" : "% training");
+                    bool max = pl.level >= GameConfig.DragonMaxLevel;
+                    dragBtnTexts[i].text = max ? "MAX" : (Loc.Ru ? "Улучшить " : "Upgrade ") + Loc.Num(gm.DragonUpgradeCost(i));
+                    dragBtns[i].interactable = !max;
                 }
-                dragonsBody.text = sb.ToString();
+                if (gm.DragonCount == 0) dragTotals.text = Loc.T("no_dragons").Replace("\n", " ");
+            }
+            if (yanPanel.activeSelf)
+            {
+                for (int i = 0; i < yanPrices.Length; i++)
+                {
+                    var pd = GameConfig.Products[i];
+                    bool owned = pd.kind == ProductKind.Permanent && gm.Owns(pd.id);
+                    yanPrices[i].text = owned ? (Loc.Ru ? "Куплено" : "Owned") : YandexSDK.PriceText(pd);
+                    yanPrices[i].transform.parent.GetComponent<Button>().interactable = !owned;
+                }
+            }
+            if (dailyPanel.activeSelf)
+            {
+                int next = gm.DailyNextDay;
+                bool avail = gm.DailyAvailable;
+                int claimedUpTo = avail ? next - 1 : d.dailyStreak;
+                for (int i = 0; i < dayTexts.Length; i++)
+                {
+                    int day = i + 1;
+                    dayTexts[i].text = gm.DailyText(day);
+                    bool isNext = avail && day == next;
+                    bool done = day <= claimedUpTo;
+                    dayCards[i].color = isNext ? new Color(0.35f, 0.7f, 0.35f) : done ? new Color(0.25f, 0.25f, 0.3f) : new Color(0.2f, 0.19f, 0.3f);
+                    foreach (var o in dayCards[i].GetComponents<Outline>()) o.effectColor = isNext ? Gold : UIKit.Stroke;
+                }
+                dailyClaim.interactable = avail;
+                dailyDouble.interactable = avail;
+                dailyClaim.GetComponentInChildren<Text>().text = avail ? (Loc.Ru ? "Забрать" : "Claim") : (Loc.Ru ? "Завтра!" : "Tomorrow!");
             }
             if (settingsPanel.activeSelf)
             {

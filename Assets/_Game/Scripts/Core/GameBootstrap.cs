@@ -53,6 +53,9 @@ namespace DragonHeist
             Tutorial.Create();
 
             YandexSDK.GameReady();
+            YandexSDK.InitPayments();
+            YandexSDK.FlushPending();
+            YandexSDK.ShowBanner();
         }
 
         void Update()

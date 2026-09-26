@@ -19,13 +19,13 @@ namespace DragonHeist
         public int DragonCount { get; private set; }
 
         float saveTimer, cloudTimer;
-        float lastCaughtAd = 0f;
 
         SaveData D { get { return SaveManager.Data; } }
 
         public int UpgLevel(int i) { return i < D.upgrades.Count ? D.upgrades[i] : 0; }
-        public float CoinMultiplier { get { return GameConfig.RebirthMultiplier(D.rebirths) * (1f + 0.2f * UpgLevel(1)); } }
-        public float TrainMultiplier { get { return GameConfig.RebirthMultiplier(D.rebirths) * (1f + 0.25f * UpgLevel(0)) * (1f + DragonTrainPct / 100f); } }
+        public bool Owns(string id) { return D.ownedProducts.Contains(id); }
+        public float CoinMultiplier { get { return GameConfig.RebirthMultiplier(D.rebirths) * (1f + 0.2f * UpgLevel(1)) * (Owns("x2_income") ? 2f : 1f); } }
+        public float TrainMultiplier { get { return GameConfig.RebirthMultiplier(D.rebirths) * (1f + 0.25f * UpgLevel(0)) * (1f + DragonTrainPct / 100f) * (Owns("x2_train") ? 2f : 1f); } }
         public float GrowFactor { get { return 1f - 0.05f * UpgLevel(2); } }
         public int LuckLevel { get { return UpgLevel(3); } }
         public double CoinsPerSec { get { return DragonCps * CoinMultiplier; } }
@@ -69,14 +69,15 @@ namespace DragonHeist
                 var p = D.plots[i];
                 if (p.state != (int)PlotState.Dragon) continue;
                 var d = GameConfig.GetDragon(p.dragonId);
-                sp += d.speedPct; tp += d.trainPct; j += d.jumpBonus; cps += d.coinsPerSec; n++;
+                float ls = GameConfig.DragonLevelStat(p.level);
+                sp += d.speedPct * ls; tp += d.trainPct * ls; j += d.jumpBonus; cps += d.coinsPerSec * GameConfig.DragonLevelIncome(p.level); n++;
             }
             // дракон в руке тоже даёт свой бонус скорости и прыжка
             int held = HeldDragonId;
             if (held >= 0)
             {
                 var hd = GameConfig.GetDragon(held);
-                sp += hd.speedPct; j += hd.jumpBonus;
+                sp += hd.speedPct * GameConfig.DragonLevelStat(D.dragonInvLvl[D.selectedSlot]); j += hd.jumpBonus;
             }
             DragonSpeedPct = sp; DragonTrainPct = tp; DragonJump = j; DragonCps = cps; DragonCount = n;
         }
@@ -119,6 +120,7 @@ namespace DragonHeist
                 return;
             }
             D.dragonInv[slot] = p.dragonId;
+            D.dragonInvLvl[slot] = p.level;
             p.state = (int)PlotState.Empty;
             D.selectedSlot = slot;
             RecalcStats();
@@ -138,7 +140,9 @@ namespace DragonHeist
             p.state = (int)PlotState.Dragon;
             p.dragonId = id;
             p.tier = (int)GameConfig.GetDragon(id).tier;
+            p.level = D.dragonInvLvl[D.selectedSlot];
             D.dragonInv[D.selectedSlot] = -1;
+            D.dragonInvLvl[D.selectedSlot] = 1;
             D.selectedSlot = -1;
             RecalcStats();
             if (OnHeldChanged != null) OnHeldChanged();
@@ -151,7 +155,7 @@ namespace DragonHeist
         public double SlotSellPrice(int slot)
         {
             int id = D.dragonInv[slot];
-            return id < 0 ? 0 : GameConfig.SellPrice(GameConfig.GetDragon(id)) * CoinMultiplier;
+            return id < 0 ? 0 : GameConfig.SellPrice(GameConfig.GetDragon(id), D.dragonInvLvl[slot]) * CoinMultiplier;
         }
 
         public void SellSlot(int slot)
@@ -187,6 +191,7 @@ namespace DragonHeist
         {
             float dt = Time.deltaTime;
             D.coins += CoinsPerSec * dt;
+            UpdateAdTimer(Time.unscaledDeltaTime);
 
             // сажаем яйца из инвентаря в освободившиеся грядки
             if (D.inventory.Count > 0)
@@ -292,6 +297,7 @@ namespace DragonHeist
             p.state = (int)PlotState.Dragon;
             p.dragonId = def.id;
             p.tier = (int)def.tier;
+            p.level = 1;
             D.totalHatched++;
             RecalcStats();
             GameAudio.Play(Sfx.Hatch);
@@ -346,7 +352,7 @@ namespace DragonHeist
             var p = plot.Data;
             if (p.state != (int)PlotState.Dragon) return;
             var def = GameConfig.GetDragon(p.dragonId);
-            double price = GameConfig.SellPrice(def) * CoinMultiplier;
+            double price = GameConfig.SellPrice(def, p.level) * CoinMultiplier;
             D.coins += price;
             p.state = (int)PlotState.Empty;
             RecalcStats();
@@ -394,18 +400,210 @@ namespace DragonHeist
             PlayerController.Instance.DropCarried(true);
             PlayerController.Instance.Respawn();
             SaveNow(true);
-            YandexSDK.ShowInterstitial();
             return true;
         }
 
+        // ===================== Прокачка драконов =====================
+        public double DragonUpgradeCost(int plot)
+        {
+            var p = D.plots[plot];
+            return GameConfig.DragonUpgradeCost(GameConfig.GetDragon(p.dragonId), p.level);
+        }
+
+        public bool TryUpgradeDragon(int plot)
+        {
+            var p = D.plots[plot];
+            if (p.state != (int)PlotState.Dragon || p.level >= GameConfig.DragonMaxLevel) return false;
+            if (!TrySpend(DragonUpgradeCost(plot)))
+            {
+                UIManager.Instance.Toast(Loc.T("no_money"), new Color(1f, 0.5f, 0.3f));
+                GameAudio.Play(Sfx.Error);
+                return false;
+            }
+            p.level++;
+            RecalcStats();
+            GameAudio.Play(Sfx.Buy);
+            var def = GameConfig.GetDragon(p.dragonId);
+            if (plot < Plots.Count)
+            {
+                Fx.Burst(Plots[plot].transform.position + Vector3.up * 2f, GameConfig.GetTier(def.tier).color, 30, 6f, 0.5f, 0.8f);
+                FloatingText.Spawn(Plots[plot].transform.position + Vector3.up * 5f, (Loc.Ru ? "Ур. " : "Lv. ") + p.level + "!", new Color(1f, 0.9f, 0.3f));
+                Plots[plot].ForceRefresh();
+            }
+            SaveNow(false);
+            return true;
+        }
+
+        /// <summary>Самый высокий тир зоны, куда игрок уже может войти.</summary>
+        public int HighestUnlockedTier
+        {
+            get
+            {
+                int best = 0;
+                for (int i = 0; i < GameConfig.Tiers.Length; i++) if (D.speedPoints >= GameConfig.Tiers[i].reqPoints) best = i;
+                return best;
+            }
+        }
+
+        /// <summary>Скорость тренировки в секунду на лучшей открытой дорожке (для наград).</summary>
+        public double BestTrainRate
+        {
+            get
+            {
+                double best = 0;
+                for (int i = 0; i < GameConfig.Treadmills.Length; i++)
+                    if ((D.treadmillsMask & (1 << i)) != 0) best = System.Math.Max(best, GameConfig.Treadmills[i].gainPerSec);
+                return best * TrainMultiplier;
+            }
+        }
+
+        void AddEgg(int tier)
+        {
+            tier = Mathf.Clamp(tier, 0, GameConfig.Tiers.Length - 1);
+            D.inventory.Add(new EggItem { tier = tier, dragonId = -1 });
+        }
+
+        // ===================== Ежедневная награда =====================
+        public static long Today { get { return SaveData.Now() / 86400; } }
+        public bool DailyAvailable { get { return D.lastDailyDay != Today; } }
+
+        /// <summary>Какой день серии будет забран сейчас (1..7).</summary>
+        public int DailyNextDay
+        {
+            get
+            {
+                int streak = (D.lastDailyDay == Today - 1) ? D.dailyStreak : 0;
+                return streak % GameConfig.DailyDays + 1;
+            }
+        }
+
+        public double DailyCoins(int day)
+        {
+            double baseC = System.Math.Max(300, CoinsPerSec * 300);
+            double[] mult = { 1, 0, 2, 0, 4, 0, 6 };
+            return baseC * mult[(day - 1) % 7];
+        }
+
+        public double DailySpeed(int day)
+        {
+            double baseS = System.Math.Max(100, BestTrainRate * 300);
+            return (day == 2 ? 1 : day == 6 ? 2.5 : 0) * baseS;
+        }
+
+        public int DailyEggTier(int day)
+        {
+            if (day == 4) return HighestUnlockedTier;
+            if (day == 7) return HighestUnlockedTier + 1;
+            return -1;
+        }
+
+        public string DailyText(int day)
+        {
+            var sb = new System.Text.StringBuilder();
+            if (DailyCoins(day) > 0) sb.Append("+" + Loc.Num(DailyCoins(day)) + (Loc.Ru ? " монет" : " coins"));
+            if (DailySpeed(day) > 0) { if (sb.Length > 0) sb.Append("\n"); sb.Append("+" + Loc.Num(DailySpeed(day)) + (Loc.Ru ? " скорости" : " speed")); }
+            int egg = DailyEggTier(day);
+            if (egg >= 0) { if (sb.Length > 0) sb.Append("\n"); sb.Append((Loc.Ru ? "Яйцо: " : "Egg: ") + Loc.TierName((Tier)Mathf.Clamp(egg, 0, GameConfig.Tiers.Length - 1))); }
+            return sb.ToString();
+        }
+
+        public void ClaimDaily(bool doubled)
+        {
+            if (!DailyAvailable) return;
+            int day = DailyNextDay;
+            int mult = doubled ? 2 : 1;
+            D.coins += DailyCoins(day) * mult;
+            D.speedPoints += DailySpeed(day) * mult;
+            int egg = DailyEggTier(day);
+            if (egg >= 0) { AddEgg(egg); if (doubled) AddEgg(egg); }
+            D.dailyStreak = day;
+            D.lastDailyDay = Today;
+            GameAudio.Play(Sfx.Rebirth);
+            if (PlayerController.Instance != null) Fx.Confetti(PlayerController.Instance.transform.position + Vector3.up * 3f, 80);
+            UIManager.Instance.Toast((Loc.Ru ? "Награда за день " : "Day reward ") + day + "!", new Color(1f, 0.9f, 0.3f), 3f);
+            SaveNow(true);
+        }
+
+        // ===================== Покупки за Яны =====================
+        /// <summary>Выдать товар. Возвращает true, если это расходуемый товар (его нужно consume).</summary>
+        public bool GrantProduct(string id)
+        {
+            ProductDef def = null;
+            foreach (var p in GameConfig.Products) if (p.id == id) def = p;
+            if (def == null) return true;
+            string msg = "";
+            switch (def.kind)
+            {
+                case ProductKind.Coins:
+                {
+                    double c = System.Math.Max(2000 * def.amount / 15.0, CoinsPerSec * 60 * def.amount);
+                    D.coins += c;
+                    msg = "+" + Loc.Num(c) + (Loc.Ru ? " монет" : " coins");
+                    break;
+                }
+                case ProductKind.Speed:
+                {
+                    double sp = System.Math.Max(500, BestTrainRate * 60 * def.amount);
+                    D.speedPoints += sp;
+                    msg = "+" + Loc.Num(sp) + (Loc.Ru ? " скорости" : " speed");
+                    break;
+                }
+                case ProductKind.Egg:
+                    AddEgg(HighestUnlockedTier + 1);
+                    msg = Loc.Ru ? "Золотое яйцо в инвентаре!" : "Golden egg added!";
+                    break;
+                case ProductKind.Permanent:
+                    if (!D.ownedProducts.Contains(id)) D.ownedProducts.Add(id);
+                    msg = Loc.Ru ? def.nameRu + " активирован!" : def.nameEn + " activated!";
+                    break;
+            }
+            RecalcStats();
+            foreach (var t in Treadmill.All) t.Refresh();
+            GameAudio.Play(Sfx.Rebirth);
+            if (PlayerController.Instance != null) Fx.Confetti(PlayerController.Instance.transform.position + Vector3.up * 3f, 90);
+            UIManager.Instance.Toast(msg, new Color(1f, 0.9f, 0.3f), 3.5f);
+            SaveNow(true);
+            return def.kind != ProductKind.Permanent;
+        }
+
+        // ===================== Реклама каждые 2 минуты =====================
+        float adTimer;
+        float adCountdown = -1f;
+
+        /// <summary>
+        /// Полноэкранная реклама раз в 2 минуты игры. Показывается только в безопасный момент
+        /// (не несём яйцо, нет рулетки/меню) и с предупреждением за 3 секунды — как рекомендует Яндекс.
+        /// Сам SDK дополнительно ограничивает частоту (настраивается в консоли разработчика).
+        /// </summary>
+        void UpdateAdTimer(float dt)
+        {
+            var ui = UIManager.Instance;
+            if (ui == null || InputState.Blocked || YandexSDK.AdOpen) return;
+            var p = PlayerController.Instance;
+            bool safe = p != null && p.Carrying == null && !Roulette.Active && !Opening;
+            if (adCountdown >= 0)
+            {
+                if (!safe) { adCountdown = -1f; return; }
+                adCountdown -= dt;
+                ui.ShowAdCountdown(Mathf.CeilToInt(adCountdown));
+                if (adCountdown <= 0)
+                {
+                    adCountdown = -1f;
+                    adTimer = 0;
+                    ui.ShowAdCountdown(0);
+                    YandexSDK.ShowInterstitial(true);
+                }
+                return;
+            }
+            adTimer += dt;
+            if (adTimer >= GameConfig.AdInterval && safe) adCountdown = 3f;
+        }
+
+        public void ResetAdTimer() { adTimer = 0; }
+
         public void OnCaught()
         {
-            // полноэкранная реклама не чаще раза в 3 минуты и только в естественной паузе
-            if (Time.realtimeSinceStartup - lastCaughtAd > 180f)
-            {
-                lastCaughtAd = Time.realtimeSinceStartup;
-                YandexSDK.ShowInterstitial();
-            }
+            // реклама теперь показывается по таймеру (каждые 2 минуты), см. UpdateAdTimer
         }
     }
 }

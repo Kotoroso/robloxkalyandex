@@ -2,6 +2,53 @@
 // и кладётся в window.ysdk / window.yplayer. Ответы идут в Unity через SendMessage("YandexSDK", ...).
 mergeInto(LibraryManager.library, {
 
+  // ===== Стики-баннеры (включаются в консоли разработчика: "Sticky-баннеры" + показ через SDK) =====
+  YG_ShowBanner: function () {
+    try { if (window.ysdk && window.ysdk.adv && window.ysdk.adv.showBannerAdv) window.ysdk.adv.showBannerAdv(); } catch (e) { }
+  },
+
+  YG_HideBanner: function () {
+    try { if (window.ysdk && window.ysdk.adv && window.ysdk.adv.hideBannerAdv) window.ysdk.adv.hideBannerAdv(); } catch (e) { }
+  },
+
+  // ===== Покупки за Яны (ysdk.getPayments) =====
+  YG_InitPayments: function () {
+    var send = function (m, s) {
+      if (window.unityInstance) window.unityInstance.SendMessage("YandexSDK", m, s);
+      else setTimeout(function () { send(m, s); }, 200);
+    };
+    var tryInit = function (attempt) {
+      if (!window.ysdk) { if (attempt < 50) setTimeout(function () { tryInit(attempt + 1); }, 200); return; }
+      window.ysdk.getPayments({ signed: false }).then(function (p) {
+        window.ypayments = p;
+        p.getCatalog().then(function (list) {
+          var items = list.map(function (x) { return { id: x.id, price: x.price, priceValue: x.priceValue, currency: x.priceCurrencyCode }; });
+          send("OnCatalog", JSON.stringify({ items: items }));
+        }).catch(function () { });
+        p.getPurchases().then(function (ps) {
+          var items = ps.map(function (x) { return { id: x.productID, token: x.purchaseToken }; });
+          send("OnPurchases", JSON.stringify({ items: items }));
+        }).catch(function () { });
+      }).catch(function (e) { console.warn("payments unavailable", e); });
+    };
+    tryInit(0);
+  },
+
+  YG_Purchase: function (idPtr) {
+    var id = UTF8ToString(idPtr);
+    if (!window.ypayments) { window.unityInstance.SendMessage("YandexSDK", "OnPurchaseFailed", id); return; }
+    window.ypayments.purchase({ id: id }).then(function (pur) {
+      window.unityInstance.SendMessage("YandexSDK", "OnPurchaseSuccess", JSON.stringify({ id: pur.productID, token: pur.purchaseToken }));
+    }).catch(function () {
+      window.unityInstance.SendMessage("YandexSDK", "OnPurchaseFailed", id);
+    });
+  },
+
+  YG_Consume: function (tokenPtr) {
+    var token = UTF8ToString(tokenPtr);
+    if (window.ypayments) window.ypayments.consumePurchase(token).catch(function (e) { console.warn("consume", e); });
+  },
+
   YG_IsReady: function () {
     return window.ysdk ? 1 : 0;
   },

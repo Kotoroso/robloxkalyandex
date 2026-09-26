@@ -14,6 +14,7 @@ namespace DragonHeist
         public int dragonId;
         public long plantedAt;  // unix sec
         public long readyAt;    // unix sec
+        public int level = 1;   // уровень дракона (прокачка за монеты)
     }
 
     [Serializable]
@@ -45,6 +46,11 @@ namespace DragonHeist
         public int selectedSlot = -1;
         public List<int> upgrades = new List<int>();       // уровни улучшений из магазина
         public int totalHatched;
+        public List<int> dragonInvLvl = new List<int>();   // уровни драконов в слотах
+        public bool controlsSeen;
+        public long lastDailyDay = -1;                     // номер дня (UTC), когда забрана награда
+        public int dailyStreak;
+        public List<string> ownedProducts = new List<string>(); // постоянные покупки за Яны
 
         public void Normalize()
         {
@@ -59,6 +65,11 @@ namespace DragonHeist
             while (dragonInv.Count < GameConfig.InventorySlots) dragonInv.Add(-1);
             if (selectedSlot >= GameConfig.InventorySlots) selectedSlot = -1;
             switchType = Mathf.Clamp(switchType, 0, 2);
+            if (dragonInvLvl == null) dragonInvLvl = new List<int>();
+            while (dragonInvLvl.Count < GameConfig.InventorySlots) dragonInvLvl.Add(1);
+            for (int i = 0; i < dragonInvLvl.Count; i++) if (dragonInvLvl[i] < 1) dragonInvLvl[i] = 1;
+            foreach (var p in plots) if (p.level < 1) p.level = 1;
+            if (ownedProducts == null) ownedProducts = new List<string>();
             if (upgrades == null) upgrades = new List<int>();
             while (upgrades.Count < GameConfig.Upgrades.Length) upgrades.Add(0);
             // старые сохранения: выкидываем несуществующих драконов
