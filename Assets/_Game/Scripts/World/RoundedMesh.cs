@@ -9,7 +9,15 @@ namespace DragonHeist
     /// </summary>
     public static class RoundedMesh
     {
-        static readonly Dictionary<string, Mesh> cache = new Dictionary<string, Mesh>();
+        // ключ кэша — квантованные размеры (раньше строка из 4 ToString на каждую деталь: тысячи аллокаций при загрузке)
+        struct Key : System.IEquatable<Key>
+        {
+            public int x, y, z, r, s;
+            public bool Equals(Key o) { return x == o.x && y == o.y && z == o.z && r == o.r && s == o.s; }
+            public override bool Equals(object o) { return o is Key && Equals((Key)o); }
+            public override int GetHashCode() { unchecked { return (((x * 397 ^ y) * 397 ^ z) * 397 ^ r) * 31 ^ s; } }
+        }
+        static readonly Dictionary<Key, Mesh> cache = new Dictionary<Key, Mesh>();
 
         /// <param name="radius">радиус скругления в юнитах</param>
         /// <param name="steps">1 = фаска (дёшево), 3+ = плавное скругление</param>
@@ -17,7 +25,7 @@ namespace DragonHeist
         {
             radius = Mathf.Max(0f, Mathf.Min(radius, Mathf.Min(size.x, Mathf.Min(size.y, size.z)) * 0.5f - 0.001f));
             if (steps <= 0) radius = 0f;
-            string key = size.x.ToString("0.00") + "_" + size.y.ToString("0.00") + "_" + size.z.ToString("0.00") + "_" + radius.ToString("0.000") + "_" + steps;
+            var key = new Key { x = Mathf.RoundToInt(size.x * 100f), y = Mathf.RoundToInt(size.y * 100f), z = Mathf.RoundToInt(size.z * 100f), r = Mathf.RoundToInt(radius * 1000f), s = steps };
             Mesh cached;
             if (cache.TryGetValue(key, out cached) && cached != null) return cached;
 
@@ -40,7 +48,7 @@ namespace DragonHeist
             AddFace(verts, norms, uvs, tris, Vector3.up, Vector3.right, Vector3.forward, sx, sz, h.y, inner, radius);
             AddFace(verts, norms, uvs, tris, Vector3.down, Vector3.right, Vector3.back, sx, sz, h.y, inner, radius);
 
-            var mesh = new Mesh { name = "RoundedBox_" + key };
+            var mesh = new Mesh { name = "RoundedBox" };
             mesh.SetVertices(verts);
             mesh.SetNormals(norms);
             mesh.SetUVs(0, uvs);

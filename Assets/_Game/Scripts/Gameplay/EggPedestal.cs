@@ -49,6 +49,7 @@ namespace DragonHeist
             l2.transform.localRotation = Quaternion.Euler(0, 180f, 0);
             l1.maxDistance = 50f; l2.maxDistance = 50f;
             p.eggAnchor = Blocky.Pivot(tr, "EggAnchor", new Vector3(0, 1.8f, 0));
+            MeshMerge.Merge(tr); // постамент + табличка → по мешу на материал (до яйца: оно пересоздаётся)
             p.SpawnEgg();
             PlayerController.Interactables.Add(p);
             if (GameManager.Instance != null) GameManager.Instance.Pedestals.Add(p);

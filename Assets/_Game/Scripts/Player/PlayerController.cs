@@ -58,7 +58,7 @@ namespace DragonHeist
         readonly List<GameObject> pets = new List<GameObject>();
         TrailRenderer trail, trailCore;
         ParticleSystem trailSparks;
-        float trailHue;
+        float trailHue, rainbowTimer;
 
         /// <summary>Надетые драконы летают за игроком как питомцы (выбранный — чуть выше и ближе).</summary>
         public void RebuildHeld()
@@ -148,6 +148,7 @@ namespace DragonHeist
             p.avatar = Blocky.BuildAvatar(go.transform,
                 new Color(0.96f, 0.8f, 0.25f), new Color(0.05f, 0.42f, 0.85f), new Color(0.35f, 0.62f, 0.2f), 0.6f);
             BotPlayer.Hair(p.avatar.head, new Color(0.6f, 0.33f, 0.12f), 0);
+            MeshMerge.Merge(p.avatar.root.transform); // по мешу на материал в каждом пивоте (руки/ноги/голова анимируются)
             Instance = p;
             return p;
         }
@@ -243,9 +244,15 @@ namespace DragonHeist
             if (t >= 0 && t < GameConfig.Trails.Length && GameConfig.Trails[t].rainbow)
             {
                 trailHue = Mathf.Repeat(trailHue + dt * 0.5f, 1f);
-                Color h = Color.HSVToRGB(trailHue, 0.85f, 1f), e = Color.HSVToRGB(Mathf.Repeat(trailHue + 0.35f, 1f), 0.85f, 1f);
-                trail.colorGradient = TrailGradient(h, e, 0.75f);
-                if (trailCore != null) trailCore.colorGradient = TrailGradient(Color.Lerp(h, Color.white, 0.55f), h, 1f);
+                // градиент обновляем ~15 раз в секунду (каждое обновление — новые массивы ключей)
+                rainbowTimer -= dt;
+                if (rainbowTimer <= 0f)
+                {
+                    rainbowTimer = 0.066f;
+                    Color h = Color.HSVToRGB(trailHue, 0.85f, 1f), e = Color.HSVToRGB(Mathf.Repeat(trailHue + 0.35f, 1f), 0.85f, 1f);
+                    trail.colorGradient = TrailGradient(h, e, 0.75f);
+                    if (trailCore != null) trailCore.colorGradient = TrailGradient(Color.Lerp(h, Color.white, 0.55f), h, 1f);
+                }
             }
             Fx.SetRate(trailSparks, moving ? 25f : 0f);
         }
@@ -468,6 +475,7 @@ namespace DragonHeist
         public Transform owner;
         public int slot, order, total = 1;
         float seed;
+        Transform ownerModel; // кэш: раньше GetComponent<PlayerController>() в каждом LateUpdate
 
         void Start() { seed = Random.value * 10f; }
 
@@ -476,7 +484,12 @@ namespace DragonHeist
             if (owner == null) { Destroy(gameObject); return; }
             bool selected = SaveManager.Data.selectedSlot == slot;
             float spread = total <= 1 ? 0f : (order / (float)(total - 1) - 0.5f) * 2f; // -1..1
-            float yaw = owner.GetComponent<PlayerController>().avatar.root.transform.eulerAngles.y;
+            if (ownerModel == null)
+            {
+                var pc = owner.GetComponent<PlayerController>();
+                ownerModel = pc != null && pc.avatar != null ? pc.avatar.root.transform : owner;
+            }
+            float yaw = ownerModel.eulerAngles.y;
             Quaternion rot = Quaternion.Euler(0, yaw, 0);
             Vector3 offset = rot * new Vector3(spread * 3.2f, 0, -2.6f - Mathf.Abs(spread) * 0.8f);
             float bob = Mathf.Sin(Time.time * 3f + seed) * 0.35f;

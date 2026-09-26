@@ -215,6 +215,7 @@ namespace DragonHeist
             mesh.UploadMeshData(true); // CPU-копия не нужна: коллайдеры отдельные
 
             var go = new GameObject("Caps" + part);
+            go.layer = MeshMerge.FloorLayer; // дальние чанки отсекаются (Perf → Camera.layerCullDistances), под ними плоский пол
             go.transform.SetParent(chunk, false);
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             var r = go.AddComponent<MeshRenderer>();
@@ -279,6 +280,7 @@ namespace DragonHeist
             m = new Material(Mats.Base) { color = c, mainTexture = Atlas };
             if (m.HasProperty("_Glossiness")) m.SetFloat("_Glossiness", 0.4f);
             if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.4f);
+            Mats.RegisterLit(m);
             cache[key] = m;
             return m;
         }

@@ -25,10 +25,14 @@ namespace DragonHeist
         public static float RoundFactor = 0.2f;
         public static int RoundSteps = 1; // 1 = фаска (дёшево для мобилок), 2+ = плавнее
 
+        // имена без enum.ToString() (он аллоцирует и медленный — а деталей при загрузке тысячи)
+        static readonly string[] TypeNames = { "Sphere", "Capsule", "Cylinder", "Cube", "Plane", "Quad" };
+
         public static Transform Part(Transform parent, Vector3 localPos, Vector3 size, Material mat,
             bool collider = false, PrimitiveType type = PrimitiveType.Cube)
         {
-            var go = new GameObject(type.ToString());
+            int ti = (int)type;
+            var go = new GameObject(ti >= 0 && ti < TypeNames.Length ? TypeNames[ti] : "Part");
             var t = go.transform;
             t.SetParent(parent, false);
             t.localPosition = localPos;
@@ -182,6 +186,7 @@ namespace DragonHeist
                 if (side < 0) flap.left = wing; else flap.right = wing;
             }
             Fx.Sparkles(root.transform, new Vector3(0, y * 0.5f, 0), new Color(1f, 0.85f, 0.3f), 3.5f * u, 4f);
+            MeshMerge.Merge(root.transform, MeshMerge.ActorLayer); // ~60 деталей → по мешу на материал (крылья — отдельно, машут)
             return root;
         }
 
@@ -207,6 +212,7 @@ namespace DragonHeist
                 }
             }
             if (tier >= Tier.Secret || tier == Tier.Mythic) root.AddComponent<RainbowTint>().target = body.GetComponent<Renderer>();
+            if (tier >= Tier.Legendary) MeshMerge.Merge(root.transform, MeshMerge.ActorLayer); // шипы короны (тело с RainbowTint не трогается)
             return root;
         }
 
@@ -411,6 +417,8 @@ namespace DragonHeist
             Round = false;
             RoundFactor = 0.2f;
             RoundSteps = 1;
+            // ~45 деталей → по одному мешу на материал в каждом пивоте (Model, Head, LWing, RWing): анимации крутят пивоты
+            MeshMerge.Merge(root.transform, MeshMerge.ActorLayer);
             var idle = root.AddComponent<DragonIdle>();
             idle.lWing = lw; idle.rWing = rw; idle.head = head; idle.model = m;
             AttachDragonFx(root.transform, m, head, d, s, body);
@@ -431,7 +439,7 @@ namespace DragonHeist
                 case DragonFx.Void: Fx.Sparkles(root, new Vector3(0, 1.5f * s, 0), new Color(0.5f, 0.1f, 1f), 2f * s, 12f); break;
                 case DragonFx.Rainbow:
                     foreach (var r in model.GetComponentsInChildren<Renderer>())
-                        if (r.sharedMaterial == bodyMat) root.gameObject.AddComponent<RainbowTint>().target = r;
+                        if (r.enabled && r.sharedMaterial == bodyMat) root.gameObject.AddComponent<RainbowTint>().target = r;
                     Fx.Sparkles(root, new Vector3(0, 2f * s, 0), Color.white, 2f * s, 8f);
                     break;
                 case DragonFx.Halo:
@@ -737,6 +745,8 @@ namespace DragonHeist
                 }
             }
             Round = false; RoundFactor = 0.2f; RoundSteps = 1;
+            // десятки деталей → меш на материал в каждом пивоте (Model, ноги, руки, пропеллеры, хвост)
+            MeshMerge.Merge(g.root.transform, MeshMerge.ActorLayer);
             g.legs = new[] { l1, l2 };
             g.arms = a1 != null ? new[] { a1, a2 } : new Transform[0];
             return g;
@@ -858,9 +868,17 @@ namespace DragonHeist
     {
         public Transform lWing, rWing, head, model;
         float seed;
+        bool far;
         void Start() { seed = Random.value * 10f; }
         void Update()
         {
+            // далёкие драконы (на базах ботов и т.п.) не анимируем: проверка дистанции раз в 8 кадров
+            if (((Time.frameCount + (int)(seed * 10f)) & 7) == 0)
+            {
+                var cam = CameraRig.Cam;
+                far = cam != null && (cam.transform.position - transform.position).sqrMagnitude > 90f * 90f;
+            }
+            if (far) return;
             float t = Time.time + seed;
             float flap = Mathf.Sin(t * 4f) * 25f;
             if (lWing) lWing.localRotation = Quaternion.Euler(0, 0, flap + 10);

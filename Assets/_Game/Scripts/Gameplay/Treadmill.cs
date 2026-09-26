@@ -22,6 +22,7 @@ namespace DragonHeist
         double gainAccum;
         Transform[] neon;
         float beltSpeed;
+        float screenTimer;
 
         public bool Owned { get { return (SaveManager.Data.treadmillsMask & (1 << index)) != 0; } }
         public bool Training { get { return activeTimer > 0; } }
@@ -103,6 +104,8 @@ namespace DragonHeist
             Blocky.Part(t.lockRope.transform, new Vector3(2.6f, 0.9f, -5.3f), new Vector3(0.3f, 1.8f, 0.3f), Mats.Plastic(new Color(0.9f, 0.8f, 0.2f)));
             Blocky.Part(t.lockRope.transform, new Vector3(0, 1.4f, -5.3f), new Vector3(5.2f, 0.2f, 0.1f), red);
 
+            // ~20 деталей корпуса → по мешу на материал (неон анимируется масштабом — отдельно; замок — свой пивот)
+            MeshMerge.Merge(tr, -1, t.neon);
             All.Add(t);
             PlayerController.Interactables.Add(t);
             t.Refresh();
@@ -180,10 +183,11 @@ namespace DragonHeist
             beltSpeed = Mathf.MoveTowards(beltSpeed, (Training || botTimer > 0) ? 3.5f : (Owned ? 0.4f : 0f), dt * 6f);
             beltMat.mainTextureOffset += new Vector2(0, -dt * beltSpeed);
 
-            // экран: прирост, мигает во время бега
+            // экран: прирост, мигает во время бега (строку пересобираем 4 раза в секунду, а не каждый кадр)
+            screenTimer -= dt;
             if (Owned)
             {
-                screen.text = GainText;
+                if (screenTimer <= 0f) { screenTimer = 0.25f; screen.text = GainText; }
                 float pulse = Training ? 0.7f + Mathf.Abs(Mathf.Sin(Time.time * 8f)) * 0.3f : 1f;
                 screen.color = new Color(0.4f * pulse, 1f * pulse, 0.7f * pulse);
             }

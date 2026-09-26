@@ -345,12 +345,12 @@ namespace DragonHeist
                 Key3D(b1, "S", new Vector3(0, 1.6f, -0.6f));
                 Key3D(b1, "D", new Vector3(1.5f, 1.6f, -0.6f));
             }
-            MeshMerge.Merge(b1);
             else
             {
                 Blocky.Part(b1, new Vector3(0, 2.3f, -0.4f), new Vector3(3f, 3f, 0.2f), Mats.Plastic(new Color(0.8f, 0.85f, 0.95f)), false, PrimitiveType.Cylinder).localRotation = Quaternion.Euler(90, 0, 0);
                 Blocky.Part(b1, new Vector3(0.6f, 2.5f, -0.6f), new Vector3(1.3f, 1.3f, 0.2f), Mats.Plastic(new Color(1f, 0.8f, 0.2f)), false, PrimitiveType.Cylinder).localRotation = Quaternion.Euler(90, 0, 0);
             }
+            MeshMerge.Merge(b1);
             // "Поворот камеры": мышь с зажатой правой кнопкой или свайп
             var b2 = Board(new Vector3(9f, 0.1f, -15f), mobile ? (ru ? "Свайп справа — камера" : "Swipe right — camera") : (ru ? "Поворот камеры" : "Camera"));
             Blocky.Round = true; Blocky.RoundFactor = 0.45f; Blocky.RoundSteps = 2;

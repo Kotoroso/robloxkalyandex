@@ -56,6 +56,8 @@ namespace DragonHeist
                 for (int i = 0; i < 5; i++)
                     Blocky.Part(tr, new Vector3(-1.8f + i * 0.9f, 3.3f, -0.8f), new Vector3(0.7f, 1.6f, 0.08f), Mats.Glow(Color.HSVToRGB(i / 5f, 0.8f, 1f)));
             }
+            // прилавок, навес, продавец (руки/голова — свои пивоты, машут), яйцо → по мешу на материал
+            MeshMerge.Merge(tr);
             PlayerController.Interactables.Add(s);
             return s;
         }

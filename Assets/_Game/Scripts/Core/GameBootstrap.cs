@@ -35,6 +35,7 @@ namespace DragonHeist
             string lang = YandexSDK.Lang();
             Loc.SetLanguage(lang); // ru/be/kk/uk/uz -> русский, остальное -> английский
             InputState.Mobile = YandexSDK.IsMobile();
+            Perf.Init(InputState.Mobile); // качество под платформу + губернатор FPS (до постройки мира: от него зависят материалы и тени)
 
             // облачное сохранение
             YandexSDK.LoadCloud();

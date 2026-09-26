@@ -15,6 +15,7 @@ namespace DragonHeist
         int shownState = -1;
         int shownDragon = -1;
         Transform eggRoot;
+        float labelTimer;
 
         public PlotData Data { get { return SaveManager.Data.plots[index]; } }
         public bool Owned { get { return true; } }   // покупки грядок нет — все грядки открыты
@@ -41,6 +42,7 @@ namespace DragonHeist
             p.lockedVisual.SetActive(false);
             p.label = Blocky.Label(tr, "", new Vector3(0, 5.5f, 0), 1f, Color.white);
             p.eggRoot = Blocky.Pivot(tr, "Content", new Vector3(0, 0.55f, 0));
+            MeshMerge.Merge(tr, -1, p.lockedVisual.transform); // грядка + бортики → по мешу на материал
             PlayerController.Interactables.Add(p);
             return p;
         }
@@ -61,9 +63,15 @@ namespace DragonHeist
             {
                 long left = d.readyAt - SaveData.Now();
                 bool ready = left <= 0;
-                string eggName = d.dragonId == GameConfig.PremiumEggMarker ? (Loc.Ru ? "Драконье яйцо" : "Dragon Egg") : Loc.TierName((Tier)d.tier);
-                label.text = eggName + "\n" + (ready ? (Loc.Ru ? "<color=#7CFF7C>ГОТОВО! Открой</color>" : "<color=#7CFF7C>READY! Open it</color>") : Loc.Time(left));
-                label.color = GameConfig.GetTier(d.tier).color;
+                // надпись (строка + пересборка канваса) — 4 раза в секунду, а не каждый кадр
+                labelTimer -= Time.deltaTime;
+                if (labelTimer <= 0f)
+                {
+                    labelTimer = 0.25f;
+                    string eggName = d.dragonId == GameConfig.PremiumEggMarker ? (Loc.Ru ? "Драконье яйцо" : "Dragon Egg") : Loc.TierName((Tier)d.tier);
+                    label.text = eggName + "\n" + (ready ? (Loc.Ru ? "<color=#7CFF7C>ГОТОВО! Открой</color>" : "<color=#7CFF7C>READY! Open it</color>") : Loc.Time(left));
+                    label.color = GameConfig.GetTier(d.tier).color;
+                }
                 if (content != null)
                 {
                     // яйцо покачивается и растёт по мере созревания
@@ -85,6 +93,7 @@ namespace DragonHeist
         void Rebuild()
         {
             Clear();
+            labelTimer = 0f;
             var d = Data;
             shownState = d.state;
             shownDragon = d.dragonId;

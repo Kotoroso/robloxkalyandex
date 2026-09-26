@@ -30,8 +30,48 @@ namespace DragonHeist
                     Object.Destroy(tmp);
                     SetGloss(baseMat, 0.25f);
                     if (baseMat.HasProperty("_Metallic")) baseMat.SetFloat("_Metallic", 0f);
+                    standardShader = baseMat.shader;
+                    RegisterLit(baseMat);
                 }
                 return baseMat;
+            }
+        }
+
+        // ===== Дешёвое освещение для слабых устройств =====
+        // Все освещаемые материалы регистрируются здесь; SetCheapLighting переключает их шейдер
+        // Standard ↔ Legacy Diffuse (Ламберт: в разы дешевле по пикселю, _Color/_MainTex/тайлинг те же).
+        static readonly List<Material> lit = new List<Material>();
+        static Shader standardShader, cheapShader;
+        static bool cheapSearched;
+        public static bool CheapLighting { get; private set; }
+
+        /// <summary>Зарегистрировать освещаемый материал (созданный из Base), чтобы он следовал режиму освещения.</summary>
+        public static Material RegisterLit(Material m)
+        {
+            if (m == null) return m;
+            lit.Add(m);
+            if (CheapLighting && cheapShader != null) m.shader = cheapShader;
+            return m;
+        }
+
+        public static void SetCheapLighting(bool on)
+        {
+            if (on && !cheapSearched)
+            {
+                cheapSearched = true;
+                cheapShader = Find("Legacy Shaders/Diffuse", "Mobile/Diffuse");
+                // Mobile/Diffuse не умеет _Color — годится только Legacy Diffuse
+                if (cheapShader != null && cheapShader.name != "Legacy Shaders/Diffuse") cheapShader = null;
+            }
+            if (on && cheapShader == null) return; // шейдера нет в сборке — остаёмся на Standard
+            if (CheapLighting == on) return;
+            CheapLighting = on;
+            var sh = on ? cheapShader : standardShader;
+            if (sh == null) return;
+            for (int i = lit.Count - 1; i >= 0; i--)
+            {
+                if (lit[i] == null) { lit.RemoveAt(i); continue; }
+                lit[i].shader = sh;
             }
         }
 
@@ -48,6 +88,7 @@ namespace DragonHeist
             Material m;
             if (cache.TryGetValue(key, out m)) return m;
             m = new Material(Base) { color = c, mainTexture = Smooth };
+            RegisterLit(m);
             cache[key] = m;
             return m;
         }
@@ -61,6 +102,7 @@ namespace DragonHeist
             m = new Material(Base) { color = c, mainTexture = StudTexture };
             m.mainTextureScale = new Vector2(StudsPerUnit, StudsPerUnit);
             SetGloss(m, 0.2f);
+            RegisterLit(m);
             cache[key] = m;
             return m;
         }
@@ -74,6 +116,7 @@ namespace DragonHeist
             m = new Material(Base) { color = c, mainTexture = KeycapTexture };
             m.mainTextureScale = new Vector2(0.5f, 0.5f);
             SetGloss(m, 0.35f);
+            RegisterLit(m);
             cache[key] = m;
             return m;
         }
@@ -119,7 +162,7 @@ namespace DragonHeist
 
         public static Material Unique(Color c, Texture tex)
         {
-            return new Material(Base) { color = c, mainTexture = tex };
+            return RegisterLit(new Material(Base) { color = c, mainTexture = tex });
         }
 
         static Shader Find(params string[] names)
@@ -294,6 +337,7 @@ namespace DragonHeist
             Material m;
             if (cache.TryGetValue(key, out m)) return m;
             m = new Material(Base) { color = skin, mainTexture = FaceTexture };
+            RegisterLit(m);
             cache[key] = m;
             return m;
         }
@@ -305,6 +349,7 @@ namespace DragonHeist
             if (cache.TryGetValue(key, out m)) return m;
             m = new Material(Base) { color = c, mainTexture = EggSpots };
             SetGloss(m, 0.6f);
+            RegisterLit(m);
             cache[key] = m;
             return m;
         }
@@ -316,6 +361,7 @@ namespace DragonHeist
             if (cache.TryGetValue(key, out m)) return m;
             m = new Material(Base) { color = c, mainTexture = Smooth };
             SetGloss(m, 0.45f);
+            RegisterLit(m);
             cache[key] = m;
             return m;
         }

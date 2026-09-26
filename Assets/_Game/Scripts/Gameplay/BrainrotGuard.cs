@@ -108,6 +108,9 @@ namespace DragonHeist
             // сон: сидит, дышит, над головой Z z z
             if (state == State.Sleep)
             {
+                // спящих вдали от камеры не анимируем (их десятки по всем зонам)
+                var cam = CameraRig.Cam;
+                if (cam != null && (cam.transform.position - transform.position).sqrMagnitude > 100f * 100f) return;
                 float tt = Time.time + transform.position.x;
                 model.model.localPosition = new Vector3(0, -0.35f * info.guardScale, 0);
                 model.model.localRotation = Quaternion.Euler(18f + Mathf.Sin(tt * 1.5f) * 3f, 0, 0);

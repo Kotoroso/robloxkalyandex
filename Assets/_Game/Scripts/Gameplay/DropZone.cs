@@ -58,6 +58,8 @@ namespace DragonHeist
             Blocky.NoShadows(dz.beam.gameObject);
             Blocky.NoShadows(dz.arrow.gameObject);
 
+            MeshMerge.Merge(root, -1, dz.frame); // рамка пульсирует масштабом — отдельно; стрелка/яйцо/луч — свои пивоты
+
             // коллайдер, чтобы стоять на плите
             var col = root.gameObject.AddComponent<BoxCollider>();
             col.center = new Vector3(0, 0.05f, 0);

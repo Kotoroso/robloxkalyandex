@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace DragonHeist
@@ -5,6 +6,43 @@ namespace DragonHeist
     /// <summary>Лёгкие эффекты частиц, создаваемые кодом (вспышки, искры, пыль, линии скорости).</summary>
     public static class Fx
     {
+        // ===== Отсечение зацикленных систем по дистанции =====
+        // В WebGL частицы симулируются в главном потоке: десятки искр у далёких драконов/яиц — лишние миллисекунды.
+        class Looping { public ParticleSystem ps; public bool culledByUs; }
+        static readonly List<Looping> looping = new List<Looping>();
+        static int cullCursor;
+
+        static void Register(ParticleSystem ps) { looping.Add(new Looping { ps = ps }); }
+
+        /// <summary>Проверяет часть списка: дальше maxDist — объект системы выключается, ближе — включается обратно.</summary>
+        public static void CullTick(Vector3 camPos, float maxDist)
+        {
+            int n = looping.Count;
+            if (n == 0) return;
+            int budget = Mathf.Min(n, 24);
+            float max2 = maxDist * maxDist, near2 = (maxDist * 0.9f) * (maxDist * 0.9f);
+            for (int k = 0; k < budget && looping.Count > 0; k++)
+            {
+                if (cullCursor >= looping.Count) cullCursor = 0;
+                var e = looping[cullCursor];
+                if (e.ps == null) { looping.RemoveAt(cullCursor); continue; }
+                var go = e.ps.gameObject;
+                float d2 = (e.ps.transform.position - camPos).sqrMagnitude;
+                if (!e.culledByUs)
+                {
+                    if (d2 > max2 && go.activeSelf) { go.SetActive(false); e.culledByUs = true; }
+                }
+                else if (d2 < near2)
+                {
+                    e.culledByUs = false;
+                    go.SetActive(true);
+                    e.ps.Play();
+                }
+                cullCursor++;
+            }
+        }
+
+        static int Scaled(int count) { return Mathf.Max(1, Mathf.RoundToInt(count * Perf.ParticleScale)); }
         static ParticleSystem Make(string name, Vector3 pos, Transform parent, bool additive)
         {
             var go = new GameObject(name);
@@ -51,7 +89,8 @@ namespace DragonHeist
             main.stopAction = ParticleSystemStopAction.Destroy;
             var em = ps.emission;
             em.rateOverTime = 0;
-            em.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)count) });
+            em.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)Scaled(count)) });
+            main.maxParticles = Scaled(count) + 2;
             var sh = ps.shape;
             sh.shapeType = ParticleSystemShapeType.Sphere;
             sh.radius = 0.4f;
@@ -79,7 +118,8 @@ namespace DragonHeist
             main.stopAction = ParticleSystemStopAction.Destroy;
             var em = ps.emission;
             em.rateOverTime = 0;
-            em.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)count) });
+            em.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)Scaled(count)) });
+            main.maxParticles = Scaled(count) + 2;
             var sh = ps.shape;
             sh.shapeType = ParticleSystemShapeType.Cone;
             sh.angle = 35f;
@@ -103,13 +143,15 @@ namespace DragonHeist
             main.startColor = new ParticleSystem.MinMaxGradient(color, Color.white);
             main.gravityModifier = -0.15f;
             main.simulationSpace = ParticleSystemSimulationSpace.Local;
+            main.maxParticles = 40;
             var em = ps.emission;
-            em.rateOverTime = rate;
+            em.rateOverTime = rate * Perf.ParticleScale;
             var sh = ps.shape;
             sh.shapeType = ParticleSystemShapeType.Sphere;
             sh.radius = radius;
             FadeAndShrink(ps);
             ps.Play();
+            Register(ps);
             return ps;
         }
 
@@ -126,13 +168,15 @@ namespace DragonHeist
             main.startColor = new ParticleSystem.MinMaxGradient(new Color(1f, 0.55f, 0.1f), new Color(1f, 0.85f, 0.2f));
             main.gravityModifier = -0.4f;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = 24;
             var em = ps.emission;
-            em.rateOverTime = 14f;
+            em.rateOverTime = 14f * Perf.ParticleScale;
             var sh = ps.shape;
             sh.shapeType = ParticleSystemShapeType.Sphere;
             sh.radius = radius;
             FadeAndShrink(ps);
             ps.Play();
+            Register(ps);
             return ps;
         }
 
@@ -148,6 +192,7 @@ namespace DragonHeist
             main.startSize = new ParticleSystem.MinMaxCurve(0.08f, 0.14f);
             main.startColor = new ParticleSystem.MinMaxGradient(new Color(0.7f, 1f, 1f, 0.8f));
             main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = 30;
             var em = ps.emission;
             em.rateOverTime = 0;
             var sh = ps.shape;
@@ -175,6 +220,7 @@ namespace DragonHeist
             main.startSize = new ParticleSystem.MinMaxCurve(0.3f, 0.6f);
             main.startColor = new ParticleSystem.MinMaxGradient(new Color(0.9f, 0.9f, 0.85f, 0.6f));
             main.gravityModifier = -0.05f;
+            main.maxParticles = 40;
             var em = ps.emission;
             em.rateOverTime = 0;
             var sh = ps.shape;
@@ -190,7 +236,7 @@ namespace DragonHeist
         {
             if (ps == null) return;
             var em = ps.emission;
-            em.rateOverTime = rate;
+            em.rateOverTime = rate * Perf.ParticleScale;
         }
     }
 }

@@ -52,24 +52,48 @@ namespace DragonHeist
             var o = trt.gameObject.AddComponent<Outline>();
             o.effectColor = new Color(0, 0, 0, 1f);
             o.effectDistance = new Vector2(5, -5);
-            var o2 = trt.gameObject.AddComponent<Outline>();
-            o2.effectColor = new Color(0, 0, 0, 0.9f);
-            o2.effectDistance = new Vector2(-4, 4);
+            // каждая Outline умножает геометрию текста на 5 (две подряд — на 25: лишний overdraw и пересборка).
+            // На телефоне — одна обводка, на ПК — вторая для более плотного контура.
+            if (!InputState.Mobile)
+            {
+                var o2 = trt.gameObject.AddComponent<Outline>();
+                o2.effectColor = new Color(0, 0, 0, 0.9f);
+                o2.effectDistance = new Vector2(-4, 4);
+            }
 
             var l = go.AddComponent<Label3D>();
             l.txt = t;
             l.canvas = canvas;
+            l.slot = nextSlot++ & 3;
             return l;
         }
+
+        static int nextSlot;
+        int slot;
+        bool visible = true;
 
         void LateUpdate()
         {
             var cam = CameraRig.Cam;
             if (cam == null) return;
-            Vector3 d = transform.position - cam.transform.position;
-            bool visible = d.sqrMagnitude < maxDistance * maxDistance;
-            if (canvas.enabled != visible) canvas.enabled = visible;
-            if (visible && billboard) transform.rotation = Quaternion.LookRotation(d);
+            var ct = cam.transform;
+            Vector3 d = transform.position - ct.position;
+            // видимость проверяем раз в 4 кадра (у разных надписей — в разные кадры), с гистерезисом,
+            // чтобы канвас не включался/выключался (и не пересобирался) на границе
+            if (((Time.frameCount + slot) & 3) == 0 || visible)
+            {
+                float max = maxDistance * Perf.LabelDistanceScale;
+                float d2 = d.sqrMagnitude;
+                bool want = visible ? d2 < max * max * 1.1f : d2 < max * max;
+                // позади камеры (с запасом на размер надписи) — не рисуем
+                if (want && Vector3.Dot(d, ct.forward) < -4f) want = false;
+                if (want != visible)
+                {
+                    visible = want;
+                    canvas.enabled = want;
+                }
+            }
+            if (visible && billboard && d.sqrMagnitude > 0.0001f) transform.rotation = Quaternion.LookRotation(d);
         }
     }
 }

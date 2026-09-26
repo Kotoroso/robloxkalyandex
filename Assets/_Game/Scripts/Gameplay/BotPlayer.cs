@@ -74,6 +74,7 @@ namespace DragonHeist
                 b.rnd = new System.Random(100 + i);
                 b.av = Blocky.BuildAvatar(go.transform, Skins[rnd.Next(Skins.Length)], Shirts[(i * 2 + 1) % Shirts.Length], Pants[rnd.Next(Pants.Length)], 0.6f);
                 Hair(b.av.head, Hairs[rnd.Next(Hairs.Length)], i % 3);
+                MeshMerge.Merge(b.av.root.transform, MeshMerge.ActorLayer);
                 b.speed = b.baseSpeed = 12f + (float)rnd.NextDouble() * 3f;
                 b.timer = i * 2f; // разный старт
             }
