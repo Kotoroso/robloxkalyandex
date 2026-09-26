@@ -10,7 +10,7 @@ namespace DragonHeist
     /// </summary>
     public static class WorldBuilder
     {
-        public static Vector3 SpawnPoint = new Vector3(0f, 1f, -8f);
+        public static Vector3 SpawnPoint = new Vector3(0f, 1.2f, -24f);
         public const float BaseHalfWidth = 46f;
         public static readonly List<Vector3> BotHomes = new List<Vector3>();
 
@@ -22,6 +22,7 @@ namespace DragonHeist
             SetupLighting();
             rnd = new System.Random(42);
             BotHomes.Clear();
+            SkipRects.Clear();
 
             staticRoot = new GameObject("World_Static").transform;
             dynamicRoot = new GameObject("World_Dynamic").transform;
@@ -54,118 +55,134 @@ namespace DragonHeist
         /// в стенах вырезаны 3 "стойла" фейк-игроков, у тебя 6 грядок, 7 беговых дорожек, продавец,
         /// магазин трейлов, таблички управления и площадка сдачи яиц у ворот.
         /// </summary>
+        static readonly string[] BotNicks = { "Kirill2012", "Sasha_PRO", "xX_Tima_Xx", "Egorka777", "LizaPlays", "Dima_Roblox", "KOTIK_228", "Nastya2011", "Maks_YT", "MegaVanya" };
+
+        /// <summary>
+        /// Спавн по образцу "Укради Яйцо": большая площадка, в скалах вырезаны базы —
+        /// твоя ("ВАША БАЗА", 6 грядок) и 3 базы фейк-игроков с никами над входом.
+        /// Слева спереди — зона тренажёров (беговые дорожки), продавец, магазин трейлов,
+        /// таблички управления, площадка сдачи яиц у ворот.
+        /// </summary>
         static void BuildBase(GameManager gm, float half)
         {
             float bx = BaseHalfWidth, minZ = GameConfig.BaseMinZ, maxZ = GameConfig.BaseMaxZ, midZ = (minZ + maxZ) / 2f, depth = maxZ - minZ;
-            // пол базы (клавиши) с каймой
             Blocky.Part(staticRoot, new Vector3(0, 0.05f, midZ), new Vector3(bx * 2 + 2f, 0.1f, depth + 2f), Mats.Keycaps(BaseTrim), true);
             Blocky.Part(staticRoot, new Vector3(0, 0.08f, midZ), new Vector3(bx * 2 - 2f, 0.1f, depth - 2f), Mats.Keycaps(BaseFloor), true);
 
-            // стены с вырезами под стойла: слева, справа и сзади
-            float aZ0 = -40f, aZ1 = -20f, aDepth = 18f;      // боковые стойла по z
-            float bX = 10f, bDepth = 16f;                     // заднее стойло по x
-            WallZ(-bx - 1f, minZ, aZ0); WallZ(-bx - 1f, aZ1, maxZ);
-            WallZ(bx + 1f, minZ, aZ0); WallZ(bx + 1f, aZ1, maxZ);
-            WallX(minZ - 1f, -bx - 1f, -bX); WallX(minZ - 1f, bX, bx + 1f);
-            float gap = half, seg = bx - gap;
+            // ниши: справа — твоя база, слева и сзади (2) — базы ботов
+            float pZ0 = -46f, pZ1 = -14f, pDepth = 26f;       // твоя (справа)
+            float lZ0 = -42f, lZ1 = -22f, lDepth = 18f;       // бот слева
+            float b1X0 = -30f, b1X1 = -12f, b2X0 = 12f, b2X1 = 30f, bDepth = 16f; // боты сзади
+            WallZ(-bx - 1f, minZ, lZ0); WallZ(-bx - 1f, lZ1, maxZ);
+            WallZ(bx + 1f, minZ, pZ0); WallZ(bx + 1f, pZ1, maxZ);
+            WallX(minZ - 1f, -bx - 1f, b1X0); WallX(minZ - 1f, b1X1, b2X0); WallX(minZ - 1f, b2X1, bx + 1f);
+            float gap = half;
             WallX(maxZ, -bx - 1f, -gap); WallX(maxZ, gap, bx + 1f);
-            // стойла
-            Stall(new Vector3(-bx - aDepth / 2f, 0, (aZ0 + aZ1) / 2f), new Vector2(aDepth, aZ1 - aZ0), 0, new Color(1f, 0.6f, 0.55f));
-            Stall(new Vector3(bx + aDepth / 2f, 0, (aZ0 + aZ1) / 2f), new Vector2(aDepth, aZ1 - aZ0), 1, new Color(0.6f, 0.8f, 1f));
-            Stall(new Vector3(0, 0, minZ - bDepth / 2f), new Vector2(bX * 2f, bDepth), 2, new Color(1f, 0.85f, 0.5f));
 
-            Blocky.Label(signs, Loc.T("base"), new Vector3(0, 15f, maxZ), 2.6f, new Color(1f, 0.93f, 0.55f));
-            Arch(new Vector3(0, 0, maxZ), gap - 0.5f, BaseTrim);
-            // площадка сдачи яиц у ворот (светящееся кольцо)
-            Blocky.Part(staticRoot, new Vector3(0, 0.12f, maxZ - 5f), new Vector3(12f, 0.06f, 7f), Mats.Glow(new Color(1f, 0.85f, 0.3f)));
-            Blocky.Part(staticRoot, new Vector3(0, 0.13f, maxZ - 5f), new Vector3(11f, 0.06f, 6f), Mats.Keycaps(new Color(1f, 0.92f, 0.6f)));
-            Blocky.Label(signs, Loc.Ru ? "СДАЙ ЯЙЦО СЮДА" : "BRING EGGS HERE", new Vector3(0, 3.4f, maxZ - 5f), 1.3f, new Color(1f, 0.9f, 0.55f));
+            var nickRnd = new System.Random(System.Environment.TickCount);
+            var nicks = new List<string>(BotNicks);
+            System.Func<string> Nick = () => { int i = nickRnd.Next(nicks.Count); var n = nicks[i]; nicks.RemoveAt(i); return n; };
 
-            // 6 грядок игрока справа (2 ряда по 3)
+            // твоя база
+            var pc = new Vector3(bx + pDepth / 2f, 0, (pZ0 + pZ1) / 2f);
+            Alcove(pc, new Vector2(pDepth, pZ1 - pZ0), 1, new Color(0.55f, 0.8f, 1f), Loc.Ru ? "ВАША БАЗА" : "YOUR BASE", new Color(0.5f, 1f, 0.6f), false);
             int idx = 0;
-            for (int row = 0; row < 2; row++)
-                for (int col = 0; col < 3; col++)
-                    gm.Plots.Add(BasePlot.Build(dynamicRoot, idx++, new Vector3(17f + col * 9f, 0.1f, -30f + row * 9.5f)));
-            Blocky.Label(signs, Loc.Ru ? "ТВОИ ГРЯДКИ" : "YOUR PLOTS", new Vector3(26f, 6.5f, -35.5f), 1.4f, new Color(0.7f, 1f, 0.7f));
+            for (int row = 0; row < 3; row++)
+                for (int col = 0; col < 2; col++)
+                    gm.Plots.Add(BasePlot.Build(dynamicRoot, idx++, new Vector3(bx + 8.5f + col * 9.5f, 0.1f, pZ0 + 7f + row * 9f)));
+            // базы ботов
+            Alcove(new Vector3(-bx - lDepth / 2f, 0, (lZ0 + lZ1) / 2f), new Vector2(lDepth, lZ1 - lZ0), 0, new Color(1f, 0.62f, 0.6f), (Loc.Ru ? "База " : "Base of ") + Nick(), Color.white, true);
+            Alcove(new Vector3((b1X0 + b1X1) / 2f, 0, minZ - bDepth / 2f), new Vector2(b1X1 - b1X0, bDepth), 2, new Color(1f, 0.85f, 0.5f), (Loc.Ru ? "База " : "Base of ") + Nick(), Color.white, true);
+            Alcove(new Vector3((b2X0 + b2X1) / 2f, 0, minZ - bDepth / 2f), new Vector2(b2X1 - b2X0, bDepth), 2, new Color(0.75f, 0.65f, 1f), (Loc.Ru ? "База " : "Base of ") + Nick(), Color.white, true);
 
-            // 7 беговых дорожек в ряд у задней стены слева
+            Blocky.Label(signs, Loc.T("base"), new Vector3(0, 15f, maxZ), 2.6f, new Color(1f, 0.93f, 0.55f)).text = Loc.Ru ? "К ЯЙЦАМ" : "TO THE EGGS";
+            Arch(new Vector3(0, 0, maxZ), gap - 0.5f, BaseTrim);
+            // площадка сдачи яиц у ворот
+            Blocky.Part(staticRoot, new Vector3(0, 0.14f, maxZ - 5f), new Vector3(12f, 0.06f, 7f), Mats.Glow(new Color(1f, 0.85f, 0.3f)));
+            Blocky.Part(staticRoot, new Vector3(0, 0.2f, maxZ - 5f), new Vector3(11f, 0.06f, 6f), Mats.Keycaps(new Color(1f, 0.92f, 0.6f)));
+            Blocky.Label(signs, Loc.Ru ? "СДАЙ ЯЙЦО СЮДА" : "BRING EGGS HERE", new Vector3(0, 3.4f, maxZ - 5f), 1.3f, new Color(1f, 0.9f, 0.55f));
+            SkipRects.Add(new Rect(-7f, maxZ - 9f, 14f, 8f));
+
+            // зона тренажёров слева спереди
             for (int i = 0; i < GameConfig.Treadmills.Length; i++)
-                Treadmill.Build(dynamicRoot, i, new Vector3(-42.5f + i * 5.8f, 0.1f, -44f), 0f);
+                Treadmill.Build(dynamicRoot, i, new Vector3(-43f + i * 5.8f, 0.1f, -6f), 0f);
+            Blocky.Label(signs, Loc.Ru ? "ТРЕНАЖЁРЫ" : "TREADMILLS", new Vector3(-25.6f, 8f, -1f), 1.6f, new Color(0.6f, 0.95f, 1f));
 
             // продавец и магазин трейлов
-            SellerNPC.Build(dynamicRoot, new Vector3(-41f, 0.1f, 0f), 90f);
-            SellerNPC.Build(dynamicRoot, new Vector3(41f, 0.1f, 0f), -90f, true);
+            SellerNPC.Build(dynamicRoot, new Vector3(-41f, 0.1f, -17f), 90f);
+            SellerNPC.Build(dynamicRoot, new Vector3(41f, 0.1f, -5f), -90f, true);
 
-            // спавн-площадка
+            // спавн по центру
             Blocky.Round = true; Blocky.RoundFactor = 0.4f;
-            Blocky.Part(staticRoot, new Vector3(SpawnPoint.x, 0.2f, SpawnPoint.z), new Vector3(7f, 0.25f, 7f), Mats.Plastic(new Color(0.96f, 0.96f, 1f)));
-            Blocky.Part(staticRoot, new Vector3(SpawnPoint.x, 0.28f, SpawnPoint.z), new Vector3(5f, 0.2f, 5f), Mats.Plastic(BaseTrim));
+            Blocky.Part(staticRoot, new Vector3(SpawnPoint.x, 0.3f, SpawnPoint.z), new Vector3(7f, 0.4f, 7f), Mats.Plastic(new Color(0.96f, 0.96f, 1f)));
+            Blocky.Part(staticRoot, new Vector3(SpawnPoint.x, 0.45f, SpawnPoint.z), new Vector3(5f, 0.25f, 5f), Mats.Plastic(BaseTrim));
             Blocky.Round = false; Blocky.RoundFactor = 0.2f;
+            SkipRects.Add(new Rect(SpawnPoint.x - 4.5f, SpawnPoint.z - 4.5f, 9f, 9f));
 
             SpawnBoards();
             BotPlayer.SpawnAll(dynamicRoot, BotHomes);
 
-            // фонари и клумбы вдоль стен
-            for (int i = 0; i < 3; i++)
-            {
-                Lamp(new Vector3(-bx + 2f, 0, -8f + i * 7f));
-                Lamp(new Vector3(bx - 2f, 0, -8f + i * 7f));
-            }
-            FlowerBed(new Vector3(-12f, 0.1f, 5f), 8f, 1.6f);
-            FlowerBed(new Vector3(12f, 0.1f, 5f), 8f, 1.6f);
+            for (int i = 0; i < 3; i++) Lamp(new Vector3(-bx + 2f, 0, -44f + i * 8f));
+            FlowerBed(new Vector3(-12f, 0.6f, 5f), 8f, 1.6f);
+            FlowerBed(new Vector3(12f, 0.6f, 5f), 8f, 1.6f);
         }
 
-        static void WallZ(float x, float z0, float z1) { CastleWall(new Vector3(x, 0, (z0 + z1) / 2f), Mathf.Abs(z1 - z0), false, null); }
-        static void WallX(float z, float x0, float x1) { CastleWall(new Vector3((x0 + x1) / 2f, 0, z), Mathf.Abs(x1 - x0), true, null); }
+        /// <summary>Области, где не нужны клавиши пола (спавн, площадка сдачи и т.п.).</summary>
+        public static readonly List<Rect> SkipRects = new List<Rect>();
 
-        /// <summary>Стойло фейк-игрока: ниша в стене с полом, 6 грядками с драконами/яйцами и флажком.</summary>
-        static void Stall(Vector3 center, Vector2 size, int index, Color accent)
+        /// <summary>Ниша в скале (база): пол, внешние стены, ник над входом; для ботов — грядки с драконами.</summary>
+        static void Alcove(Vector3 center, Vector2 size, int side, Color accent, string title, Color titleColor, bool bot)
         {
             float hx = size.x / 2f, hz = size.y / 2f;
-            Blocky.Part(staticRoot, center + new Vector3(0, 0.08f, 0), new Vector3(size.x, 0.1f, size.y), Mats.Keycaps(Color.Lerp(BaseFloor, accent, 0.35f)), true);
-            // внешние стены ниши
-            if (index < 2)
+            Blocky.Part(staticRoot, center + new Vector3(0, 0.08f, 0), new Vector3(size.x, 0.1f, size.y), Mats.Keycaps(Color.Lerp(BaseFloor, accent, 0.4f)), true);
+            Vector3 entrance;
+            if (side < 2)
             {
-                float outer = center.x + (index == 0 ? -hx - 1f : hx + 1f);
+                float outer = center.x + (side == 0 ? -hx - 1f : hx + 1f);
                 WallZ(outer, center.z - hz - 1f, center.z + hz + 1f);
                 WallX(center.z - hz - 1f, center.x - hx - 1f, center.x + hx + 1f);
                 WallX(center.z + hz + 1f, center.x - hx - 1f, center.x + hx + 1f);
+                entrance = new Vector3(center.x + (side == 0 ? hx : -hx), 0, center.z);
             }
             else
             {
                 WallX(center.z - hz - 1f, center.x - hx - 1f, center.x + hx + 1f);
                 WallZ(center.x - hx - 1f, center.z - hz - 1f, center.z + hz + 1f);
                 WallZ(center.x + hx + 1f, center.z - hz - 1f, center.z + hz + 1f);
+                entrance = new Vector3(center.x, 0, center.z + hz);
             }
-            // 6 декоративных грядок с драконами и яйцами
-            var rnd2 = new System.Random(100 + index);
+            // ник над входом (на скале) и цветная полоса-вывеска
+            Blocky.Label(signs, title, entrance + new Vector3(0, WallHeight + 3.2f, 0), 1.6f, titleColor);
+            Vector3 barSize = side < 2 ? new Vector3(0.4f, 1.2f, size.y * 0.8f) : new Vector3(size.x * 0.8f, 1.2f, 0.4f);
+            Blocky.Part(staticRoot, entrance + new Vector3(0, WallHeight + 1.2f, 0), barSize, Mats.Plastic(accent));
+            if (!bot) return;
+            var rnd2 = new System.Random((int)(center.x * 13 + center.z * 7));
             for (int i = 0; i < 6; i++)
             {
-                float gx = (i % 3 - 1) * (index < 2 ? hx * 0.55f : hx * 0.6f);
-                float gz = (i / 3 - 0.5f) * (index < 2 ? hz * 0.9f : hz * 0.8f);
-                Vector3 p = center + (index < 2 ? new Vector3(gz, 0, gx) : new Vector3(gx, 0, gz));
-                Blocky.Part(staticRoot, p + new Vector3(0, 0.2f, 0), new Vector3(4.6f, 0.3f, 4.6f), Mats.Studs(new Color(0.35f, 0.72f, 0.32f)), false);
-                Blocky.Part(staticRoot, p + new Vector3(0, 0.38f, 0), new Vector3(3.6f, 0.1f, 3.6f), Mats.Studs(new Color(0.48f, 0.33f, 0.2f)), false);
+                float a = (i % 3 - 1), b = (i / 3 - 0.5f);
+                Vector3 p = side < 2 ? center + new Vector3(b * hx * 0.9f, 0, a * hz * 0.62f) : center + new Vector3(a * hx * 0.62f, 0, b * hz * 0.9f);
+                Blocky.Part(staticRoot, p + new Vector3(0, 0.3f, 0), new Vector3(4.6f, 0.4f, 4.6f), Mats.Studs(new Color(0.35f, 0.72f, 0.32f)), true);
+                Blocky.Part(staticRoot, p + new Vector3(0, 0.52f, 0), new Vector3(3.6f, 0.1f, 3.6f), Mats.Studs(new Color(0.48f, 0.33f, 0.2f)), false);
                 if (rnd2.Next(3) == 0)
                 {
                     var egg = Blocky.BuildEgg(dynamicRoot, (Tier)rnd2.Next(0, 5), 1.3f);
-                    egg.transform.position = p + new Vector3(0, 0.45f, 0);
+                    egg.transform.position = p + new Vector3(0, 0.58f, 0);
                 }
                 else
                 {
                     var list = new List<DragonDef>();
-                    int maxT = 2 + index * 2;
-                    foreach (var dd in GameConfig.Dragons) if (!dd.exclusive && (int)dd.tier <= maxT) list.Add(dd);
+                    foreach (var dd in GameConfig.Dragons) if (!dd.exclusive && (int)dd.tier <= 6) list.Add(dd);
                     var dr = Blocky.BuildDragon(dynamicRoot, list[rnd2.Next(list.Count)]);
-                    dr.transform.position = p + new Vector3(0, 0.45f, 0);
+                    dr.transform.position = p + new Vector3(0, 0.58f, 0);
                     dr.transform.localScale = Vector3.one * 0.7f;
                     dr.transform.rotation = Quaternion.Euler(0, rnd2.Next(360), 0);
                 }
             }
-            // флажок стойла
-            Blocky.Part(staticRoot, center + new Vector3(0, 4f, 0) + (index < 2 ? new Vector3(index == 0 ? -hx + 1f : hx - 1f, 0, 0) : new Vector3(0, 0, -hz + 1f)), new Vector3(0.2f, 8f, 0.2f), Mats.Plastic(new Color(0.35f, 0.25f, 0.18f)));
-            BotHomes.Add(center);
+            BotHomes.Add(center + new Vector3(0, 0.6f, 0));
         }
+
+        static void WallZ(float x, float z0, float z1) { CastleWall(new Vector3(x, 0, (z0 + z1) / 2f), Mathf.Abs(z1 - z0), false, null); }
+        static void WallX(float z, float x0, float x1) { CastleWall(new Vector3((x0 + x1) / 2f, 0, z), Mathf.Abs(x1 - x0), true, null); }
 
         static readonly Color WallBrown = new Color(0.74f, 0.52f, 0.33f);
         static readonly Color WallGreen = new Color(0.25f, 0.78f, 0.2f);
@@ -189,7 +206,7 @@ namespace DragonHeist
             bool mobile = InputState.Mobile;
             bool ru = Loc.Ru;
             // "Передвижение": клавиши WASD или джойстик
-            var b1 = Board(new Vector3(-14f, 0.1f, 0f), mobile ? (ru ? "Джойстик слева" : "Left joystick") : (ru ? "Передвижение" : "Movement"));
+            var b1 = Board(new Vector3(-9f, 0.1f, -15f), mobile ? (ru ? "Джойстик слева" : "Left joystick") : (ru ? "Передвижение" : "Movement"));
             if (!mobile)
             {
                 Key3D(b1, "W", new Vector3(0, 3.1f, -0.6f));
@@ -203,7 +220,7 @@ namespace DragonHeist
                 Blocky.Part(b1, new Vector3(0.6f, 2.5f, -0.6f), new Vector3(1.3f, 1.3f, 0.2f), Mats.Plastic(new Color(1f, 0.8f, 0.2f)), false, PrimitiveType.Cylinder).localRotation = Quaternion.Euler(90, 0, 0);
             }
             // "Поворот камеры": мышь с зажатой правой кнопкой или свайп
-            var b2 = Board(new Vector3(14f, 0.1f, 0f), mobile ? (ru ? "Свайп справа — камера" : "Swipe right — camera") : (ru ? "Поворот камеры" : "Camera"));
+            var b2 = Board(new Vector3(9f, 0.1f, -15f), mobile ? (ru ? "Свайп справа — камера" : "Swipe right — camera") : (ru ? "Поворот камеры" : "Camera"));
             Blocky.Round = true; Blocky.RoundFactor = 0.45f; Blocky.RoundSteps = 2;
             Blocky.Part(b2, new Vector3(0, 2.2f, -0.6f), new Vector3(1.8f, 2.8f, 0.9f), Mats.Plastic(Color.white));
             Blocky.RoundFactor = 0.3f;

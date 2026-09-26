@@ -87,8 +87,10 @@ namespace DragonHeist
             Blocky.Round = false; Blocky.RoundFactor = 0.2f;
             var scr = Blocky.Part(tr, new Vector3(0, 3.15f, 3.8f), new Vector3(3.8f, 0.9f, 0.05f), Mats.Glow(new Color(0.05f, 0.08f, 0.12f)));
             scr.localRotation = Quaternion.Euler(-12f, 0, 0);
-            t.screen = Blocky.Label(tr, "", new Vector3(0, 3.2f, 3.65f), 0.9f, new Color(0.4f, 1f, 0.7f));
+            t.screen = Blocky.Label(tr, "", new Vector3(0, 3.17f, 3.72f), 0.62f, new Color(0.4f, 1f, 0.7f));
             t.screen.maxDistance = 45f;
+            t.screen.billboard = false;                          // лежит на экране, под тем же наклоном
+            t.screen.transform.localRotation = Quaternion.Euler(-12f, 0, 0);
 
             t.label = Blocky.Label(tr, "", new Vector3(0, 5f, 4.1f), 1.05f, Color.white);
 

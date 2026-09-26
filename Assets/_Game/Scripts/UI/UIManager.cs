@@ -403,11 +403,14 @@ namespace DragonHeist
             // --- x2 Доход и x2 Рост ---
             float half = (w - 12) / 2f;
             var inc = UIKit.Panel(content, "X2Income", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-half / 2f - 6, -290), new Vector2(half, 200), new Color(1f, 0.85f, 0.2f), 3f);
-            UIKit.Icon(inc.transform, Icons.Coin, new Vector2(0, 0.5f), new Vector2(80, 0), 130);
+            UIKit.Icon(inc.transform, Icons.Coin, new Vector2(0, 0.5f), new Vector2(64, 14), 110);
+            UIKit.Icon(inc.transform, Icons.Coin, new Vector2(0, 0.5f), new Vector2(100, -10), 110);
+            X2Badge(inc.transform, new Vector2(150, -40));
             UIKit.Label(UIKit.Rect(inc.transform, "T", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -12), new Vector2(250, 50)), Loc.Ru ? "x2 Доход" : "x2 Income", 32, Color.white, TextAnchor.MiddleRight);
             YanBuy(inc.transform, "x2_income", new Vector2(1, 0), new Vector2(-110, 50), new Vector2(190, 62), new Color(0.25f, 0.8f, 0.3f), 24);
             var gr = UIKit.Panel(content, "X2Grow", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(half / 2f + 6, -290), new Vector2(half, 200), new Color(0.4f, 0.85f, 0.95f), 3f);
-            UIKit.Icon(gr.transform, IconArt.Egg(Tier.Rare), new Vector2(0, 0.5f), new Vector2(80, 0), 150);
+            UIKit.Icon(gr.transform, IconArt.Egg(Tier.Rare), new Vector2(0, 0.5f), new Vector2(84, 6), 150);
+            X2Badge(gr.transform, new Vector2(150, -40));
             UIKit.Label(UIKit.Rect(gr.transform, "T", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -8), new Vector2(260, 70)), Loc.Ru ? "x2 Скорость\nроста яиц" : "x2 Egg\nGrowth", 26, Color.white, TextAnchor.MiddleRight);
             YanBuy(gr.transform, "x2_grow", new Vector2(1, 0), new Vector2(-110, 50), new Vector2(190, 62), new Color(0.25f, 0.8f, 0.3f), 24);
 
@@ -428,6 +431,14 @@ namespace DragonHeist
                 idx++;
             }
             return go;
+        }
+
+        static void X2Badge(Transform parent, Vector2 pos)
+        {
+            var b = UIKit.Panel(parent, "X2", new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), pos, new Vector2(78, 50), new Color(0.95f, 0.25f, 0.35f), 3f);
+            b.raycastTarget = false;
+            b.transform.localRotation = Quaternion.Euler(0, 0, -10f);
+            UIKit.Label(b.transform, "x2", 32, Color.white);
         }
 
         /// <summary>Магазин трейлов: горизонтальная лента карточек, покупка за монеты или Яны.</summary>
