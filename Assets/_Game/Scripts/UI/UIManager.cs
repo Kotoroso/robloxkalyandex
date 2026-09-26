@@ -312,8 +312,8 @@ namespace DragonHeist
             var cx = close.GetComponentInChildren<Text>();
             if (cx != null)
             {
-                cx.rectTransform.offsetMin = new Vector2(4, 7);
-                cx.rectTransform.offsetMax = new Vector2(-4, -1);
+                cx.rectTransform.offsetMin = new Vector2(4, 6);
+                cx.rectTransform.offsetMax = new Vector2(-4, 0);
             }
             body = UIKit.Rect(bg.transform, "Body", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -44), new Vector2(sz.x - 40, sz.y - 120));
             go.AddComponent<PopIn>();
