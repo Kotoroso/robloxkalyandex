@@ -178,7 +178,7 @@ namespace DragonHeist
                     dr.transform.rotation = Quaternion.Euler(0, rnd2.Next(360), 0);
                 }
             }
-            BotHomes.Add(center + new Vector3(0, 0.6f, 0));
+            BotHomes.Add(center + new Vector3(0, 0.15f, 0));
         }
 
         static void WallZ(float x, float z0, float z1) { CastleWall(new Vector3(x, 0, (z0 + z1) / 2f), Mathf.Abs(z1 - z0), false, null); }

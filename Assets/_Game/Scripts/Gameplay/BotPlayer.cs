@@ -38,7 +38,7 @@ namespace DragonHeist
             {
                 var go = new GameObject("Bot_" + i);
                 go.transform.SetParent(parent, false);
-                go.transform.position = homes[i] + new Vector3(0, 0.15f, 0);
+                go.transform.position = homes[i];
                 var b = go.AddComponent<BotPlayer>();
                 b.home = homes[i];
                 b.rnd = new System.Random(100 + i);
@@ -95,7 +95,7 @@ namespace DragonHeist
                     return;
                 }
             }
-            if (roll < 55) { mode = Mode.Walk; target = home + new Vector3((float)rnd.NextDouble() * 10f - 5f, 0.15f, (float)rnd.NextDouble() * 10f - 5f); timer = 20f; }
+            if (roll < 55) { mode = Mode.Walk; target = home + new Vector3((float)rnd.NextDouble() * 10f - 5f, 0f, (float)rnd.NextDouble() * 10f - 5f); timer = 20f; }
             else if (roll < 70) { mode = Mode.Walk; target = RandomBasePoint(rnd); timer = 20f; }
             else if (roll < 85) { mode = Mode.Idle; timer = 2f + (float)rnd.NextDouble() * 4f; }
             else { mode = Mode.Jump; timer = 3f + (float)rnd.NextDouble() * 3f; }

@@ -23,13 +23,16 @@ namespace DragonHeist
         float catchRadius;
         float cooldown;
 
+        /// <summary>Высота пола в зонах (верх клавиш клавиатурного пола).</summary>
+        public const float GroundY = 0.1f; // станет 0.62, когда пол из 3D-клавиш будет встроен
+
         public string DisplayName { get { return Loc.Ru ? NamesRu[(int)info.guardKind] : NamesEn[(int)info.guardKind]; } }
 
         public static BrainrotGuard Build(Transform parent, EggPedestal home, TierInfo info, Vector3 pos)
         {
             var go = new GameObject("Guard_" + info.guardKind);
             go.transform.SetParent(parent, false);
-            go.transform.position = pos;
+            go.transform.position = new Vector3(pos.x, GroundY, pos.z);
             var g = go.AddComponent<BrainrotGuard>();
             g.home = home;
             g.info = info;
@@ -167,7 +170,7 @@ namespace DragonHeist
             if (dir.sqrMagnitude > 0.01f)
             {
                 Vector3 step = dir.normalized * Mathf.Min(speedNow * dt, dir.magnitude);
-                transform.position = new Vector3(pos.x + step.x, 0, pos.z + step.z);
+                transform.position = new Vector3(pos.x + step.x, GroundY, pos.z + step.z);
                 Quaternion look = Quaternion.LookRotation(dir.normalized);
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, look, 540f * dt);
             }
