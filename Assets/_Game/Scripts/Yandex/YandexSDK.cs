@@ -184,11 +184,13 @@ namespace DragonHeist
 #endif
         }
 
-        public static string PriceText(ProductDef p)
+        public static string PriceText(ProductDef p) { return PriceText(p.id, p.fallbackPrice); }
+
+        public static string PriceText(string id, string fallback)
         {
             CatalogItem c;
-            if (Catalog.TryGetValue(p.id, out c) && !string.IsNullOrEmpty(c.priceValue)) return c.priceValue + (Loc.Ru ? " ян" : " YAN");
-            return p.fallbackPrice + (Loc.Ru ? " ян" : " YAN");
+            if (Catalog.TryGetValue(id, out c) && !string.IsNullOrEmpty(c.priceValue)) return c.priceValue + (Loc.Ru ? " ян" : " YAN");
+            return fallback + (Loc.Ru ? " ян" : " YAN");
         }
 
         public static void Purchase(string id)
@@ -250,7 +252,13 @@ namespace DragonHeist
                 {
                     bool permanent = false;
                     foreach (var p in GameConfig.Products) if (p.id == it.id && p.kind == ProductKind.Permanent) permanent = true;
-                    if (permanent)
+                    int trail = -1;
+                    for (int ti = 0; ti < GameConfig.Trails.Length; ti++) if (GameConfig.Trails[ti].productId == it.id) trail = ti;
+                    if (trail >= 0)
+                    {
+                        if (!SaveManager.Data.ownedTrails.Contains(trail)) SaveManager.Data.ownedTrails.Add(trail);
+                    }
+                    else if (permanent)
                     {
                         if (!SaveManager.Data.ownedProducts.Contains(it.id)) SaveManager.Data.ownedProducts.Add(it.id);
                     }

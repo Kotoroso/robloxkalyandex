@@ -26,7 +26,7 @@ namespace DragonHeist
         Text resultText;
         Image winCard;
 
-        public void Init(RectTransform root, Tier eggTier, DragonDef res, System.Action done)
+        public void Init(RectTransform root, Tier eggTier, DragonDef res, bool premium, System.Action done)
         {
             rt = root;
             result = res;
@@ -40,7 +40,8 @@ namespace DragonHeist
             btn.onClick.AddListener(Skip);
 
             var title = UIKit.Label(UIKit.Rect(rt, "Title", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 190), new Vector2(900, 70)),
-                (Loc.Ru ? "ОТКРЫВАЕМ ЯЙЦО: " : "OPENING EGG: ") + Loc.TierName(eggTier).ToUpper(), 44, GameConfig.GetTier(eggTier).color);
+                premium ? (Loc.Ru ? "ДРАКОНЬЕ ЯЙЦО!" : "DRAGON EGG!") : (Loc.Ru ? "ОТКРЫВАЕМ ЯЙЦО: " : "OPENING EGG: ") + Loc.TierName(eggTier).ToUpper(), 44,
+                premium ? new Color(1f, 0.8f, 0.2f) : GameConfig.GetTier(eggTier).color);
             title.gameObject.AddComponent<TitleWobble>();
 
             // окно ленты
@@ -55,6 +56,7 @@ namespace DragonHeist
             {
                 DragonDef d;
                 if (i == WinIndex) d = result;
+                else if (premium) d = GameConfig.RollPremium();
                 else if (i == WinIndex + 1 || i == WinIndex - 1) d = GameConfig.RollInTier((Tier)Mathf.Min((int)eggTier + 2, GameConfig.Tiers.Length - 1)); // "почти выпало!"
                 else d = GameConfig.RollInTier(Pick(chances, eggTier));
                 cards.Add(MakeCard(strip, i, d));

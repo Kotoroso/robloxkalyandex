@@ -6,14 +6,16 @@ namespace DragonHeist
     public class SellerNPC : MonoBehaviour, IInteractable
     {
         Blocky.Avatar npc;
+        bool trails;   // true — стойка магазина трейлов
 
-        public static SellerNPC Build(Transform parent, Vector3 pos, float yaw)
+        public static SellerNPC Build(Transform parent, Vector3 pos, float yaw, bool trails = false)
         {
             var go = new GameObject("Seller");
             go.transform.SetParent(parent, false);
             go.transform.position = pos;
             go.transform.rotation = Quaternion.Euler(0, yaw, 0);
             var s = go.AddComponent<SellerNPC>();
+            s.trails = trails;
             var tr = go.transform;
 
             // прилавок с полосатым навесом
@@ -28,7 +30,7 @@ namespace DragonHeist
             Blocky.Part(tr, new Vector3(2.4f, 2.2f, -0.8f), new Vector3(0.25f, 4.4f, 0.25f), post, true);
             for (int i = 0; i < 6; i++)
             {
-                var stripe = Mats.Plastic(i % 2 == 0 ? new Color(0.95f, 0.25f, 0.25f) : Color.white);
+                var stripe = Mats.Plastic(i % 2 == 0 ? (trails ? new Color(0.8f, 0.3f, 0.95f) : new Color(0.95f, 0.25f, 0.25f)) : (trails ? new Color(1f, 0.85f, 0.2f) : Color.white));
                 var st = Blocky.Part(tr, new Vector3(-2.3f + i * 0.92f, 4.55f, 0.65f), new Vector3(0.92f, 0.15f, 3.6f), stripe);
                 st.localRotation = Quaternion.Euler(-12f, 0, 0);
             }
@@ -46,7 +48,14 @@ namespace DragonHeist
             Blocky.Part(s.npc.head, new Vector3(0, 1.1f, 0), new Vector3(1.15f, 0.65f, 1.15f), Mats.Plastic(new Color(0.35f, 0.22f, 0.12f)));
             Blocky.Round = false;
 
-            Blocky.Label(tr, Loc.T("seller"), new Vector3(0, 6.2f, 1f), 1.2f, new Color(1f, 0.85f, 0.3f));
+            Blocky.Label(tr, trails ? (Loc.Ru ? "Магазин Трейлов" : "Trail Shop") : Loc.T("seller"), new Vector3(0, 6.2f, 1f), 1.4f, trails ? new Color(1f, 0.9f, 0.2f) : new Color(1f, 0.85f, 0.3f));
+            if (trails)
+            {
+                // радужная доска с превью трейлов
+                var board = Blocky.Part(tr, new Vector3(0, 3.3f, -0.9f), new Vector3(4.6f, 2.2f, 0.15f), Mats.Plastic(new Color(0.12f, 0.12f, 0.18f)));
+                for (int i = 0; i < 5; i++)
+                    Blocky.Part(tr, new Vector3(-1.8f + i * 0.9f, 3.3f, -0.8f), new Vector3(0.7f, 1.6f, 0.08f), Mats.Glow(Color.HSVToRGB(i / 5f, 0.8f, 1f)));
+            }
             PlayerController.Interactables.Add(s);
             return s;
         }
@@ -71,7 +80,7 @@ namespace DragonHeist
         public float InteractRange { get { return 5f; } }
         public float HoldTime { get { return 0.1f; } }
         public bool CanInteract { get { return true; } }
-        public string Prompt { get { return Loc.T("talk_seller"); } }
-        public void Interact(PlayerController p) { UIManager.Instance.OpenSell(); }
+        public string Prompt { get { return trails ? (Loc.Ru ? "Магазин трейлов" : "Trail shop") : Loc.T("talk_seller"); } }
+        public void Interact(PlayerController p) { if (trails) UIManager.Instance.OpenTrails(); else UIManager.Instance.OpenSell(); }
     }
 }

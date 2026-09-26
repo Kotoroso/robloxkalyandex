@@ -12,6 +12,7 @@ namespace DragonHeist
         Text txt;
         Canvas canvas;
         public float maxDistance = 110f;
+        public bool billboard = true;   // false — надпись на табличке, не поворачивается
 
         public string text
         {
@@ -68,7 +69,7 @@ namespace DragonHeist
             Vector3 d = transform.position - cam.transform.position;
             bool visible = d.sqrMagnitude < maxDistance * maxDistance;
             if (canvas.enabled != visible) canvas.enabled = visible;
-            if (visible) transform.rotation = Quaternion.LookRotation(d);
+            if (visible && billboard) transform.rotation = Quaternion.LookRotation(d);
         }
     }
 }

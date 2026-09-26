@@ -25,6 +25,11 @@ namespace DragonHeist
 
         public bool Owned { get { return (SaveManager.Data.treadmillsMask & (1 << index)) != 0; } }
         public bool Training { get { return activeTimer > 0; } }
+        float botTimer;
+        public Transform BotSpot;   // сюда встаёт фейк-игрок
+        public bool BotOccupied;
+        /// <summary>Фейк-игрок бежит по дорожке — только визуал ленты.</summary>
+        public void BotRun() { botTimer = 0.2f; }
         int AdsWatched { get { return SaveManager.Data.treadmillAds[index]; } }
 
         public static Treadmill Build(Transform parent, int index, Vector3 pos, float yaw)
@@ -168,7 +173,8 @@ namespace DragonHeist
         {
             float dt = Time.deltaTime;
             if (activeTimer > 0) activeTimer -= dt;
-            beltSpeed = Mathf.MoveTowards(beltSpeed, Training ? 3.5f : (Owned ? 0.4f : 0f), dt * 6f);
+            if (botTimer > 0) botTimer -= dt;
+            beltSpeed = Mathf.MoveTowards(beltSpeed, (Training || botTimer > 0) ? 3.5f : (Owned ? 0.4f : 0f), dt * 6f);
             beltMat.mainTextureOffset += new Vector2(0, -dt * beltSpeed);
 
             // экран: прирост, мигает во время бега

@@ -106,3 +106,19 @@ namespace DragonHeist
         }
     }
 }
+
+namespace DragonHeist
+{
+    /// <summary>Переливающийся радужный цвет картинки (радужный трейл в магазине).</summary>
+    public class RainbowImage : MonoBehaviour
+    {
+        UnityEngine.UI.Image img;
+        void Awake() { img = GetComponent<UnityEngine.UI.Image>(); }
+        void Update()
+        {
+            if (img == null) return;
+            var c = Color.HSVToRGB(Mathf.Repeat(Time.unscaledTime * 0.2f, 1f), 0.55f, 0.85f);
+            img.color = c;
+        }
+    }
+}

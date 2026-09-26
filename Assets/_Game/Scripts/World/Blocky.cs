@@ -155,7 +155,7 @@ namespace DragonHeist
         // ================= ДРАКОН =================
         public static GameObject BuildDragon(Transform parent, DragonDef d)
         {
-            float s = 0.8f + Mathf.Min((int)d.tier, 11) * 0.11f;
+            float s = (0.8f + Mathf.Min((int)d.tier, 11) * 0.11f) * (d.exclusive ? 1.15f : 1f);
             var root = new GameObject("Dragon_" + d.nameEn);
             root.transform.SetParent(parent, false);
             var m = Pivot(root.transform, "Model", Vector3.zero);
@@ -205,6 +205,25 @@ namespace DragonHeist
             for (int i = 0; i < (int)d.tier; i++)
                 Part(m, new Vector3(0, 2.0f, 0.8f - i * 0.45f), new Vector3(0.12f, 0.4f, 0.3f), wing);
 
+            if (d.exclusive)
+            {
+                // эксклюзив: светящиеся кристаллы-шипы, вторая пара крыльев, корона
+                var glow = Mats.Glow(Color.Lerp(d.wing, Color.white, 0.3f));
+                for (int i = 0; i < 5; i++)
+                {
+                    var sp = Part(m, new Vector3(0, 2.15f + (i % 2) * 0.1f, 0.9f - i * 0.5f), new Vector3(0.22f, 0.7f - i * 0.08f, 0.22f), glow);
+                    sp.localRotation = Quaternion.Euler(-25, 45, 0);
+                }
+                var lw2 = Pivot(lw, "LWing2", new Vector3(-0.2f, -0.35f, -0.5f));
+                Part(lw2, new Vector3(-0.9f, 0, 0), new Vector3(1.8f, 0.08f, 1.1f), wing);
+                var rw2 = Pivot(rw, "RWing2", new Vector3(0.2f, -0.35f, -0.5f));
+                Part(rw2, new Vector3(0.9f, 0, 0), new Vector3(1.8f, 0.08f, 1.1f), wing);
+                var gold = Plastic(new Color(1f, 0.82f, 0.2f));
+                Part(head, new Vector3(0, 0.55f, 0), new Vector3(0.9f, 0.15f, 0.9f), gold);
+                for (int i = 0; i < 4; i++)
+                    Part(head, new Vector3((i % 2 == 0 ? -0.35f : 0.35f), 0.75f, (i < 2 ? -0.35f : 0.35f)), new Vector3(0.16f, 0.3f, 0.16f), gold);
+                Part(m, new Vector3(0, 1.3f, 0), new Vector3(1.75f, 1.0f, 2.0f), Mats.UnlitAlpha(new Color(d.belly.r, d.belly.g, d.belly.b, 0.25f), Mats.SoftDot), false, PrimitiveType.Sphere);
+            }
             Round = false;
             var idle = root.AddComponent<DragonIdle>();
             idle.lWing = lw; idle.rWing = rw; idle.head = head; idle.model = m;

@@ -188,6 +188,37 @@ namespace DragonHeist
             return b;
         }
 
+        /// <summary>Прокручиваемая область (колесо мыши / свайп). Возвращает content, размер которого задаёт вызывающий.</summary>
+        public static RectTransform Scroll(Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, bool horizontal)
+        {
+            var vp = Rect(parent, "Viewport", anchor, new Vector2(0.5f, 0.5f), pos, size);
+            var vi = vp.gameObject.AddComponent<Image>();
+            vi.color = new Color(1, 1, 1, 0.003f);
+            vp.gameObject.AddComponent<RectMask2D>();
+            var content = Rect(vp, "Content", horizontal ? new Vector2(0, 0.5f) : new Vector2(0.5f, 1), horizontal ? new Vector2(0, 0.5f) : new Vector2(0.5f, 1), Vector2.zero, size);
+            var sr = vp.gameObject.AddComponent<ScrollRect>();
+            sr.content = content;
+            sr.viewport = vp;
+            sr.horizontal = horizontal;
+            sr.vertical = !horizontal;
+            sr.movementType = ScrollRect.MovementType.Clamped;
+            sr.scrollSensitivity = 35f;
+            sr.inertia = true;
+            return content;
+        }
+
+        /// <summary>Круглая кнопка с иконкой (как верхние кнопки в роблокс-режимах).</summary>
+        public static Button CircleButton(Transform parent, string name, Sprite icon, Vector2 anchor, Vector2 pivot, Vector2 pos, float size, Color color, UnityAction onClick)
+        {
+            var b = Button(parent, name, "", anchor, pivot, pos, new Vector2(size, size), color, onClick, 20, icon);
+            var img = b.GetComponent<Image>();
+            img.sprite = Circle;
+            img.type = Image.Type.Simple;
+            var gl = b.transform.Find("Gloss");
+            if (gl != null) Object.Destroy(gl.gameObject);
+            return b;
+        }
+
         public static void AddPointer(GameObject go, UnityAction<BaseEventData> down, UnityAction<BaseEventData> up)
         {
             var et = go.GetComponent<EventTrigger>();

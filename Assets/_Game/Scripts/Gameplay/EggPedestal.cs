@@ -34,6 +34,20 @@ namespace DragonHeist
                 Blocky.Part(tr, new Vector3(sx, 1.2f, sz), new Vector3(0.3f, 0.4f, 0.3f), glow);
             }
             Fx.Sparkles(tr, new Vector3(0, 2.8f, 0), info.color, 1.4f, 5f + (int)tier * 2f);
+            // табличка "Рекомендуется" (как в роблокс-режимах): нужная скорость для этой зоны
+            var sign = Blocky.Pivot(tr, "Recommend", new Vector3(-4.2f, 0, -3.5f));
+            sign.localRotation = Quaternion.Euler(0, 180f, 0);
+            Blocky.Part(sign, new Vector3(0, 0.8f, 0), new Vector3(0.25f, 1.6f, 0.25f), Mats.Plastic(new Color(0.12f, 0.15f, 0.3f)));
+            Blocky.Round = true; Blocky.RoundFactor = 0.2f;
+            Blocky.Part(sign, new Vector3(0, 2f, 0), new Vector3(2.6f, 1.2f, 0.2f), Mats.Plastic(new Color(0.1f, 0.14f, 0.32f)));
+            Blocky.Round = false;
+            double rec = System.Math.Max(10, GameConfig.Tiers[System.Math.Min((int)tier + 1, GameConfig.Tiers.Length - 1)].reqPoints * 0.5 + info.reqPoints);
+            var l1 = Blocky.Label(sign, Loc.Num(rec), new Vector3(0, 2.25f, 0.12f), 0.75f, new Color(0.5f, 0.9f, 1f));
+            var l2 = Blocky.Label(sign, Loc.Ru ? "Рекомендуется" : "Recommended", new Vector3(0, 1.8f, 0.12f), 0.5f, new Color(0.4f, 1f, 0.5f));
+            l1.billboard = false; l2.billboard = false;
+            l1.transform.localRotation = Quaternion.Euler(0, 180f, 0);
+            l2.transform.localRotation = Quaternion.Euler(0, 180f, 0);
+            l1.maxDistance = 50f; l2.maxDistance = 50f;
             p.eggAnchor = Blocky.Pivot(tr, "EggAnchor", new Vector3(0, 1.8f, 0));
             p.SpawnEgg();
             PlayerController.Interactables.Add(p);

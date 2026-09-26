@@ -60,7 +60,8 @@ namespace DragonHeist
             {
                 long left = d.readyAt - SaveData.Now();
                 bool ready = left <= 0;
-                label.text = Loc.TierName((Tier)d.tier) + "\n" + (ready ? (Loc.Ru ? "<color=#7CFF7C>ГОТОВО! Открой</color>" : "<color=#7CFF7C>READY! Open it</color>") : Loc.Time(left));
+                string eggName = d.dragonId == GameConfig.PremiumEggMarker ? (Loc.Ru ? "Драконье яйцо" : "Dragon Egg") : Loc.TierName((Tier)d.tier);
+                label.text = eggName + "\n" + (ready ? (Loc.Ru ? "<color=#7CFF7C>ГОТОВО! Открой</color>" : "<color=#7CFF7C>READY! Open it</color>") : Loc.Time(left));
                 label.color = GameConfig.GetTier(d.tier).color;
                 if (content != null)
                 {

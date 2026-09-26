@@ -51,6 +51,8 @@ namespace DragonHeist
         public long lastDailyDay = -1;                     // номер дня (UTC), когда забрана награда
         public int dailyStreak;
         public List<string> ownedProducts = new List<string>(); // постоянные покупки за Яны
+        public List<int> ownedTrails = new List<int>();
+        public int equippedTrail = -1;
 
         public void Normalize()
         {
@@ -70,6 +72,8 @@ namespace DragonHeist
             for (int i = 0; i < dragonInvLvl.Count; i++) if (dragonInvLvl[i] < 1) dragonInvLvl[i] = 1;
             foreach (var p in plots) if (p.level < 1) p.level = 1;
             if (ownedProducts == null) ownedProducts = new List<string>();
+            if (ownedTrails == null) ownedTrails = new List<int>();
+            if (equippedTrail >= GameConfig.Trails.Length || (equippedTrail >= 0 && !ownedTrails.Contains(equippedTrail))) equippedTrail = -1;
             if (upgrades == null) upgrades = new List<int>();
             while (upgrades.Count < GameConfig.Upgrades.Length) upgrades.Add(0);
             // старые сохранения: выкидываем несуществующих драконов

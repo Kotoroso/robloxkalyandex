@@ -16,6 +16,9 @@ namespace DragonHeist
         public static Sprite Bag { get { return Get("bag", DrawBag); } }
         public static Sprite Egg { get { return Get("egg", DrawEgg); } }
         public static Sprite Dragon { get { return Get("dragon", DrawDragon); } }
+        public static Sprite Paw { get { return Get("paw", DrawPaw); } }
+        public static Sprite Shoe { get { return Get("shoe", DrawShoe); } }
+        public static Sprite Book { get { return Get("book", DrawBook); } }
 
         delegate Color PixelFn(float x, float y); // x,y в -1..1
 
@@ -145,6 +148,39 @@ namespace DragonHeist
             if ((x + 0.3f) * (x + 0.3f) + (y - 0.3f) * (y - 0.3f) < 0.03f) return new Color(1f, 1f, 1f);
             float spot = Mathf.Sin(x * 9f) * Mathf.Sin(y * 7f);
             return spot > 0.6f ? new Color(0.95f, 0.6f, 0.2f) : new Color(1f, 0.85f, 0.45f);
+        }
+
+        static float Ell(float x, float y, float cx, float cy, float rx, float ry) { float dx = (x - cx) / rx, dy = (y - cy) / ry; return dx * dx + dy * dy; }
+
+        static Color DrawPaw(float x, float y)
+        {
+            Color fill = new Color(1f, 0.62f, 0.25f);
+            float pad = Ell(x, y, 0, -0.35f, 0.5f, 0.42f);
+            float[] tx = { -0.62f, -0.22f, 0.22f, 0.62f }, ty = { 0.05f, 0.45f, 0.45f, 0.05f };
+            float best = pad;
+            for (int i = 0; i < 4; i++) best = Mathf.Min(best, Ell(x, y, tx[i], ty[i], 0.22f, 0.27f));
+            if (best < 0.62f) return fill;
+            if (best < 1f) return Outline;
+            return Clear;
+        }
+
+        static readonly Vector2[] ShoePoly = {
+            new Vector2(-0.9f, -0.45f), new Vector2(-0.85f, 0.1f), new Vector2(-0.45f, 0.35f), new Vector2(-0.2f, 0.1f),
+            new Vector2(0.25f, 0.0f), new Vector2(0.75f, -0.15f), new Vector2(0.95f, -0.4f), new Vector2(0.9f, -0.55f), new Vector2(-0.9f, -0.55f) };
+
+        static Color DrawShoe(float x, float y)
+        {
+            if (y < -0.42f && y > -0.62f && x > -0.95f && x < 0.97f) return Color.white; // подошва
+            return PolyWithOutline(x, y, ShoePoly, new Color(0.25f, 0.55f, 1f));
+        }
+
+        static Color DrawBook(float x, float y)
+        {
+            var cover = new[] { new Vector2(-0.6f, -0.85f), new Vector2(0.75f, -0.85f), new Vector2(0.85f, 0.85f), new Vector2(-0.5f, 0.85f) };
+            if (InPoly(x, y, Scale(cover, 0.84f)))
+                return (x < -0.3f) ? new Color(0.15f, 0.4f, 0.9f) : new Color(0.3f, 0.6f, 1f);
+            if (InPoly(x, y, cover)) return Outline;
+            return Clear;
         }
 
         static readonly Vector2[] DragonPoly = {

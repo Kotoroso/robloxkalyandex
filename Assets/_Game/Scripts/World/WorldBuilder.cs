@@ -30,7 +30,7 @@ namespace DragonHeist
 
             // ===== ЗЕМЛЯ =====
             float groundLen = endZ + 200f;
-            var grass = new Color(0.36f, 0.7f, 0.32f);
+            var grass = new Color(0.27f, 0.8f, 0.2f);
             Blocky.Part(staticRoot, new Vector3(0, -0.5f, groundLen / 2f - 100f), new Vector3(320f, 1f, groundLen), Mats.Studs(grass), true);
 
             BuildBase(gm, half);
@@ -86,12 +86,16 @@ namespace DragonHeist
             // ASMR-клавиатура и продавец
             KeyboardFloor.Build(dynamicRoot, new Vector3(-37f, 0.1f, -16.5f), 10, 5, 2.2f);
             SellerNPC.Build(dynamicRoot, new Vector3(-31f, 0.1f, 4.2f), 180f);
+            SellerNPC.Build(dynamicRoot, new Vector3(5f, 0.1f, -9f), -50f, true);
 
             // спавн-площадка
             Blocky.Round = true; Blocky.RoundFactor = 0.4f;
             Blocky.Part(staticRoot, new Vector3(SpawnPoint.x, 0.2f, SpawnPoint.z), new Vector3(5f, 0.25f, 5f), Mats.Plastic(new Color(0.95f, 0.95f, 0.98f)));
             Blocky.Part(staticRoot, new Vector3(SpawnPoint.x, 0.28f, SpawnPoint.z), new Vector3(3.6f, 0.2f, 3.6f), Mats.Plastic(new Color(0.3f, 0.55f, 1f)));
             Blocky.Round = false; Blocky.RoundFactor = 0.2f;
+
+            SpawnBoards();
+            BotPlayer.SpawnAll(dynamicRoot, 7);
 
             // фонари и клумбы
             for (int i = 0; i < 4; i++)
@@ -104,32 +108,74 @@ namespace DragonHeist
             FlowerBed(new Vector3(12f, 0.1f, 5.5f), 10f, 1.6f);
         }
 
+        static readonly Color WallBrown = new Color(0.74f, 0.52f, 0.33f);
+        static readonly Color WallGreen = new Color(0.25f, 0.78f, 0.2f);
+        public const float WallHeight = 12f;
+
+        /// <summary>Высокая коричневая стена со студами и зелёным верхом — "каньон" как в роблокс-режимах.</summary>
         static void CastleWall(Vector3 center, float length, bool alongX, Material m)
         {
-            float h = 3f;
-            Vector3 size = alongX ? new Vector3(length, h, 1f) : new Vector3(1f, h, length);
-            Blocky.Part(staticRoot, center + new Vector3(0, h / 2f, 0), size, m, true);
-            int n = Mathf.FloorToInt(length / 2f);
-            for (int i = 0; i < n; i += 2)
-            {
-                float o = -length / 2f + 1f + i * 2f;
-                if (o > length / 2f - 0.5f) break;
-                Vector3 p = alongX ? new Vector3(o, h + 0.5f, 0) : new Vector3(0, h + 0.5f, o);
-                Blocky.Part(staticRoot, center + p, new Vector3(1.1f, 1f, 1.1f), m, false);
-            }
+            float h = WallHeight;
+            Vector3 size = alongX ? new Vector3(length, h, 2f) : new Vector3(2f, h, length);
+            Blocky.Part(staticRoot, center + new Vector3(0, h / 2f, 0), size, Mats.Studs(WallBrown), true);
+            Vector3 top = alongX ? new Vector3(length + 0.2f, 1.4f, 2.4f) : new Vector3(2.4f, 1.4f, length + 0.2f);
+            Blocky.Part(staticRoot, center + new Vector3(0, h + 0.7f, 0), top, Mats.Studs(WallGreen), false);
         }
 
-        static void Tower(Vector3 pos, Color flag)
+        static void Tower(Vector3 pos, Color flag) { }
+
+        // ===== Таблички с управлением у спавна (как в роблокс-режимах) =====
+        static void SpawnBoards()
         {
-            var stone = Mats.Studs(new Color(0.74f, 0.72f, 0.7f));
-            Blocky.Part(staticRoot, pos + new Vector3(0, 3.5f, 0), new Vector3(3.2f, 7f, 3.2f), stone, true);
-            for (int i = 0; i < 4; i++)
+            bool mobile = InputState.Mobile;
+            bool ru = Loc.Ru;
+            // "Передвижение": клавиши WASD или джойстик
+            var b1 = Board(new Vector3(-13f, 0.1f, 6.5f), mobile ? (ru ? "Джойстик слева" : "Left joystick") : (ru ? "Передвижение" : "Movement"));
+            if (!mobile)
             {
-                float sx = (i % 2 == 0) ? -1.2f : 1.2f, sz = i < 2 ? -1.2f : 1.2f;
-                Blocky.Part(staticRoot, pos + new Vector3(sx, 7.5f, sz), new Vector3(0.9f, 1f, 0.9f), stone);
+                Key3D(b1, "W", new Vector3(0, 3.1f, -0.6f));
+                Key3D(b1, "A", new Vector3(-1.5f, 1.6f, -0.6f));
+                Key3D(b1, "S", new Vector3(0, 1.6f, -0.6f));
+                Key3D(b1, "D", new Vector3(1.5f, 1.6f, -0.6f));
             }
-            Blocky.Part(staticRoot, pos + new Vector3(0, 9f, 0), new Vector3(0.15f, 3f, 0.15f), Mats.Plastic(new Color(0.4f, 0.3f, 0.2f)));
-            Blocky.Part(staticRoot, pos + new Vector3(0.7f, 9.9f, 0), new Vector3(1.3f, 0.8f, 0.08f), Mats.Plastic(flag));
+            else
+            {
+                Blocky.Part(b1, new Vector3(0, 2.3f, -0.4f), new Vector3(3f, 3f, 0.2f), Mats.Plastic(new Color(0.8f, 0.85f, 0.95f)), false, PrimitiveType.Cylinder).localRotation = Quaternion.Euler(90, 0, 0);
+                Blocky.Part(b1, new Vector3(0.6f, 2.5f, -0.6f), new Vector3(1.3f, 1.3f, 0.2f), Mats.Plastic(new Color(1f, 0.8f, 0.2f)), false, PrimitiveType.Cylinder).localRotation = Quaternion.Euler(90, 0, 0);
+            }
+            // "Поворот камеры": мышь с зажатой правой кнопкой или свайп
+            var b2 = Board(new Vector3(7f, 0.1f, 6.5f), mobile ? (ru ? "Свайп справа — камера" : "Swipe right — camera") : (ru ? "Поворот камеры" : "Camera"));
+            Blocky.Round = true; Blocky.RoundFactor = 0.45f; Blocky.RoundSteps = 2;
+            Blocky.Part(b2, new Vector3(0, 2.2f, -0.6f), new Vector3(1.8f, 2.8f, 0.9f), Mats.Plastic(Color.white));
+            Blocky.RoundFactor = 0.3f;
+            if (!mobile)
+            {
+                Blocky.Part(b2, new Vector3(0.45f, 3.05f, -1.08f), new Vector3(0.8f, 1.0f, 0.1f), Mats.Plastic(new Color(0.95f, 0.2f, 0.2f)));
+                Blocky.Part(b2, new Vector3(0, 3.05f, -1.1f), new Vector3(0.18f, 0.6f, 0.12f), Mats.Plastic(new Color(0.2f, 0.2f, 0.25f)));
+            }
+            Blocky.Round = false; Blocky.RoundFactor = 0.2f; Blocky.RoundSteps = 1;
+            var hint = Blocky.Label(b2, mobile ? "" : (ru ? "зажми ПКМ" : "hold RMB"), new Vector3(0, 0.6f, -0.3f), 0.55f, new Color(1f, 0.85f, 0.3f));
+            hint.billboard = false;
+        }
+
+        static Transform Board(Vector3 pos, string title)
+        {
+            var root = Blocky.Pivot(dynamicRoot, "Board", pos);
+            var post = Mats.Plastic(new Color(0.3f, 0.22f, 0.15f));
+            Blocky.Part(root, new Vector3(-2.6f, 1.6f, 0), new Vector3(0.3f, 3.2f, 0.3f), post, true);
+            Blocky.Part(root, new Vector3(2.6f, 1.6f, 0), new Vector3(0.3f, 3.2f, 0.3f), post, true);
+            var l = Blocky.Label(root, title, new Vector3(0, 5.2f, -0.2f), 1.5f, Color.white);
+            l.billboard = false;
+            return root;
+        }
+
+        static void Key3D(Transform parent, string letter, Vector3 pos)
+        {
+            Blocky.Round = true; Blocky.RoundFactor = 0.25f; Blocky.RoundSteps = 2;
+            Blocky.Part(parent, pos, new Vector3(1.3f, 1.3f, 0.6f), Mats.Plastic(Color.white));
+            Blocky.Round = false; Blocky.RoundFactor = 0.2f; Blocky.RoundSteps = 1;
+            var l = Blocky.Label(parent, letter, pos + new Vector3(0, 0, -0.32f), 1.3f, new Color(0.1f, 0.1f, 0.15f));
+            l.billboard = false;
         }
 
         static void Lamp(Vector3 pos)
@@ -179,8 +225,8 @@ namespace DragonHeist
             AddWall(new Vector3(-half - 0.5f, 3f, startZ + runLen / 2f), new Vector3(1f, 6f, runLen));
             AddWall(new Vector3(half + 0.5f, 3f, startZ + runLen / 2f), new Vector3(1f, 6f, runLen));
             AddWall(new Vector3(0, 3f, endZ + 0.5f), new Vector3(GameConfig.RunwayWidth + 2f, 6f, 1f));
-            Fence(-half - 0.5f, startZ, endZ);
-            Fence(half + 0.5f, startZ, endZ);
+            CastleWall(new Vector3(-half - 1f, 0, startZ + runLen / 2f), runLen, false, null);
+            CastleWall(new Vector3(half + 1f, 0, startZ + runLen / 2f), runLen, false, null);
             Blocky.Part(staticRoot, new Vector3(0, 1.5f, endZ + 0.5f), new Vector3(GameConfig.RunwayWidth + 2f, 3f, 1f), Mats.Studs(new Color(0.63f, 0.42f, 0.25f)), false);
 
             for (int t = 0; t < GameConfig.Tiers.Length; t++)

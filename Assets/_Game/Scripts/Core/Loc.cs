@@ -87,7 +87,7 @@ namespace DragonHeist
             { "title",        new[]{ "УКРАДИ ДРАКОНА", "STEAL A DRAGON" } },
             { "subtitle",     new[]{ "Кради яйца у брейнротов, выращивай драконов!", "Steal eggs from brainrots, raise dragons!" } },
             { "asmr",         new[]{ "ASMR КЛАВИАТУРА", "ASMR KEYBOARD" } },
-            { "held",         new[]{ "В руке: {0}  (+{1}% скорости)", "Holding: {0}  (+{1}% speed)" } },
+            { "held",         new[]{ "Выбран {0}: подойди к пустой грядке, чтобы поставить", "{0} selected: walk to an empty plot to place it" } },
             { "on",           new[]{ "ВКЛ", "ON" } },
             { "off",          new[]{ "ВЫКЛ", "OFF" } },
             { "zone_title",   new[]{ "{0}", "{0}" } },

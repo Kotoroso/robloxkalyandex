@@ -55,21 +55,61 @@ namespace DragonHeist
             speedLines = Fx.SpeedLines(avatar.root.transform);
         }
 
-        /// <summary>Дракон из выбранного слота — в руке у персонажа.</summary>
+        readonly List<GameObject> pets = new List<GameObject>();
+        TrailRenderer trail;
+        ParticleSystem trailSparks;
+        float trailHue;
+
+        /// <summary>Надетые драконы летают за игроком как питомцы (выбранный — чуть выше и ближе).</summary>
         public void RebuildHeld()
         {
-            if (heldModel != null) Destroy(heldModel);
+            foreach (var p in pets) if (p != null) Destroy(p);
+            pets.Clear();
             heldModel = null;
-            var gm = GameManager.Instance;
-            if (gm == null) return;
-            int id = gm.HeldDragonId;
-            if (id < 0) return;
-            heldModel = Blocky.BuildDragon(avatar.rArm, GameConfig.GetDragon(id));
-            heldModel.transform.localPosition = new Vector3(0, -2.3f, 0.6f);
-            heldModel.transform.localRotation = Quaternion.Euler(90f, 0, 0);
-            heldModel.transform.localScale = Vector3.one * 0.45f;
-            Blocky.NoShadows(heldModel);
-            Fx.Burst(heldModel.transform.position, GameConfig.GetTier(GameConfig.GetDragon(id).tier).color, 12, 3f, 0.3f, 0.5f);
+            var d = SaveManager.Data;
+            for (int i = 0; i < d.dragonInv.Count; i++)
+            {
+                int id = d.dragonInv[i];
+                if (id < 0) continue;
+                var def = GameConfig.GetDragon(id);
+                var go = Blocky.BuildDragon(null, def);
+                go.transform.localScale = Vector3.one * 0.42f;
+                go.transform.position = transform.position + Vector3.up * 3f;
+                Blocky.NoShadows(go);
+                var f = go.AddComponent<PetFollow>();
+                f.owner = transform;
+                f.slot = i;
+                f.order = pets.Count;
+                pets.Add(go);
+                if (d.selectedSlot == i) heldModel = go;
+            }
+            foreach (var p in pets) p.GetComponent<PetFollow>().total = pets.Count;
+        }
+
+        /// <summary>Эффект при беге из магазина трейлов.</summary>
+        public void RebuildTrail()
+        {
+            if (trail != null) Destroy(trail.gameObject);
+            if (trailSparks != null) Destroy(trailSparks.gameObject);
+            trail = null; trailSparks = null;
+            int t = SaveManager.Data.equippedTrail;
+            if (t < 0) return;
+            var def = GameConfig.Trails[t];
+            var go = new GameObject("Trail");
+            go.transform.SetParent(transform, false);
+            go.transform.localPosition = new Vector3(0, 1.2f, -0.3f);
+            trail = go.AddComponent<TrailRenderer>();
+            trail.sharedMaterial = Mats.Particle(null, def.sparkles);
+            trail.time = 0.45f;
+            trail.minVertexDistance = 0.2f;
+            trail.widthCurve = AnimationCurve.Linear(0f, 1.6f, 1f, 0f);
+            trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            trail.receiveShadows = false;
+            var g = new Gradient();
+            g.SetKeys(new[] { new GradientColorKey(def.a, 0f), new GradientColorKey(def.b, 1f) },
+                      new[] { new GradientAlphaKey(0.9f, 0f), new GradientAlphaKey(0f, 1f) });
+            trail.colorGradient = g;
+            if (def.sparkles) trailSparks = Fx.Sparkles(go.transform, Vector3.zero, def.a, 0.6f, 0f);
         }
 
         public static PlayerController Create(Vector3 spawn)
@@ -87,6 +127,7 @@ namespace DragonHeist
             p.cc.skinWidth = 0.05f;
             p.avatar = Blocky.BuildAvatar(go.transform,
                 new Color(0.96f, 0.8f, 0.25f), new Color(0.05f, 0.42f, 0.85f), new Color(0.35f, 0.62f, 0.2f), 0.6f);
+            BotPlayer.Hair(p.avatar.head, new Color(0.6f, 0.33f, 0.12f), 0);
             Instance = p;
             return p;
         }
@@ -103,7 +144,8 @@ namespace DragonHeist
             float walkSpeed = gm != null ? gm.WalkSpeed : GameConfig.BaseWalkSpeed;
             float jumpPower = gm != null ? gm.JumpPower : GameConfig.BaseJump;
 
-            if (!subscribed && gm != null) { gm.OnHeldChanged += RebuildHeld; subscribed = true; RebuildHeld(); }
+            if (!subscribed && gm != null) { gm.OnHeldChanged += RebuildHeld; gm.OnTrailChanged += RebuildTrail; subscribed = true; RebuildHeld(); RebuildTrail(); }
+            UpdateTrail(dt, InputState.Move.sqrMagnitude > 0.05f && !InputState.Blocked);
             for (int k = 0; k < GameConfig.InventorySlots; k++)
                 if (Input.GetKeyDown(KeyCode.Alpha1 + k) && gm != null && !InputState.Blocked) gm.SelectSlot(k);
 
@@ -171,6 +213,22 @@ namespace DragonHeist
             UpdateInteraction(dt);
         }
 
+        void UpdateTrail(float dt, bool moving)
+        {
+            if (trail == null) return;
+            trail.emitting = moving;
+            int t = SaveManager.Data.equippedTrail;
+            if (t >= 0 && GameConfig.Trails[t].rainbow)
+            {
+                trailHue = Mathf.Repeat(trailHue + dt * 0.5f, 1f);
+                var g = new Gradient();
+                g.SetKeys(new[] { new GradientColorKey(Color.HSVToRGB(trailHue, 0.8f, 1f), 0f), new GradientColorKey(Color.HSVToRGB(Mathf.Repeat(trailHue + 0.3f, 1f), 0.8f, 1f), 1f) },
+                          new[] { new GradientAlphaKey(0.9f, 0f), new GradientAlphaKey(0f, 1f) });
+                trail.colorGradient = g;
+            }
+            Fx.SetRate(trailSparks, moving ? 20f : 0f);
+        }
+
         void DetectTreadmill()
         {
             OnTreadmill = false;
@@ -193,7 +251,7 @@ namespace DragonHeist
             float freq = Mathf.Lerp(7f, 15f, Mathf.Clamp01(speed / 50f));
             animPhase += dt * freq * (amount > 0.05f ? 1 : 0);
             float swing = Mathf.Sin(animPhase) * 60f * amount;
-            bool holding = heldModel != null;
+            bool holding = false; // драконы теперь летают рядом как питомцы
 
             // руки
             Quaternion lArm, rArm;
@@ -312,6 +370,35 @@ namespace DragonHeist
             cc.enabled = true;
             velocity = Vector3.zero;
             invulnerable = 2f;
+        }
+    }
+}
+
+namespace DragonHeist
+{
+    /// <summary>Дракон-питомец: летит за игроком полукругом, покачивается, выбранный — ближе и выше.</summary>
+    public class PetFollow : MonoBehaviour
+    {
+        public Transform owner;
+        public int slot, order, total = 1;
+        float seed;
+
+        void Start() { seed = Random.value * 10f; }
+
+        void LateUpdate()
+        {
+            if (owner == null) { Destroy(gameObject); return; }
+            bool selected = SaveManager.Data.selectedSlot == slot;
+            float spread = total <= 1 ? 0f : (order / (float)(total - 1) - 0.5f) * 2f; // -1..1
+            float yaw = owner.GetComponent<PlayerController>().avatar.root.transform.eulerAngles.y;
+            Quaternion rot = Quaternion.Euler(0, yaw, 0);
+            Vector3 offset = rot * new Vector3(spread * 3.2f, 0, -2.6f - Mathf.Abs(spread) * 0.8f);
+            float bob = Mathf.Sin(Time.time * 3f + seed) * 0.35f;
+            Vector3 target = owner.position + offset + Vector3.up * ((selected ? 3.6f : 2.6f) + bob);
+            transform.position = Vector3.Lerp(transform.position, target, 1f - Mathf.Exp(-Time.deltaTime * 6f));
+            Vector3 look = owner.position + rot * Vector3.forward * 5f - transform.position; look.y = 0;
+            if (look.sqrMagnitude > 0.01f) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(look), Time.deltaTime * 5f);
+            transform.localScale = Vector3.one * (selected ? 0.52f : 0.42f);
         }
     }
 }

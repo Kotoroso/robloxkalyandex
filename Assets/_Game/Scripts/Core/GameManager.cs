@@ -10,6 +10,7 @@ namespace DragonHeist
         public readonly List<BasePlot> Plots = new List<BasePlot>();
         public readonly List<EggPedestal> Pedestals = new List<EggPedestal>();
         public event System.Action OnHeldChanged;
+        public event System.Action OnTrailChanged;
 
         // Суммарные бонусы драконов
         public float DragonSpeedPct { get; private set; }
@@ -25,8 +26,9 @@ namespace DragonHeist
         public int UpgLevel(int i) { return i < D.upgrades.Count ? D.upgrades[i] : 0; }
         public bool Owns(string id) { return D.ownedProducts.Contains(id); }
         public float CoinMultiplier { get { return GameConfig.RebirthMultiplier(D.rebirths) * (1f + 0.2f * UpgLevel(1)) * (Owns("x2_income") ? 2f : 1f); } }
-        public float TrainMultiplier { get { return GameConfig.RebirthMultiplier(D.rebirths) * (1f + 0.25f * UpgLevel(0)) * (1f + DragonTrainPct / 100f) * (Owns("x2_train") ? 2f : 1f); } }
-        public float GrowFactor { get { return 1f - 0.05f * UpgLevel(2); } }
+        public float TrainMultiplier { get { return GameConfig.RebirthMultiplier(D.rebirths) * (1f + 0.25f * UpgLevel(0)) * (1f + DragonTrainPct / 100f) * (Owns("x2_train") ? 2f : 1f) * TrailMultiplier; } }
+        public float TrailMultiplier { get { int t = D.equippedTrail; return t >= 0 && t < GameConfig.Trails.Length ? GameConfig.Trails[t].mult : 1f; } }
+        public float GrowFactor { get { return (1f - 0.05f * UpgLevel(2)) * (Owns("x2_grow") ? 0.5f : 1f); } }
         public int LuckLevel { get { return UpgLevel(3); } }
         public double CoinsPerSec { get { return DragonCps * CoinMultiplier; } }
 
@@ -61,6 +63,9 @@ namespace DragonHeist
             }
         }
 
+        /// <summary>
+        /// Доход дают драконы на грядках. Бонусы (скорость, прокачка, прыжок) дают только НАДЕТЫЕ драконы (5 слотов).
+        /// </summary>
         public void RecalcStats()
         {
             float sp = 0, tp = 0, j = 0; double cps = 0; int n = 0;
@@ -69,17 +74,82 @@ namespace DragonHeist
                 var p = D.plots[i];
                 if (p.state != (int)PlotState.Dragon) continue;
                 var d = GameConfig.GetDragon(p.dragonId);
-                float ls = GameConfig.DragonLevelStat(p.level);
-                sp += d.speedPct * ls; tp += d.trainPct * ls; j += d.jumpBonus; cps += d.coinsPerSec * GameConfig.DragonLevelIncome(p.level); n++;
+                cps += d.coinsPerSec * GameConfig.DragonLevelIncome(p.level); n++;
             }
-            // дракон в руке тоже даёт свой бонус скорости и прыжка
-            int held = HeldDragonId;
-            if (held >= 0)
+            for (int i = 0; i < D.dragonInv.Count; i++)
             {
-                var hd = GameConfig.GetDragon(held);
-                sp += hd.speedPct * GameConfig.DragonLevelStat(D.dragonInvLvl[D.selectedSlot]); j += hd.jumpBonus;
+                int id = D.dragonInv[i];
+                if (id < 0) continue;
+                var d = GameConfig.GetDragon(id);
+                float ls = GameConfig.DragonLevelStat(D.dragonInvLvl[i]);
+                sp += d.speedPct * ls; tp += d.trainPct * ls; j += d.jumpBonus;
             }
             DragonSpeedPct = sp; DragonTrainPct = tp; DragonJump = j; DragonCps = cps; DragonCount = n;
+        }
+
+        public int EquippedCount { get { int c = 0; foreach (var id in D.dragonInv) if (id >= 0) c++; return c; } }
+
+        /// <summary>Снять надетого дракона и поставить на свободную грядку.</summary>
+        public void UnequipToPlot(int slot)
+        {
+            if (slot < 0 || slot >= D.dragonInv.Count || D.dragonInv[slot] < 0) return;
+            int free = FindFreePlot();
+            if (free < 0)
+            {
+                UIManager.Instance.Toast(Loc.Ru ? "Нет свободной грядки!" : "No free plot!", new Color(1f, 0.6f, 0.3f));
+                GameAudio.Play(Sfx.Error);
+                return;
+            }
+            var p = D.plots[free];
+            int id = D.dragonInv[slot];
+            p.state = (int)PlotState.Dragon;
+            p.dragonId = id;
+            p.tier = (int)GameConfig.GetDragon(id).tier;
+            p.level = D.dragonInvLvl[slot];
+            D.dragonInv[slot] = -1;
+            D.dragonInvLvl[slot] = 1;
+            if (D.selectedSlot == slot) D.selectedSlot = -1;
+            RecalcStats();
+            if (OnHeldChanged != null) OnHeldChanged();
+            if (free < Plots.Count) Plots[free].ForceRefresh();
+            GameAudio.Play(Sfx.Plant);
+            SaveNow(true);
+        }
+
+        /// <summary>Надеть дракона с грядки (то же, что "Забрать дракона").</summary>
+        public void EquipFromPlot(int plot) { if (plot < Plots.Count) TakeDragon(Plots[plot]); }
+
+        // ===================== Трейлы =====================
+        public bool OwnsTrail(int i) { return D.ownedTrails.Contains(i); }
+
+        public void BuyTrailForCoins(int i)
+        {
+            if (OwnsTrail(i)) { EquipTrail(i); return; }
+            if (!TrySpend(GameConfig.Trails[i].coinPrice))
+            {
+                UIManager.Instance.Toast(Loc.T("no_money"), new Color(1f, 0.5f, 0.3f));
+                GameAudio.Play(Sfx.Error);
+                return;
+            }
+            GiveTrail(i);
+        }
+
+        public void GiveTrail(int i)
+        {
+            if (!D.ownedTrails.Contains(i)) D.ownedTrails.Add(i);
+            GameAudio.Play(Sfx.Buy);
+            if (PlayerController.Instance != null) Fx.Confetti(PlayerController.Instance.transform.position + Vector3.up * 3f, 60);
+            EquipTrail(i);
+        }
+
+        public void EquipTrail(int i)
+        {
+            if (!OwnsTrail(i)) return;
+            D.equippedTrail = D.equippedTrail == i ? -1 : i;
+            GameAudio.Play(Sfx.Click);
+            foreach (var t in Treadmill.All) t.Refresh();
+            if (OnTrailChanged != null) OnTrailChanged();
+            SaveNow(true);
         }
 
         // ===================== Слоты драконов =====================
@@ -246,7 +316,8 @@ namespace DragonHeist
             p.tier = tier;
             p.dragonId = dragonId;
             p.plantedAt = SaveData.Now();
-            p.readyAt = p.plantedAt + Mathf.Max(5, Mathf.RoundToInt(GameConfig.GetTier(tier).growSeconds * GrowFactor));
+            int grow = dragonId == GameConfig.PremiumEggMarker ? GameConfig.PremiumGrowSeconds : GameConfig.GetTier(tier).growSeconds;
+            p.readyAt = p.plantedAt + Mathf.Max(5, Mathf.RoundToInt(grow * GrowFactor));
             GameAudio.Play(Sfx.Plant);
         }
 
@@ -278,13 +349,19 @@ namespace DragonHeist
             var p = plot.Data;
             if (p.state != (int)PlotState.Egg || SaveData.Now() < p.readyAt) return;
             Tier eggTier = (Tier)p.tier;
-            Tier result = D.totalHatched == 0
-                ? (Random.value < 0.5f ? Tier.Legendary : Tier.Mythic)
-                : GameConfig.RollTier(eggTier, LuckLevel);
-            var def = GameConfig.RollInTier(result);
+            bool premium = p.dragonId == GameConfig.PremiumEggMarker;
+            DragonDef def;
+            if (premium) def = GameConfig.RollPremium();
+            else
+            {
+                Tier result = D.totalHatched == 0
+                    ? (Random.value < 0.5f ? Tier.Legendary : Tier.Mythic)
+                    : GameConfig.RollTier(eggTier, LuckLevel);
+                def = GameConfig.RollInTier(result);
+            }
             Opening = true;
             GameAudio.Play(Sfx.Whoosh);
-            UIManager.Instance.ShowRoulette(eggTier, def, () =>
+            UIManager.Instance.ShowRoulette(eggTier, def, premium, () =>
             {
                 Opening = false;
                 FinishHatch(plot, def);
@@ -380,8 +457,17 @@ namespace DragonHeist
 
         public double RebirthCost { get { return GameConfig.RebirthCost(D.rebirths); } }
 
+        public int RebirthReqTier { get { return GameConfig.RebirthReqTier(D.rebirths); } }
+        public bool RebirthZoneOk { get { return HighestUnlockedTier >= RebirthReqTier; } }
+
         public bool TryRebirth()
         {
+            if (!RebirthZoneOk)
+            {
+                UIManager.Instance.Toast((Loc.Ru ? "Сначала открой зону: " : "Unlock zone first: ") + Loc.TierName((Tier)RebirthReqTier), new Color(1f, 0.5f, 0.3f));
+                GameAudio.Play(Sfx.Error);
+                return false;
+            }
             if (!TrySpend(RebirthCost))
             {
                 UIManager.Instance.Toast(Loc.T("no_money"), new Color(1f, 0.5f, 0.3f));
@@ -528,6 +614,15 @@ namespace DragonHeist
         /// <summary>Выдать товар. Возвращает true, если это расходуемый товар (его нужно consume).</summary>
         public bool GrantProduct(string id)
         {
+            // трейлы за Яны — постоянные покупки
+            for (int ti = 0; ti < GameConfig.Trails.Length; ti++)
+                if (GameConfig.Trails[ti].productId == id)
+                {
+                    if (!D.ownedProducts.Contains(id)) D.ownedProducts.Add(id);
+                    GiveTrail(ti);
+                    UIManager.Instance.Toast((Loc.Ru ? GameConfig.Trails[ti].nameRu : GameConfig.Trails[ti].nameEn) + "!", new Color(1f, 0.9f, 0.3f), 3f);
+                    return false;
+                }
             ProductDef def = null;
             foreach (var p in GameConfig.Products) if (p.id == id) def = p;
             if (def == null) return true;
@@ -549,8 +644,16 @@ namespace DragonHeist
                     break;
                 }
                 case ProductKind.Egg:
-                    AddEgg(HighestUnlockedTier + 1);
-                    msg = Loc.Ru ? "Золотое яйцо в инвентаре!" : "Golden egg added!";
+                    if (id.StartsWith("dragon_egg"))
+                    {
+                        for (int k = 0; k < (int)def.amount; k++) D.inventory.Add(new EggItem { tier = (int)Tier.Legendary, dragonId = GameConfig.PremiumEggMarker });
+                        msg = Loc.Ru ? "Драконьи яйца в инвентаре: +" + (int)def.amount : "Dragon eggs added: +" + (int)def.amount;
+                    }
+                    else
+                    {
+                        AddEgg(HighestUnlockedTier + 1);
+                        msg = Loc.Ru ? "Золотое яйцо в инвентаре!" : "Golden egg added!";
+                    }
                     break;
                 case ProductKind.Permanent:
                     if (!D.ownedProducts.Contains(id)) D.ownedProducts.Add(id);

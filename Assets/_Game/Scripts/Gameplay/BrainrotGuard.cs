@@ -8,12 +8,14 @@ namespace DragonHeist
         static readonly string[] NamesRu = { "Тун Тун Сахур", "Лирили Ларила", "Бомбардиро Крокодило", "Тралалеро Тралала", "Брр Брр Патапим", "Капучино Ассасино", "Ла Вака Сатурно" };
         static readonly string[] NamesEn = { "Tung Tung Sahur", "Lirili Larila", "Bombardiro Crocodilo", "Tralalero Tralala", "Brr Brr Patapim", "Cappuccino Assassino", "La Vaca Saturno" };
 
-        enum State { Patrol, Chase, Return }
+        enum State { Sleep, Patrol, Chase, Return }
 
         public EggPedestal home;
         public TierInfo info;
         Blocky.Guard model;
-        State state = State.Patrol;
+        State state = State.Sleep;
+        Label3D zzz;
+        float wakeTimer, idleTimer;
         Vector3 patrolTarget;
         float patrolWait;
         float animPhase;
@@ -34,6 +36,8 @@ namespace DragonHeist
             g.model = Blocky.BuildBrainrot(go.transform, info.guardKind, info.guardScale);
             g.catchRadius = 1.4f + info.guardScale * 0.7f;
             Blocky.Label(go.transform, g.DisplayName, new Vector3(0, 6.2f * info.guardScale, 0), 0.9f, Color.white);
+            g.zzz = Blocky.Label(go.transform, "Z z z", new Vector3(0.8f, 5f * info.guardScale, 0), 1.1f, new Color(0.55f, 0.8f, 1f));
+            g.zzz.maxDistance = 60f;
             g.PickPatrolPoint();
             home.guards.Add(g);
             return g;
@@ -47,11 +51,28 @@ namespace DragonHeist
             patrolWait = Random.Range(0.3f, 1.5f);
         }
 
+        /// <summary>Яйцо украли — брейнрот просыпается и бежит за вором.</summary>
         public void Alert()
         {
             var p = PlayerController.Instance;
-            if (p != null && Flat(p.transform.position - home.transform.position).magnitude < GameConfig.LeashRadius)
+            if (state == State.Sleep)
+            {
+                wakeTimer = 0.45f; // короткая пауза "проснулся!"
+                zzz.text = "!";
+                zzz.color = new Color(1f, 0.3f, 0.2f);
+                GameAudio.Play(Sfx.Laugh, 0.7f);
+            }
+            idleTimer = 0;
+            if (p != null && Flat(p.transform.position - home.transform.position).magnitude < GameConfig.LeashRadius + 10f)
                 state = State.Chase;
+            else state = State.Patrol;
+        }
+
+        void GoToSleep()
+        {
+            state = State.Sleep;
+            zzz.text = "Z z z";
+            zzz.color = new Color(0.55f, 0.8f, 1f);
         }
 
         static Vector3 Flat(Vector3 v) { v.y = 0; return v; }
@@ -62,6 +83,28 @@ namespace DragonHeist
             if (dt <= 0) return;
             if (cooldown > 0) cooldown -= dt;
             var p = PlayerController.Instance;
+
+            // сон: сидит, дышит, над головой Z z z
+            if (state == State.Sleep)
+            {
+                float tt = Time.time + transform.position.x;
+                model.model.localPosition = new Vector3(0, -0.35f * info.guardScale, 0);
+                model.model.localRotation = Quaternion.Euler(18f + Mathf.Sin(tt * 1.5f) * 3f, 0, 0);
+                model.model.localScale = Vector3.one * info.guardScale * (1f + Mathf.Sin(tt * 1.5f) * 0.03f);
+                zzz.transform.localPosition = new Vector3(0.8f, 5f * info.guardScale + Mathf.Repeat(tt * 0.6f, 1f) * 1.2f, 0);
+                return;
+            }
+            if (wakeTimer > 0)
+            {
+                wakeTimer -= dt;
+                model.model.localRotation = Quaternion.identity;
+                model.model.localScale = Vector3.one * info.guardScale * (1f + wakeTimer * 0.4f);
+                model.model.localPosition = new Vector3(0, Mathf.Sin(wakeTimer * 7f) * 0.6f, 0);
+                if (wakeTimer <= 0) zzz.text = "";
+                return;
+            }
+            model.model.localRotation = Quaternion.identity;
+            model.model.localScale = Vector3.one * info.guardScale;
             Vector3 pos = transform.position;
             Vector3 homePos = home.transform.position;
             Vector3 target = pos;
@@ -76,8 +119,11 @@ namespace DragonHeist
                 float leash = GameConfig.LeashRadius + (int)info.tier * 1.5f;
 
                 if (state != State.Chase && !playerInBase && !p.IsInvulnerable &&
-                    (playerDist < info.aggroRadius || (p.Carrying != null && p.Carrying.from == home && playerFromHome < leash)))
+                    (playerDist < info.aggroRadius * 0.6f || (p.Carrying != null && p.Carrying.from == home && playerFromHome < leash)))
                     state = State.Chase;
+                // вор далеко и яйцо на месте — через 8 сек снова засыпает
+                if (state == State.Patrol && playerFromHome > leash) { idleTimer += dt; if (idleTimer > 8f) { GoToSleep(); return; } }
+                else if (state == State.Patrol) idleTimer = 0;
 
                 if (state == State.Chase && (playerFromHome > leash || playerInBase || p.IsInvulnerable))
                     state = State.Return;
