@@ -23,12 +23,13 @@ namespace DragonHeist
 
         SaveData D { get { return SaveManager.Data; } }
 
-        public int UpgLevel(int i) { return i < D.upgrades.Count ? D.upgrades[i] : 0; }
+        public int UpgLevel(int i) { return i < D.upgrades.Count ? Mathf.Clamp(D.upgrades[i], 0, GameConfig.Upgrades[i].maxLevel) : 0; }
+        float UpgEffect(int i) { return GameConfig.Upgrades[i].perLevel * UpgLevel(i); }
         public bool Owns(string id) { return D.ownedProducts.Contains(id); }
-        public float CoinMultiplier { get { return GameConfig.RebirthMultiplier(D.rebirths) * (1f + 0.2f * UpgLevel(1)) * (Owns("x2_income") ? 2f : 1f); } }
-        public float TrainMultiplier { get { return GameConfig.RebirthMultiplier(D.rebirths) * (1f + 0.25f * UpgLevel(0)) * (1f + DragonTrainPct / 100f) * (Owns("x2_train") ? 2f : 1f) * TrailMultiplier; } }
+        public float CoinMultiplier { get { return GameConfig.RebirthMultiplier(D.rebirths) * (1f + UpgEffect(1)) * (Owns("x2_income") ? 2f : 1f); } }
+        public float TrainMultiplier { get { return GameConfig.RebirthMultiplier(D.rebirths) * (1f + UpgEffect(0)) * (1f + DragonTrainPct / 100f) * (Owns("x2_train") ? 2f : 1f) * TrailMultiplier; } }
         public float TrailMultiplier { get { int t = D.equippedTrail; return t >= 0 && t < GameConfig.Trails.Length ? GameConfig.Trails[t].mult : 1f; } }
-        public float GrowFactor { get { return (1f - 0.05f * UpgLevel(2)) * (Owns("x2_grow") ? 0.5f : 1f); } }
+        public float GrowFactor { get { return (1f - UpgEffect(2)) * (Owns("x2_grow") ? 0.5f : 1f); } }
         public int LuckLevel { get { return UpgLevel(3); } }
         public double CoinsPerSec { get { return DragonCps * CoinMultiplier; } }
 
@@ -40,7 +41,7 @@ namespace DragonHeist
             }
         }
 
-        public float JumpPower { get { return GameConfig.BaseJump + DragonJump + 0.5f * UpgLevel(4); } }
+        public float JumpPower { get { return GameConfig.BaseJump + DragonJump + UpgEffect(4); } }
         public bool Opening { get; private set; }
 
         void Awake() { Instance = this; }

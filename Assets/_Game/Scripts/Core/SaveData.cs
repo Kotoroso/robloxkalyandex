@@ -76,6 +76,11 @@ namespace DragonHeist
             if (equippedTrail >= GameConfig.Trails.Length || (equippedTrail >= 0 && !ownedTrails.Contains(equippedTrail))) equippedTrail = -1;
             if (upgrades == null) upgrades = new List<int>();
             while (upgrades.Count < GameConfig.Upgrades.Length) upgrades.Add(0);
+            // старые сохранения: уровни могли быть выше нового максимума
+            for (int i = 0; i < upgrades.Count && i < GameConfig.Upgrades.Length; i++)
+                upgrades[i] = Mathf.Clamp(upgrades[i], 0, GameConfig.Upgrades[i].maxLevel);
+            for (int i = 0; i < dragonInvLvl.Count; i++) dragonInvLvl[i] = Mathf.Min(dragonInvLvl[i], GameConfig.DragonMaxLevel);
+            foreach (var p in plots) p.level = Mathf.Min(p.level, GameConfig.DragonMaxLevel);
             // старые сохранения: выкидываем несуществующих драконов
             for (int i = 0; i < dragonInv.Count; i++) if (dragonInv[i] >= GameConfig.Dragons.Length) dragonInv[i] = -1;
             foreach (var p in plots) if (p.state == 2 && (p.dragonId < 0 || p.dragonId >= GameConfig.Dragons.Length)) p.state = 0;

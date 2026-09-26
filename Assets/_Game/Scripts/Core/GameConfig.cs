@@ -77,6 +77,7 @@ namespace DragonHeist
     {
         public string id, nameRu, nameEn, descRu, descEn;
         public double baseCost, costMult;
+        public float perLevel;       // эффект за уровень (доля: 0.10 = +10%; для прыжка — абсолютное значение)
         public int maxLevel;
         public Color color;
     }
@@ -117,15 +118,15 @@ namespace DragonHeist
             T(Tier.Common,    "Обычное",      "Common",    0.78f,0.78f,0.78f, 20,   9f,   1, 9f,  BrainrotKind.TungSahur,   1.0f, 0),
             T(Tier.Uncommon,  "Необычное",    "Uncommon",  0.35f,0.85f,0.35f, 45,   15.5f,2, 10f, BrainrotKind.Lirili,      1.1f, 60),
             T(Tier.Rare,      "Редкое",       "Rare",      0.25f,0.55f,1f,    90,   20.5f,2, 11f, BrainrotKind.Bombardiro,  1.2f, 1500),
-            T(Tier.Epic,      "Эпическое",    "Epic",      0.7f,0.3f,1f,      180,  29f,  3, 12f, BrainrotKind.Tralalero,   1.3f, 1.6e5),
-            T(Tier.Legendary, "Легендарное",  "Legendary", 1f,0.78f,0.1f,     300,  35f,  3, 13f, BrainrotKind.Patapim,     1.45f, 1.5e6),
-            T(Tier.Mythic,    "Мифическое",   "Mythic",    1f,0.25f,0.3f,     480,  41.5f,  4, 14f, BrainrotKind.Cappuccino,  1.6f, 2.5e7),
-            T(Tier.Divine,    "Божественное", "Divine",    1f,0.95f,0.6f,     720,  47f,  4, 15f, BrainrotKind.VacaSaturno, 1.7f, 7e8),
-            T(Tier.Secret,    "Секретное",    "Secret",    0.1f,1f,0.95f,     1080, 55f,  4, 16f, BrainrotKind.Bombardiro,  2.0f, 2e10),
-            T(Tier.Celestial, "Небесное",     "Celestial", 0.55f,0.45f,1f,    1500, 63f,  5, 17f, BrainrotKind.TungSahur,   2.3f, 4e11),
-            T(Tier.Ancient,   "Древнее",      "Ancient",   0.85f,0.52f,0.25f, 1800, 72f,  5, 18f, BrainrotKind.Tralalero,   2.5f, 3e13),
-            T(Tier.Galactic,  "Галактическое","Galactic",  0.25f,0.35f,0.95f, 2400, 78f,  5, 19f, BrainrotKind.Patapim,     2.7f, 1e15),
-            T(Tier.Omega,     "Омега",        "Omega",     1f,0.15f,0.6f,     3000, 88f,  6, 20f, BrainrotKind.VacaSaturno, 3.0f, 5e16),
+            T(Tier.Epic,      "Эпическое",    "Epic",      0.7f,0.3f,1f,      180,  29f,  3, 12f, BrainrotKind.Tralalero,   1.3f, 9e4),
+            T(Tier.Legendary, "Легендарное",  "Legendary", 1f,0.78f,0.1f,     300,  35f,  3, 13f, BrainrotKind.Patapim,     1.45f, 6e5),
+            T(Tier.Mythic,    "Мифическое",   "Mythic",    1f,0.25f,0.3f,     480,  41.5f,  4, 14f, BrainrotKind.Cappuccino,  1.6f, 1e7),
+            T(Tier.Divine,    "Божественное", "Divine",    1f,0.95f,0.6f,     720,  47f,  4, 15f, BrainrotKind.VacaSaturno, 1.7f, 2.8e8),
+            T(Tier.Secret,    "Секретное",    "Secret",    0.1f,1f,0.95f,     1080, 55f,  4, 16f, BrainrotKind.Bombardiro,  2.0f, 8e9),
+            T(Tier.Celestial, "Небесное",     "Celestial", 0.55f,0.45f,1f,    1500, 63f,  5, 17f, BrainrotKind.TungSahur,   2.3f, 1.6e11),
+            T(Tier.Ancient,   "Древнее",      "Ancient",   0.85f,0.52f,0.25f, 1800, 72f,  5, 18f, BrainrotKind.Tralalero,   2.5f, 1.2e13),
+            T(Tier.Galactic,  "Галактическое","Galactic",  0.25f,0.35f,0.95f, 2400, 78f,  5, 19f, BrainrotKind.Patapim,     2.7f, 4e14),
+            T(Tier.Omega,     "Омега",        "Omega",     1f,0.15f,0.6f,     3000, 88f,  6, 20f, BrainrotKind.VacaSaturno, 3.0f, 2e16),
         };
 
         public static readonly DragonDef[] Dragons =
@@ -180,20 +181,20 @@ namespace DragonHeist
         {
             new TreadmillDef{ nameRu="Дорожка",          nameEn="Treadmill",        gainPerSec=2,     price=0,    rebirthsRequired=0, color=new Color(0.2f,0.8f,0.3f) },
             new TreadmillDef{ nameRu="Быстрая дорожка",  nameEn="Fast Treadmill",   gainPerSec=8,     price=0,    rebirthsRequired=0, adsRequired=2, color=new Color(0.2f,0.5f,1f) },
-            new TreadmillDef{ nameRu="Турбо дорожка",    nameEn="Turbo Treadmill",  gainPerSec=120,   price=6e4, rebirthsRequired=0, color=new Color(0.8f,0.3f,1f) },
-            new TreadmillDef{ nameRu="Ракетная дорожка", nameEn="Rocket Treadmill", gainPerSec=6e3,   price=8e6,  rebirthsRequired=0, color=new Color(1f,0.5f,0.1f) },
-            new TreadmillDef{ nameRu="Космо дорожка",    nameEn="Cosmic Treadmill", gainPerSec=1.5e5, price=5e9,  rebirthsRequired=0, color=new Color(0.1f,1f,0.95f) },
-            new TreadmillDef{ nameRu="Гипер дорожка",    nameEn="Hyper Treadmill",  gainPerSec=5e6,   price=3e11, rebirthsRequired=0, color=new Color(1f,0.85f,0.2f) },
-            new TreadmillDef{ nameRu="Омега дорожка",    nameEn="Omega Treadmill",  gainPerSec=2e8,   price=2e14, rebirthsRequired=0, color=new Color(1f,0.15f,0.6f) },
+            new TreadmillDef{ nameRu="Турбо дорожка",    nameEn="Turbo Treadmill",  gainPerSec=120,   price=3e4, rebirthsRequired=0, color=new Color(0.8f,0.3f,1f) },
+            new TreadmillDef{ nameRu="Ракетная дорожка", nameEn="Rocket Treadmill", gainPerSec=6e3,   price=4e6,  rebirthsRequired=0, color=new Color(1f,0.5f,0.1f) },
+            new TreadmillDef{ nameRu="Космо дорожка",    nameEn="Cosmic Treadmill", gainPerSec=1.5e5, price=2.5e9,  rebirthsRequired=0, color=new Color(0.1f,1f,0.95f) },
+            new TreadmillDef{ nameRu="Гипер дорожка",    nameEn="Hyper Treadmill",  gainPerSec=5e6,   price=1.5e11, rebirthsRequired=0, color=new Color(1f,0.85f,0.2f) },
+            new TreadmillDef{ nameRu="Омега дорожка",    nameEn="Omega Treadmill",  gainPerSec=2e8,   price=1e14, rebirthsRequired=0, color=new Color(1f,0.15f,0.6f) },
         };
 
         public static readonly UpgradeDef[] Upgrades =
         {
-            new UpgradeDef{ id="train",  nameRu="Тренер",        nameEn="Coach",        descRu="+25% к прокачке скорости",     descEn="+25% speed training",   baseCost=100,  costMult=2.1, maxLevel=60, color=new Color(0.3f,0.8f,1f) },
-            new UpgradeDef{ id="income", nameRu="Кормушка",      nameEn="Feeder",       descRu="+20% к доходу драконов",       descEn="+20% dragon income",    baseCost=250,  costMult=2.2, maxLevel=60, color=new Color(1f,0.8f,0.2f) },
-            new UpgradeDef{ id="grow",   nameRu="Удобрение",     nameEn="Fertilizer",   descRu="-5% ко времени роста яиц",      descEn="-5% egg grow time",     baseCost=1e3,  costMult=4,   maxLevel=10, color=new Color(0.4f,0.9f,0.4f) },
-            new UpgradeDef{ id="luck",   nameRu="Удача",         nameEn="Luck",         descRu="+2% шанс на дракона тиром выше", descEn="+2% higher tier chance", baseCost=2e3, costMult=4,   maxLevel=10, color=new Color(0.9f,0.4f,1f) },
-            new UpgradeDef{ id="jump",   nameRu="Пружины",       nameEn="Springs",      descRu="+0.5 к прыжку",                descEn="+0.5 jump power",       baseCost=300,  costMult=2.6, maxLevel=10, color=new Color(1f,0.5f,0.4f) },
+            new UpgradeDef{ id="train",  nameRu="Тренер",        nameEn="Coach",        descRu="+10% к прокачке скорости",     descEn="+10% speed training",   baseCost=100,  costMult=2.45, perLevel=0.10f, maxLevel=30, color=new Color(0.3f,0.8f,1f) },
+            new UpgradeDef{ id="income", nameRu="Кормушка",      nameEn="Feeder",       descRu="+8% к доходу драконов",        descEn="+8% dragon income",     baseCost=250,  costMult=2.5,  perLevel=0.08f, maxLevel=30, color=new Color(1f,0.8f,0.2f) },
+            new UpgradeDef{ id="grow",   nameRu="Удобрение",     nameEn="Fertilizer",   descRu="-3% ко времени роста яиц",      descEn="-3% egg grow time",     baseCost=1e3,  costMult=5,    perLevel=0.03f, maxLevel=10, color=new Color(0.4f,0.9f,0.4f) },
+            new UpgradeDef{ id="luck",   nameRu="Удача",         nameEn="Luck",         descRu="+1% шанс на дракона тиром выше", descEn="+1% higher tier chance", baseCost=2e3, costMult=5,  perLevel=0.01f, maxLevel=10, color=new Color(0.9f,0.4f,1f) },
+            new UpgradeDef{ id="jump",   nameRu="Пружины",       nameEn="Springs",      descRu="+0.3 к прыжку",                descEn="+0.3 jump power",       baseCost=300,  costMult=3,    perLevel=0.3f,  maxLevel=8,  color=new Color(1f,0.5f,0.4f) },
         };
 
         public static readonly ProductDef[] Products =
@@ -225,9 +226,9 @@ namespace DragonHeist
 
         // ===== Прокачка драконов за монеты =====
         public const int DragonMaxLevel = 15;
-        public static float DragonLevelIncome(int lvl) { return 1f + 0.6f * (lvl - 1); }
-        public static float DragonLevelStat(int lvl) { return 1f + 0.25f * (lvl - 1); }
-        public static double DragonUpgradeCost(DragonDef d, int lvl) { return d.coinsPerSec * 40 * System.Math.Pow(1.9, lvl - 1); }
+        public static float DragonLevelIncome(int lvl) { return 1f + 0.35f * (lvl - 1); }
+        public static float DragonLevelStat(int lvl) { return 1f + 0.15f * (lvl - 1); }
+        public static double DragonUpgradeCost(DragonDef d, int lvl) { return d.coinsPerSec * 40 * System.Math.Pow(1.8, lvl - 1); }
 
         // ===== Ежедневная награда (7 дней по кругу) =====
         public const int DailyDays = 7;
@@ -253,14 +254,14 @@ namespace DragonHeist
 
         /// <summary>
         /// Шансы тира дракона из яйца тира T (как в кейсах): T-1: 25%, T: 60%, T+1: 12%, T+2: 3%.
-        /// Каждый уровень удачи переносит 2% с T-1/T на T+1.
+        /// Каждый уровень удачи переносит Upgrades[3].perLevel (1%) с T-1/T на T+1.
         /// </summary>
         public static float[] TierChances(Tier egg, int luckLevel)
         {
             int t = (int)egg, n = Tiers.Length;
             var c = new float[n];
             float lower = t > 0 ? 0.25f : 0f, same = t > 0 ? 0.60f : 0.85f, up1 = 0.12f, up2 = 0.03f;
-            float shift = luckLevel * 0.02f;
+            float shift = Mathf.Clamp(luckLevel, 0, Upgrades[3].maxLevel) * Upgrades[3].perLevel;
             float fromLower = Mathf.Min(lower, shift); lower -= fromLower; up1 += fromLower;
             float rest = shift - fromLower; same -= rest; up1 += rest;
             if (t > 0) c[t - 1] += lower;
