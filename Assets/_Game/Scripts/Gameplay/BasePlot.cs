@@ -98,7 +98,8 @@ namespace DragonHeist
                 var def = GameConfig.GetDragon(d.dragonId);
                 content = Blocky.BuildDragon(eggRoot, def);
                 content.transform.localRotation = Quaternion.Euler(0, 180, 0);
-                label.text = Loc.DragonName(def) + "\n+" + Loc.Num(def.coinsPerSec) + "/" + (Loc.Ru ? "сек" : "s");
+                label.text = Loc.DragonName(def) + "\n+" + Loc.Num(def.coinsPerSec) + "/" + (Loc.Ru ? "сек" : "s")
+                    + (Loc.Ru ? "\n<size=58><color=#B8C4E0>скорость даёт, только если надеть</color></size>" : "\n<size=58><color=#B8C4E0>equip it to get its speed bonus</color></size>");
                 label.color = GameConfig.GetTier(def.tier).color;
             }
             else label.text = "";

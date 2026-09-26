@@ -22,6 +22,7 @@ namespace DragonHeist
         float speedNow;
         float catchRadius;
         float cooldown;
+        BotPlayer botTarget; // фейк-игрок с нашим яйцом
 
         /// <summary>Высота пола в зонах (верх клавиш клавиатурного пола).</summary>
         public const float GroundY = 0.58f; // верх клавиш пола (0.13 + 0.45)
@@ -69,6 +70,21 @@ namespace DragonHeist
             if (p != null && ((p.Carrying != null && p.Carrying.from == home) || Flat(p.transform.position - home.transform.position).magnitude < GameConfig.LeashRadius + 10f))
                 state = State.Chase;
             else state = State.Patrol;
+        }
+
+        /// <summary>Фейк-игрок украл наше яйцо — гонимся за ним до мирной зоны (если не заняты настоящим игроком).</summary>
+        public void AlertBot(BotPlayer bot)
+        {
+            if (state == State.Chase && botTarget == null) return; // уже гонимся за игроком
+            if (state == State.Sleep)
+            {
+                wakeTimer = 0.45f;
+                zzz.text = "!";
+                zzz.color = new Color(1f, 0.3f, 0.2f);
+            }
+            idleTimer = 0;
+            botTarget = bot;
+            state = State.Chase;
         }
 
         void GoToSleep()
@@ -123,17 +139,17 @@ namespace DragonHeist
 
                 if (state != State.Chase && !playerInBase && !p.IsInvulnerable &&
                     (playerDist < info.aggroRadius * 0.6f || (p.Carrying != null && p.Carrying.from == home)))
-                    state = State.Chase;
+                { state = State.Chase; botTarget = null; } // настоящий игрок важнее бота
                 // вор далеко и яйцо на месте — через 8 сек снова засыпает
                 if (state == State.Patrol && playerFromHome > leash) { idleTimer += dt; if (idleTimer > 8f) { GoToSleep(); return; } }
                 else if (state == State.Patrol) idleTimer = 0;
 
                 // вор с НАШИМ яйцом — гонимся до самого выхода (до базы), без поводка
                 bool thief = p.Carrying != null && p.Carrying.from == home;
-                if (state == State.Chase && (playerInBase || p.IsInvulnerable || (!thief && playerFromHome > leash)))
+                if (botTarget == null && state == State.Chase && (playerInBase || p.IsInvulnerable || (!thief && playerFromHome > leash)))
                     state = State.Return;
 
-                if (state == State.Chase)
+                if (state == State.Chase && botTarget == null)
                 {
                     target = pp;
                     wantSpeed = info.guardSpeed;
@@ -146,6 +162,26 @@ namespace DragonHeist
                     }
                 }
             }
+
+            // погоня за фейк-игроком: до мирной зоны, потом назад к яйцу
+            if (state == State.Chase && botTarget != null)
+            {
+                if (!botTarget.IsThiefOf(home) || botTarget.InSafeZone) { botTarget = null; state = State.Return; }
+                else
+                {
+                    Vector3 bp = botTarget.transform.position;
+                    target = bp;
+                    wantSpeed = info.guardSpeed * 0.85f;
+                    if (cooldown <= 0 && Flat(bp - pos).magnitude < catchRadius)
+                    {
+                        cooldown = 1f;
+                        botTarget.Caught();
+                        botTarget = null;
+                        state = State.Return;
+                    }
+                }
+            }
+            else if (state == State.Chase && p == null) state = State.Return;
 
             if (state == State.Return)
             {

@@ -29,7 +29,35 @@ namespace DragonHeist
         float timer, phase, speed, yVel, yOff;
         Treadmill mill;
         GameObject carried;
+        EggPedestal carriedFrom;
         System.Random rnd;
+
+        /// <summary>Все фейк-игроки (охранники проверяют, кто унёс яйцо).</summary>
+        public static readonly List<BotPlayer> All = new List<BotPlayer>();
+
+        /// <summary>Несёт яйцо, украденное с этого пьедестала.</summary>
+        public bool IsThiefOf(EggPedestal ped) { return carried != null && carriedFrom == ped; }
+
+        /// <summary>В мирной зоне (на спавне/базе) брейнроты не преследуют.</summary>
+        public bool InSafeZone { get { return transform.position.z < GameConfig.BaseMaxZ; } }
+
+        void OnEnable() { if (!All.Contains(this)) All.Add(this); }
+        void OnDisable() { All.Remove(this); }
+
+        /// <summary>Брейнрот догнал: яйцо падает и пропадает, бот с пустыми руками идёт к себе на базу.</summary>
+        public void Caught()
+        {
+            if (carried != null) Destroy(carried);
+            carried = null; carriedFrom = null;
+            Fx.Burst(transform.position + Vector3.up * 2.5f, new Color(1f, 0.4f, 0.3f), 14, 4f, 0.4f, 0.5f);
+            plan.Clear();
+            Do(Act.Wait, 0.8f);
+            Go(new Vector3(R(-6f, 6f), Y, transform.position.z - 10f));
+            Go(new Vector3(R(-4f, 4f), Y, GameConfig.BaseMaxZ + 8f));
+            Go(new Vector3(R(-4f, 4f), Y, GameConfig.BaseMaxZ - 7f));
+            Go(entrance); Go(home);
+            NextStep();
+        }
 
         public static void SpawnAll(Transform parent, List<Vector3> homes, List<Vector3> entrances, List<List<Vector3>> plots)
         {
@@ -152,12 +180,15 @@ namespace DragonHeist
                 carried = Blocky.BuildEgg(av.carryPoint, ped != null ? ped.tier : Tier.Common, 1.3f);
                 carried.transform.localPosition = Vector3.zero;
                 Blocky.NoShadows(carried);
+                carriedFrom = ped;
+                // охранники этого яйца просыпаются и гонятся за ботом
+                if (ped != null) foreach (var g in ped.guards) if (g != null) g.AlertBot(this);
                 Fx.Burst(transform.position + Vector3.up * 3f, Color.white, 10, 3f, 0.3f, 0.5f);
             }
             else if (cur.act == Act.Plant && carried != null)
             {
                 Destroy(carried);
-                carried = null;
+                carried = null; carriedFrom = null;
                 Fx.Burst(cur.pos + Vector3.up * 1.2f, new Color(0.6f, 1f, 0.6f), 16, 4f, 0.4f, 0.6f);
             }
         }
@@ -183,7 +214,7 @@ namespace DragonHeist
                 if (d.magnitude < 0.5f) { transform.position = new Vector3(cur.pos.x, transform.position.y, cur.pos.z); NextStep(); }
                 else
                 {
-                    float sp = carried != null ? speed * 1.1f : speed;
+                    float sp = carried != null ? speed * 1.35f : speed;
                     Vector3 step = d.normalized * Mathf.Min(sp * dt, d.magnitude);
                     var np = transform.position + step;
                     bool toMill = mill != null && (new Vector3(cur.pos.x, 0, cur.pos.z) - new Vector3(mill.transform.position.x, 0, mill.transform.position.z)).sqrMagnitude < 1f;
