@@ -469,8 +469,16 @@ namespace DragonHeist
         /// </summary>
         GameObject Modal(string title, Color color, Vector2 size, out RectTransform body)
         {
-            Vector2 sz = new Vector2(Mathf.Min(size.x, 1180f), size.y);
-            var bg = UIKit.Panel(root, "Modal_" + title, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -6), sz, new Color(0.12f, 0.15f, 0.3f, 0.98f), 5f);
+            // окно никогда не больше безопасной области экрана (с отступом): на узком/портретном экране
+            // оно сужается, а содержимое каждого окна раскладывается по фактической ширине/высоте тела
+            float m = ModalMargin;
+            Vector2 sz = new Vector2(Mathf.Min(size.x, 1180f, avail.x - 2f * m), Mathf.Min(size.y, avail.y - 2f * m - 12f));
+            // по центру безопасной области (вырез/чёлка не закрывают окно), чуть ниже центра, если есть место
+            Vector2 off = Vector2.zero;
+            var cs = ResponsiveCanvas.CanvasSize;
+            var sr = ResponsiveCanvas.SafeRect;
+            if (cs.x > 0 && sr.width > 100f) off = new Vector2(sr.x + sr.width / 2f - cs.x / 2f, sr.y + sr.height / 2f - cs.y / 2f);
+            var bg = UIKit.Panel(root, "Modal_" + title, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), off + new Vector2(0, -6), sz, new Color(0.12f, 0.15f, 0.3f, 0.98f), 5f);
             var pat = UIKit.Rect(bg.transform, "Pattern", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
             UIKit.Stretch(pat, 8);
             var pi = pat.gameObject.AddComponent<Image>();
@@ -485,11 +493,13 @@ namespace DragonHeist
             if (UIKit.ApplySkin(header, "header", true)) hg.gameObject.SetActive(false);
             var tl = UIKit.Label(header.transform, title.ToUpper(), 42, Color.white);
             foreach (var o in tl.GetComponents<Outline>()) o.effectDistance *= 1.4f;
-            // заголовок не заезжает под кнопку закрытия (66 + отступ 14 справа), симметрично слева
-            UIKit.Inset(tl, 92, 8);
+            // заголовок не заезжает под кнопку закрытия (ширина + отступ 14 справа), симметрично слева;
+            // на телефоне крестик крупнее (84x74 ≈ 46x41 CSS px даже на 640x360)
+            Vector2 closeSz = mobile ? new Vector2(84, 74) : new Vector2(66, 62);
+            UIKit.Inset(tl, closeSz.x + 26, 8);
             UIKit.Fit(tl, 24);
             var go = bg.gameObject;
-            var close = UIKit.Button(header.transform, "Close", "X", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-14, 0), new Vector2(66, 62),
+            var close = UIKit.Button(header.transform, "Close", "X", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-14, 0), closeSz,
                 new Color(0.93f, 0.22f, 0.28f), () => go.SetActive(false), 36);
             UIKit.ApplySkin(close.GetComponent<Image>(), "close", false);
             // на картинке ui_close крестика нет — белая "X" с обводкой остаётся видимой, чуть выше центра (у кнопки нижний бортик)
@@ -511,7 +521,8 @@ namespace DragonHeist
             // Покупка грядок убрана — все грядки доступны сразу. Окно — только список улучшений:
             // строки 72 + зазор 8; тело окна = высота - 120. При 5 строках список 392 <= тела 410.
             int n = GameConfig.Upgrades.Length;
-            float rowH = 72, gap = 8;
+            // на телефоне строки и кнопки выше (кнопка 62 — удобнее пальцем): 5 строк = 422, окно 560 <= 614 (холст 650)
+            float rowH = mobile ? 78 : 72, gap = 8;
             float listH = n * rowH + (n - 1) * gap;
             float winH = Mathf.Clamp(listH + 138, 300, 600);
             RectTransform body;
@@ -525,18 +536,21 @@ namespace DragonHeist
                 list = content;
             }
             upgLevel = new Text[n]; upgCost = new Text[n];
+            // ширина строки — по телу окна (в портрете окно 630, тело 590): имя/описание сужаются, кнопка и уровень справа
+            float rowW = Mathf.Min(700f, body.sizeDelta.x), btnW = rowW < 640f ? 160f : 180f;
+            float lvlX = rowW - 10 - btnW - 8 - 118, nameW = lvlX - 34;
             for (int i = 0; i < n; i++)
             {
                 int k = i;
                 var u = GameConfig.Upgrades[i];
-                var row = UIKit.Panel(list, "Upg" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -3 - i * (rowH + gap)), new Vector2(700, rowH), new Color(0.2f, 0.19f, 0.3f, 1f), 2f);
+                var row = UIKit.Panel(list, "Upg" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -3 - i * (rowH + gap)), new Vector2(rowW, rowH), new Color(0.2f, 0.19f, 0.3f, 1f), 2f);
                 var dot = UIKit.Panel(row.transform, "C", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(10, 0), new Vector2(12, rowH - 16), u.color);
                 dot.raycastTarget = false;
-                // имя: 30..380 по X, верх строки; описание: низ строки; уровень: 384..500; кнопка: 510..690
-                UIKit.Fit(UIKit.Label(UIKit.Rect(row.transform, "N", new Vector2(0, 1), new Vector2(0, 1), new Vector2(30, -3), new Vector2(350, 36)), Loc.Ru ? u.nameRu : u.nameEn, 24, Color.white, TextAnchor.MiddleLeft), 16);
-                UIKit.Fit(UIKit.Label(UIKit.Rect(row.transform, "D", new Vector2(0, 0), new Vector2(0, 0), new Vector2(30, 3), new Vector2(350, 32)), Loc.Ru ? u.descRu : u.descEn, 16, new Color(0.8f, 0.85f, 1f), TextAnchor.MiddleLeft), 11);
-                upgLevel[i] = UIKit.Fit(UIKit.Label(UIKit.Rect(row.transform, "L", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(384, 0), new Vector2(118, 44)), "", 20, Gold), 13);
-                var b = UIKit.Button(row.transform, "Buy", "", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-10, 0), new Vector2(180, 54),
+                // (ширина 700) имя: 30..380 по X, верх строки; описание: низ строки; уровень: 384..502; кнопка: 510..690
+                UIKit.Fit(UIKit.Label(UIKit.Rect(row.transform, "N", new Vector2(0, 1), new Vector2(0, 1), new Vector2(30, -3), new Vector2(nameW, 36)), Loc.Ru ? u.nameRu : u.nameEn, 24, Color.white, TextAnchor.MiddleLeft), 16);
+                UIKit.Fit(UIKit.Label(UIKit.Rect(row.transform, "D", new Vector2(0, 0), new Vector2(0, 0), new Vector2(30, 3), new Vector2(nameW, 32)), Loc.Ru ? u.descRu : u.descEn, 16, new Color(0.8f, 0.85f, 1f), TextAnchor.MiddleLeft), 11);
+                upgLevel[i] = UIKit.Fit(UIKit.Label(UIKit.Rect(row.transform, "L", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(lvlX, 0), new Vector2(118, 44)), "", 20, Gold), 13);
+                var b = UIKit.Button(row.transform, "Buy", "", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-10, 0), new Vector2(btnW, mobile ? 62 : 54),
                     new Color(0.25f, 0.78f, 0.35f), () => { if (GameManager.Instance.TryBuyUpgrade(k)) RefreshPanels(); }, 20);
                 upgCost[i] = b.GetComponentInChildren<Text>();
             }
