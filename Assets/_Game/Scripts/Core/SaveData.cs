@@ -50,6 +50,7 @@ namespace DragonHeist
         public List<int> dragonStore = new List<int>();    // хранилище: до 15 драконов (бонусов не дают)
         public List<int> dragonStoreLvl = new List<int>();
         public bool controlsSeen;
+        public long noAdsUntil;                            // реклама отключена до этого времени (unix, сек)
         public long lastDailyDay = -1;                     // номер дня (UTC), когда забрана награда
         public int dailyStreak;
         public List<string> ownedProducts = new List<string>(); // постоянные покупки за Яны

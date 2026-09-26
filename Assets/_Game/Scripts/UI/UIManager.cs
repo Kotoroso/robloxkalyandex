@@ -549,7 +549,8 @@ namespace DragonHeist
                 int col = idx % 4, row = idx / 4;
                 var card = UIKit.Panel(content, "P" + pd.id, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((col - (Mathf.Min(gridN, 4) - 1) / 2f) * (cw + 12), gridY - row * (ch + 12)), new Vector2(cw, ch),
                     new Color(pd.color.r * 0.5f, pd.color.g * 0.5f, pd.color.b * 0.5f, 1f), 3f);
-                var icon = pd.kind == ProductKind.Coins ? Icons.Coin : pd.kind == ProductKind.Speed ? Icons.Bolt : pd.kind == ProductKind.Egg ? Icons.Egg : Icons.Star;
+                var icon = pd.kind == ProductKind.Coins ? Icons.Coin : pd.kind == ProductKind.Speed ? Icons.Bolt : pd.kind == ProductKind.Egg ? Icons.Egg
+                    : (pd.kind == ProductKind.NoAdsTimed || pd.id == "noads_forever") ? (Icons.Art("icon_noads") ?? Icons.Star) : Icons.Star;
                 UIKit.Icon(card.transform, icon, new Vector2(0.5f, 1), new Vector2(0, -52), 78);
                 // иконка 13..91, имя 96..132, описание 134..186, кнопка 191..241 (от верха карточки 250)
                 UIKit.Fit(UIKit.Label(UIKit.Rect(card.transform, "N", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -96), new Vector2(cw - 10, 36)), Loc.Ru ? pd.nameRu : pd.nameEn, 18, Color.white), 12);
@@ -1147,6 +1148,10 @@ namespace DragonHeist
                     if (!yanPriceById.TryGetValue(pd.id, out t)) continue;
                     bool owned = pd.kind == ProductKind.Permanent && gm.Owns(pd.id);
                     t.text = owned ? (Loc.Ru ? "Куплено" : "Owned") : YandexSDK.PriceText(pd);
+                    // "Без рекламы 2 часа": пока действует — показываем остаток (можно докупить, время складывается)
+                    if (pd.kind == ProductKind.NoAdsTimed && gm.NoAdsSecondsLeft > 0 && !gm.Owns("noads_forever"))
+                        t.text = YandexSDK.PriceText(pd) + "  (" + Loc.Time(gm.NoAdsSecondsLeft) + ")";
+                    if (pd.kind == ProductKind.NoAdsTimed && gm.Owns("noads_forever")) { t.text = Loc.Ru ? "Не нужно" : "Not needed"; owned = true; }
                     if (yanBtnById.TryGetValue(pd.id, out bt)) bt.interactable = !owned;
                 }
             }

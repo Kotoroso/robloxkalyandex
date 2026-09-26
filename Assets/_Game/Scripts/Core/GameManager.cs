@@ -771,6 +771,10 @@ namespace DragonHeist
                         msg = Loc.Ru ? "Золотое яйцо в инвентаре!" : "Golden egg added!";
                     }
                     break;
+                case ProductKind.NoAdsTimed:
+                    D.noAdsUntil = System.Math.Max(D.noAdsUntil, SaveData.Now()) + (long)(def.amount * 3600);
+                    msg = Loc.Ru ? "Реклама отключена на " + Loc.Time(NoAdsSecondsLeft) : "Ads disabled for " + Loc.Time(NoAdsSecondsLeft);
+                    break;
                 case ProductKind.Permanent:
                     if (!D.ownedProducts.Contains(id)) D.ownedProducts.Add(id);
                     msg = Loc.Ru ? def.nameRu + " активирован!" : def.nameEn + " activated!";
@@ -785,6 +789,24 @@ namespace DragonHeist
             return def.kind != ProductKind.Permanent;
         }
 
+        // ===================== Отключение рекламы (покупки) =====================
+        /// <summary>Реклама (полноэкранная и баннер) отключена: "Без рекламы навсегда" или активные "2 часа". Реклама за награду остаётся — её смотрят сами.</summary>
+        public bool AdsDisabled { get { return Owns("noads_forever") || D.noAdsUntil > SaveData.Now(); } }
+        public long NoAdsSecondsLeft { get { return System.Math.Max(0, D.noAdsUntil - SaveData.Now()); } }
+        bool bannerHidden;
+        float bannerCheck;
+
+        /// <summary>Баннер прячем, пока реклама отключена, и возвращаем, когда 2 часа закончились.</summary>
+        void UpdateBanner(float dt)
+        {
+            bannerCheck -= dt;
+            if (bannerCheck > 0) return;
+            bannerCheck = 5f;
+            bool off = AdsDisabled;
+            if (off && !bannerHidden) { bannerHidden = true; YandexSDK.HideBanner(); }
+            else if (!off && bannerHidden) { bannerHidden = false; YandexSDK.ShowBanner(); }
+        }
+
         // ===================== Реклама каждые 2 минуты =====================
         float adTimer;
         float adCountdown = -1f;
@@ -797,6 +819,8 @@ namespace DragonHeist
         void UpdateAdTimer(float dt)
         {
             var ui = UIManager.Instance;
+            UpdateBanner(dt);
+            if (AdsDisabled) { if (adCountdown >= 0) { adCountdown = -1f; if (ui != null) ui.ShowAdCountdown(0); } adTimer = 0; return; }
             if (ui == null || InputState.Blocked || YandexSDK.AdOpen) return;
             var p = PlayerController.Instance;
             bool safe = p != null && p.Carrying == null && !Roulette.Active && !Opening;

@@ -186,11 +186,19 @@ namespace DragonHeist
 
         public static string PriceText(ProductDef p) { return PriceText(p.id, p.fallbackPrice); }
 
+        /// <summary>Курс для примерной цены в долларах (только когда каталог Яндекса недоступен). 1 ян ≈ 1 ₽.</summary>
+        public const double UsdPerYan = 0.0125;
+
         public static string PriceText(string id, string fallback)
         {
             CatalogItem c;
-            if (Catalog.TryGetValue(id, out c) && !string.IsNullOrEmpty(c.priceValue)) return c.priceValue + (Loc.Ru ? " ян" : " YAN");
-            return fallback + (Loc.Ru ? " ян" : " YAN");
+            // настоящая цена — из каталога Яндекса (так требует модерация): число + валюта каталога
+            if (Catalog.TryGetValue(id, out c) && !string.IsNullOrEmpty(c.priceValue))
+                return c.priceValue + " " + (Loc.Ru ? "ян" : (!string.IsNullOrEmpty(c.currency) ? c.currency : "YAN"));
+            // каталог не загружен (редактор/нет платежей): на русском — в янах, на английском — примерно в долларах
+            if (Loc.Ru) return fallback + " ян";
+            double v; if (!double.TryParse(fallback, out v)) return fallback + " YAN";
+            return "$" + (v * UsdPerYan).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
         }
 
         public static void Purchase(string id)
