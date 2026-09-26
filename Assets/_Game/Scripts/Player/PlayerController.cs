@@ -362,6 +362,8 @@ namespace DragonHeist
             }
         }
 
+        bool waitRelease;
+
         void UpdateInteraction(float dt)
         {
             IInteractable best = null;
@@ -376,7 +378,10 @@ namespace DragonHeist
             }
             Current = best;
 
-            if (best != null && InputState.ActionHeld)
+            // одно нажатие = одно действие: следующее — только после того, как кнопку отпустили
+            // (иначе "забрать дракона" сразу превращалось в "поставить обратно")
+            if (!InputState.ActionHeld) waitRelease = false;
+            if (best != null && InputState.ActionHeld && !waitRelease)
             {
                 if (holdTarget != best) { holdTarget = best; HoldProgress = 0; }
                 // на телефоне — мгновенно по одному тапу, на ПК — короткое удержание E
@@ -386,6 +391,7 @@ namespace DragonHeist
                     HoldProgress = 0;
                     holdTarget = null;
                     best.Interact(this);
+                    waitRelease = true;
                     InputState.TouchAction = false; // одно действие на одно нажатие
                 }
             }

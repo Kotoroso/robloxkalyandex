@@ -110,7 +110,7 @@ namespace DragonHeist
         // ===== IInteractable =====
         public Vector3 InteractPos { get { return transform.position; } }
         public float InteractRange { get { return 4.5f; } }
-        public float HoldTime { get { return 0.15f; } }
+        public float HoldTime { get { return 0f; } } // грядки — простое нажатие, без удержания
         public bool CanInteract
         {
             get
