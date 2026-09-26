@@ -39,6 +39,7 @@ namespace DragonHeist
         public long savedAt;
         public bool soundOn = true;
         public bool musicOn = true;
+        public int graphicsQuality;       // 0 авто, 1 низкое, 2 среднее, 3 высокое
         public int switchType;            // звук клавиш ASMR-пола: 0 синий, 1 коричневый, 2 красный
         public int tutorialStep;
         public List<int> treadmillAds = new List<int>();   // сколько реклам просмотрено для открытия дорожки

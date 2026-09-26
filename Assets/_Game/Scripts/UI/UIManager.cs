@@ -32,6 +32,7 @@ namespace DragonHeist
         GameObject trailsPanel, eggsPanel;
         Text[] trailCoinBtn, trailYanBtn; Button[] trailYanButtons; Image[] trailCards;
         Image[] storeCards, storeIcons; Text[] storeTexts; Text storeTitle;
+        Text gfxText;
         Text eggsBody; RectTransform eggsGrid; Button eggsPlant, eggsPlantAll; string eggsSig = null; int eggSel = int.MinValue;
         readonly List<KeyValuePair<int, Image>> eggCards = new List<KeyValuePair<int, Image>>();
         Text[] equipTexts; Button[] equipBtns; Button[] unequipBtns; Text[] unequipTexts;
@@ -925,18 +926,26 @@ namespace DragonHeist
         GameObject BuildSettings()
         {
             RectTransform body;
-            var go = Modal(Loc.T("settings"), new Color(0.45f, 0.5f, 0.62f), new Vector2(600, 470), out body);
+            var go = Modal(Loc.T("settings"), new Color(0.45f, 0.5f, 0.62f), new Vector2(600, 540), out body);
             var sb = UIKit.Button(body, "Sound", "", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-135, -10), new Vector2(250, 60), new Color(0.3f, 0.55f, 0.95f), ToggleSound, 22);
             soundText = sb.GetComponentInChildren<Text>();
             var mb = UIKit.Button(body, "Music", "", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(135, -10), new Vector2(250, 60), new Color(0.3f, 0.55f, 0.95f), ToggleMusic, 22);
             musicText = mb.GetComponentInChildren<Text>();
-            UIKit.Fit(UIKit.Label(UIKit.Rect(body, "SwT", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -98), new Vector2(540, 40)), Loc.T("switch_sound"), 22, Gold), 14);
+            // графика: Авто -> Низкая -> Средняя -> Высокая
+            var gb = UIKit.Button(body, "Gfx", "", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -80), new Vector2(520, 60), new Color(0.55f, 0.35f, 0.9f), () =>
+            {
+                SaveManager.Data.graphicsQuality = (SaveManager.Data.graphicsQuality + 1) % 4;
+                Perf.SetMode(SaveManager.Data.graphicsQuality);
+                RefreshPanels();
+            }, 22);
+            gfxText = gb.GetComponentInChildren<Text>();
+            UIKit.Fit(UIKit.Label(UIKit.Rect(body, "SwT", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -160), new Vector2(540, 40)), Loc.T("switch_sound"), 22, Gold), 14);
             switchBtns = new Image[3];
             Color[] swc = { new Color(0.25f, 0.45f, 1f), new Color(0.6f, 0.4f, 0.22f), new Color(0.9f, 0.25f, 0.25f) };
             for (int i = 0; i < 3; i++)
             {
                 int k = i;
-                var b = UIKit.Button(body, "Sw" + i, Loc.T("sw_" + i), new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -150 - i * 68), new Vector2(420, 58), swc[i], () =>
+                var b = UIKit.Button(body, "Sw" + i, Loc.T("sw_" + i), new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -206 - i * 64), new Vector2(420, 56), swc[i], () =>
                 {
                     SaveManager.Data.switchType = k;
                     GameAudio.PlaySwitch(k, true);
@@ -1060,6 +1069,8 @@ namespace DragonHeist
         /// <summary>Старт сразу после загрузки: обучение управлению (один раз), ежедневная награда, геймплей.</summary>
         public void StartGame()
         {
+            // графика из настроек игрока (0 — Авто: подбирается само)
+            if (SaveManager.Data.graphicsQuality != 0) Perf.SetMode(SaveManager.Data.graphicsQuality);
             hud.SetActive(true);
             InputState.Blocked = false;
             YandexSDK.GameplayStart();
@@ -1304,6 +1315,8 @@ namespace DragonHeist
             {
                 soundText.text = Loc.T("sound") + ": " + (d.soundOn ? Loc.T("on") : Loc.T("off"));
                 musicText.text = Loc.T("music") + ": " + (d.musicOn ? Loc.T("on") : Loc.T("off"));
+                string[] gq = Loc.Ru ? new[] { "Авто", "Низкая", "Средняя", "Высокая" } : new[] { "Auto", "Low", "Medium", "High" };
+                gfxText.text = (Loc.Ru ? "Графика: " : "Graphics: ") + gq[Mathf.Clamp(d.graphicsQuality, 0, 3)];
                 for (int i = 0; i < 3; i++)
                     foreach (var o in switchBtns[i].GetComponents<Outline>()) o.effectColor = d.switchType == i ? Gold : UIKit.Stroke;
             }

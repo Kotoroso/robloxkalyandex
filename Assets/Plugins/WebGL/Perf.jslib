@@ -8,6 +8,9 @@ mergeInto(LibraryManager.library, {
     } catch (e) { }
     return window.devicePixelRatio || 1;
   },
+  PerfGetNativeDpr: function () {
+    try { return window.devicePixelRatio || 1; } catch (e) { return 1; }
+  },
   PerfSetDpr: function (v) {
     try {
       if (typeof Module !== "undefined" && v > 0) Module.devicePixelRatio = v;

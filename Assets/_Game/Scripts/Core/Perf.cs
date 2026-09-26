@@ -15,7 +15,7 @@ namespace DragonHeist
             public LightShadows shadows;
             public float shadowDistance;
             public int aa;
-            public float dprScale;      // множитель к стартовому devicePixelRatio
+            public float dprScale;      // потолок devicePixelRatio (пикселей рендера на точку экрана), не больше родного
             public float particles;     // множитель частоты/количества частиц
             public float cull;          // множитель дальностей отсечения (декор, персонажи, надписи, частицы)
             public bool cheapShader;    // Lambert вместо Standard
@@ -24,19 +24,18 @@ namespace DragonHeist
 
         static readonly Profile[] Desktop =
         {
-            new Profile { shadows = LightShadows.Soft, shadowDistance = 45f, aa = 4, dprScale = 1f,    particles = 1f,   cull = 1f,    fps = 60 },
-            new Profile { shadows = LightShadows.Hard, shadowDistance = 35f, aa = 2, dprScale = 1f,    particles = 1f,   cull = 1f,    fps = 60 },
-            new Profile { shadows = LightShadows.None, shadowDistance = 0f,  aa = 0, dprScale = 1f,    particles = 1f,   cull = 0.9f,  fps = 60 },
-            new Profile { shadows = LightShadows.None, shadowDistance = 0f,  aa = 0, dprScale = 0.75f, particles = 0.6f, cull = 0.8f,  fps = 60 },
-            new Profile { shadows = LightShadows.None, shadowDistance = 0f,  aa = 0, dprScale = 0.6f,  particles = 0.4f, cull = 0.7f,  fps = 60, cheapShader = true },
+            // 0 — Высокое, 1 — Среднее, 2 — Низкое
+            new Profile { shadows = LightShadows.Soft, shadowDistance = 45f, aa = 4, dprScale = 2f,    particles = 1f,   cull = 1f,    fps = 60 },
+            new Profile { shadows = LightShadows.Hard, shadowDistance = 30f, aa = 2, dprScale = 1.5f,  particles = 0.8f, cull = 0.9f,  fps = 60 },
+            new Profile { shadows = LightShadows.None, shadowDistance = 0f,  aa = 0, dprScale = 1f,    particles = 0.5f, cull = 0.75f, fps = 60, cheapShader = true },
         };
 
         static readonly Profile[] Mobile =
         {
-            new Profile { shadows = LightShadows.None, shadowDistance = 0f, aa = 0, dprScale = 1f,   particles = 1f,    cull = 1f,   fps = 60, cheapShader = true },
-            new Profile { shadows = LightShadows.None, shadowDistance = 0f, aa = 0, dprScale = 0.8f, particles = 0.6f,  cull = 0.85f, fps = 60, cheapShader = true },
-            new Profile { shadows = LightShadows.None, shadowDistance = 0f, aa = 0, dprScale = 0.8f, particles = 0.4f,  cull = 0.7f, fps = 30, cheapShader = true },
-            new Profile { shadows = LightShadows.None, shadowDistance = 0f, aa = 0, dprScale = 0.68f, particles = 0.3f, cull = 0.6f, fps = 30, cheapShader = true },
+            // 0 — Высокое (чётко, до 2x), 1 — Среднее, 2 — Низкое (слабые телефоны)
+            new Profile { shadows = LightShadows.Hard, shadowDistance = 22f, aa = 0, dprScale = 2f,    particles = 1f,   cull = 1f,    fps = 60 },
+            new Profile { shadows = LightShadows.None, shadowDistance = 0f,  aa = 0, dprScale = 1.6f,  particles = 0.7f, cull = 0.85f, fps = 60, cheapShader = true },
+            new Profile { shadows = LightShadows.None, shadowDistance = 0f,  aa = 0, dprScale = 1.15f, particles = 0.4f, cull = 0.7f,  fps = 30, cheapShader = true },
         };
 
         public static Perf Instance;
@@ -59,8 +58,8 @@ namespace DragonHeist
         const float FarClipDesktop = 420f, FarClipMobile = 320f;
 
         // губернатор
-        float winTime, lastChange;
-        int winFrames, lowCount, highCount;
+        float winTime; internal float lastChange;
+        int winFrames; internal int lowCount, highCount;
         readonly int[] downs = new int[8];
         Camera appliedCam;
         float particleTick;
@@ -71,7 +70,7 @@ namespace DragonHeist
             if (Instance != null) return;
             IsMobile = mobile;
             table = mobile ? Mobile : Desktop;
-            baseDpr = Dpr.Get();
+            baseDpr = Dpr.GetNative(); // родная плотность экрана (на телефонах 2-3)
             if (baseDpr <= 0f) baseDpr = 1f;
 
             // общие настройки (не меняются губернатором)
@@ -90,7 +89,18 @@ namespace DragonHeist
             var go = new GameObject("Perf");
             DontDestroyOnLoad(go);
             Instance = go.AddComponent<Perf>();
-            Apply(0, true);
+            Apply(mobile ? 1 : 0, true); // Авто: телефон стартует со Среднего, ПК - с Высокого
+        }
+
+        /// <summary>Режим графики из настроек: 0 - Авто (подбирается по FPS), 1 - Низкое, 2 - Среднее, 3 - Высокое.</summary>
+        public static int Mode { get; private set; }
+        public static void SetMode(int mode)
+        {
+            if (table == null) return;
+            Mode = Mathf.Clamp(mode, 0, 3);
+            int level = Mode == 0 ? (IsMobile ? 1 : 0) : 3 - Mode; // Низкое 2, Среднее 1, Высокое 0
+            if (Instance != null) { Instance.lowCount = 0; Instance.highCount = 0; Instance.lastChange = Time.realtimeSinceStartup; }
+            Apply(level, false);
         }
 
         /// <summary>Тени солнца по текущему профилю (вызывается при настройке света).</summary>
@@ -114,9 +124,9 @@ namespace DragonHeist
             LabelDistanceScale = Mathf.Lerp(1f, p.cull, 0.6f);
             ParticleCullDistance = (IsMobile ? 50f : 70f) * p.cull;
             Mats.SetCheapLighting(p.cheapShader);
-            float minDpr = IsMobile ? 0.75f : 1f;
-            float dpr = Mathf.Max(Mathf.Min(minDpr, baseDpr), baseDpr * p.dprScale);
-            if (!initial || p.dprScale < 1f) Dpr.Set(dpr);
+            // разрешение рендера: родная плотность экрана, но не выше потолка профиля (и не ниже 1)
+            float dpr = Mathf.Max(1f, Mathf.Min(baseDpr, p.dprScale));
+            Dpr.Set(dpr);
             if (Instance != null) Instance.appliedCam = null; // пересчитать камеру
             if (!initial) Debug.Log("[Perf] quality level " + Level + " (dpr " + dpr.ToString("0.00") + ")");
         }
@@ -158,6 +168,7 @@ namespace DragonHeist
             }
 
             // не меряем: пауза/реклама/вкладка скрыта, фризы (загрузка, GC), первые секунды после смены
+            if (Mode != 0) return; // выбрано вручную - губернатор не трогает
             bool paused = YandexSDK.Paused || !Application.isFocused;
             if (paused || dt > 0.25f || Time.realtimeSinceStartup - lastChange < 4f || Time.realtimeSinceStartup < 8f)
             {
@@ -201,10 +212,13 @@ namespace DragonHeist
 #if UNITY_WEBGL && !UNITY_EDITOR
         [System.Runtime.InteropServices.DllImport("__Internal")] static extern float PerfGetDpr();
         [System.Runtime.InteropServices.DllImport("__Internal")] static extern void PerfSetDpr(float v);
+        [System.Runtime.InteropServices.DllImport("__Internal")] static extern float PerfGetNativeDpr();
         public static float Get() { try { return PerfGetDpr(); } catch { return 1f; } }
+        public static float GetNative() { try { return PerfGetNativeDpr(); } catch { return 1f; } }
         public static void Set(float v) { try { PerfSetDpr(v); } catch { } }
 #else
         public static float Get() { return 1f; }
+        public static float GetNative() { return 1f; }
         public static void Set(float v) { }
 #endif
     }
