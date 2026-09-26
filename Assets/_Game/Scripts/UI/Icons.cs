@@ -20,12 +20,32 @@ namespace DragonHeist
         public static Sprite Shoe { get { return Get("shoe", DrawShoe); } }
         public static Sprite Book { get { return Get("book", DrawBook); } }
 
+        /// <summary>Картинка из Resources/Art/&lt;name&gt;.png или null.</summary>
+        public static Sprite Art(string name)
+        {
+            string key = "art_" + name;
+            Sprite s;
+            if (cache.TryGetValue(key, out s)) return s;
+            var t = Resources.Load<Texture2D>("Art/" + name);
+            s = t != null ? Sprite.Create(t, new Rect(0, 0, t.width, t.height), new Vector2(0.5f, 0.5f)) : null;
+            cache[key] = s;
+            return s;
+        }
+
         delegate Color PixelFn(float x, float y); // x,y в -1..1
 
         static Sprite Get(string name, PixelFn fn)
         {
             Sprite s;
             if (cache.TryGetValue(name, out s)) return s;
+            // своя картинка (например из нейросети): Resources/Art/icon_<name>.png
+            var custom = Resources.Load<Texture2D>("Art/icon_" + name);
+            if (custom != null)
+            {
+                s = Sprite.Create(custom, new Rect(0, 0, custom.width, custom.height), new Vector2(0.5f, 0.5f));
+                cache[name] = s;
+                return s;
+            }
             var tex = new Texture2D(N, N, TextureFormat.RGBA32, false);
             tex.wrapMode = TextureWrapMode.Clamp;
             var px = new Color[N * N];

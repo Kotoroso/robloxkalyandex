@@ -447,11 +447,13 @@ namespace DragonHeist
             UIKit.Icon(inc.transform, Icons.Coin, new Vector2(0, 0.5f), new Vector2(64, 14), 110);
             UIKit.Icon(inc.transform, Icons.Coin, new Vector2(0, 0.5f), new Vector2(100, -10), 110);
             X2Badge(inc.transform, new Vector2(150, -40));
+            ArtOverlay(inc.transform, "store_x2_income", new Vector2(100, 0), 170);
             UIKit.Label(UIKit.Rect(inc.transform, "T", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -12), new Vector2(250, 50)), Loc.Ru ? "x2 Доход" : "x2 Income", 32, Color.white, TextAnchor.MiddleRight);
             YanBuy(inc.transform, "x2_income", new Vector2(1, 0), new Vector2(-110, 50), new Vector2(190, 62), new Color(0.25f, 0.8f, 0.3f), 24);
             var gr = UIKit.Panel(content, "X2Grow", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(half / 2f + 6, -610), new Vector2(half, 200), new Color(0.4f, 0.85f, 0.95f), 3f);
             UIKit.Icon(gr.transform, IconArt.Egg(Tier.Rare), new Vector2(0, 0.5f), new Vector2(84, 6), 150);
             X2Badge(gr.transform, new Vector2(150, -40));
+            ArtOverlay(gr.transform, "store_x2_grow", new Vector2(100, 0), 170);
             UIKit.Label(UIKit.Rect(gr.transform, "T", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -8), new Vector2(260, 70)), Loc.Ru ? "x2 Скорость\nроста яиц" : "x2 Egg\nGrowth", 26, Color.white, TextAnchor.MiddleRight);
             YanBuy(gr.transform, "x2_grow", new Vector2(1, 0), new Vector2(-110, 50), new Vector2(190, 62), new Color(0.25f, 0.8f, 0.3f), 24);
 
@@ -472,6 +474,15 @@ namespace DragonHeist
                 idx++;
             }
             return go;
+        }
+
+        /// <summary>Если есть своя картинка Resources/Art/&lt;name&gt;.png — кладём её поверх нарисованной иконки.</summary>
+        static void ArtOverlay(Transform parent, string name, Vector2 pos, float size)
+        {
+            var sp = Icons.Art(name);
+            if (sp == null) return;
+            foreach (Transform c in parent) if (c.name == "Icon" || c.name == "X2") c.gameObject.SetActive(false);
+            UIKit.Icon(parent, sp, new Vector2(0, 0.5f), pos, size);
         }
 
         static void X2Badge(Transform parent, Vector2 pos)
@@ -508,8 +519,9 @@ namespace DragonHeist
                     var streak = UIKit.Panel(card.transform, "S" + j, new Vector2(0.5f, 1), new Vector2(1, 0.5f), new Vector2(-10, -120 - j * 24), new Vector2(170 - j * 40, 16), Color.Lerp(t.b, t.a, j / 2f));
                     streak.raycastTarget = false;
                 }
-                var shoe = UIKit.Icon(card.transform, Icons.Shoe, new Vector2(0.5f, 1), new Vector2(40, -140), 110);
-                shoe.color = Color.Lerp(t.a, Color.white, 0.4f);
+                var trailArt = Icons.Art("trail_" + i);
+                var shoe = UIKit.Icon(card.transform, trailArt != null ? trailArt : Icons.Shoe, new Vector2(0.5f, 1), trailArt != null ? new Vector2(0, -150) : new Vector2(40, -140), trailArt != null ? 190 : 110);
+                if (trailArt == null) shoe.color = Color.Lerp(t.a, Color.white, 0.4f);
                 var band = UIKit.Panel(card.transform, "Band", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 92), new Vector2(cw - 20, 50), new Color(0, 0, 0, 0.25f));
                 band.raycastTarget = false;
                 UIKit.Label(band.transform, (Loc.Ru ? "Скорость x" : "Speed x") + t.mult.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture), 24, Color.white);
