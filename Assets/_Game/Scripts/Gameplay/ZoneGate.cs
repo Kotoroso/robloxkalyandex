@@ -23,8 +23,9 @@ namespace DragonHeist
             var g = go.AddComponent<ZoneGate>();
             g.info = info;
             g.col = go.AddComponent<BoxCollider>();
-            g.col.center = new Vector3(0, 4f, 0);
-            g.col.size = new Vector3(width, 8f, 0.6f);
+            // барьер высотой 200 — не перепрыгнуть даже с большой скоростью и пружинами
+            g.col.center = new Vector3(0, 100f, 0);
+            g.col.size = new Vector3(width, 200f, 0.6f);
             var c = info.color; c.a = 0.35f;
             g.visual = Blocky.Part(go.transform, new Vector3(0, 3.6f, 0), new Vector3(width - 4f, 7.2f, 0.15f), Mats.Transparent(c)).gameObject;
             Blocky.NoShadows(g.visual);
@@ -56,6 +57,14 @@ namespace DragonHeist
             float pz = p.transform.position.z;
             // блокируем только вход со стороны базы
             bool block = !open && pz < transform.position.z - 0.3f;
+            // страховка: оказался за закрытыми воротами (перепрыгнул/проскочил) — возвращаем перед воротами
+            if (!open && pz > transform.position.z + 0.5f && pz < transform.position.z + GameConfig.ZoneStep)
+            {
+                var pp = p.transform.position;
+                p.TeleportTo(new Vector3(pp.x, Mathf.Max(pp.y, 1f), transform.position.z - 3f));
+                toastCooldown = 0;
+                pz = transform.position.z - 3f;
+            }
             if (col.enabled != block) col.enabled = block;
 
             if (toastCooldown > 0) toastCooldown -= Time.deltaTime;

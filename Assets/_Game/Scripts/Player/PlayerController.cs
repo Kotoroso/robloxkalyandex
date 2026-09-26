@@ -440,6 +440,15 @@ namespace DragonHeist
             return Mathf.Abs(p.x) > 80f || p.z < GameConfig.BaseMinZ - 24f;                                            // база с нишами
         }
 
+        /// <summary>Переставить игрока (например, назад перед закрытыми воротами).</summary>
+        public void TeleportTo(Vector3 pos)
+        {
+            cc.enabled = false;
+            transform.position = pos;
+            cc.enabled = true;
+            velocity = Vector3.zero;
+        }
+
         public void Respawn()
         {
             cc.enabled = false;
