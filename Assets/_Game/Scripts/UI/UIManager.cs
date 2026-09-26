@@ -215,7 +215,25 @@ namespace DragonHeist
             adBg.raycastTarget = false;
             adBg.gameObject.SetActive(false);
 
-            // ===== Панели =====
+            // запоминаем альбомную раскладку HUD — в портрете она переставляется, при повороте обратно восстанавливается
+            SnapHud();
+
+            // ===== Панели (размер окон — по текущему экрану) =====
+            MeasureScreen();
+            BuildPanels();
+            layoutKey = LayoutKey();
+
+            if (mobile) { mobileControls = hud.AddComponent<MobileControls>(); mobileControls.Build(h); }
+
+            // главное меню убрано — игрок сразу попадает в игру (см. StartGame)
+            var rc = gameObject.AddComponent<ResponsiveCanvas>();
+            rc.Init(scaler, mobile, root);
+            rc.Changed = OnScreenChanged;
+            ApplyHudLayout();
+        }
+
+        void BuildPanels()
+        {
             shopPanel = BuildShop();
             rebirthPanel = BuildRebirth();
             dragonsPanel = BuildDragons();
@@ -225,12 +243,148 @@ namespace DragonHeist
             trailsPanel = BuildTrails();
             eggsPanel = BuildEggs();
             dailyPanel = BuildDaily();
-
-            if (mobile) hud.AddComponent<MobileControls>().Build(h);
-
-            // главное меню убрано — игрок сразу попадает в игру (см. StartGame)
-            gameObject.AddComponent<ResponsiveCanvas>().Init(scaler, mobile, root);
         }
+
+        // ============================ АДАПТАЦИЯ ПОД ЭКРАН ============================
+        /// <summary>Безопасная область холста (без выреза/чёлки) и ориентация — из ResponsiveCanvas.</summary>
+        void MeasureScreen()
+        {
+            ResponsiveCanvas.Measure(mobile);
+            var sr = ResponsiveCanvas.SafeRect;
+            if (sr.width > 100f && sr.height > 100f) avail = new Vector2(sr.width, sr.height);
+            portrait = ResponsiveCanvas.Portrait;
+        }
+
+        /// <summary>
+        /// Окна зависят только от ориентации и доступного места (с ограничением сверху: окна не больше дизайн-размера),
+        /// поэтому на ПК при обычном ресайзе окна браузера ничего не перестраивается.
+        /// </summary>
+        string LayoutKey()
+        {
+            return (portrait ? "P" : "L") + Mathf.RoundToInt(Mathf.Min(avail.x, 1000f) / 10f) + "x" + Mathf.RoundToInt(Mathf.Min(avail.y, portrait ? 1200f : 800f) / 10f);
+        }
+
+        /// <summary>Поворот телефона / изменение окна: переставить HUD, перестроить окна под новый размер.</summary>
+        void OnScreenChanged()
+        {
+            MeasureScreen();
+            ApplyHudLayout();
+            var key = LayoutKey();
+            if (key != layoutKey) { layoutKey = key; RebuildPanels(); }
+            if (portrait && mobile && !rotateTipShown && hud.activeSelf)
+            {
+                rotateTipShown = true;
+                Toast(Loc.Ru ? "Совет: горизонтально обзор шире!" : "Tip: landscape gives a wider view!", new Color(0.8f, 0.9f, 1f), 3.5f);
+            }
+        }
+
+        void RebuildPanels()
+        {
+            int openIdx = -1;
+            for (int i = 0; i < panels.Count; i++) if (panels[i] != null && panels[i].activeSelf) openIdx = i;
+            int sib = panels.Count > 0 && panels[0] != null ? panels[0].transform.GetSiblingIndex() : -1;
+            foreach (var p in panels) if (p != null) { p.transform.SetParent(null, false); Destroy(p); }
+            panels.Clear();
+            yanPriceById.Clear(); yanBtnById.Clear(); store3D.Clear(); store3DDone = false;
+            eggCards.Clear(); eggsSig = null;
+            BuildPanels();
+            // окна остаются на своём месте в иерархии (под рулеткой/обучением управления, если они открыты)
+            if (sib >= 0) for (int i = 0; i < panels.Count; i++) panels[i].transform.SetSiblingIndex(sib + i);
+            if (openIdx >= 0 && openIdx < panels.Count)
+            {
+                panels[openIdx].SetActive(true);
+                RefreshPanels();
+            }
+        }
+
+        void SnapHud()
+        {
+            hudSnaps.Clear();
+            var list = new List<RectTransform>();
+            foreach (Transform c in hud.transform) list.Add((RectTransform)c);
+            list.Add((RectTransform)tutText.transform.parent);
+            var tt = tutPanel.transform.Find("T");
+            if (tt != null) list.Add((RectTransform)tt);
+            foreach (var rt in list)
+                hudSnaps.Add(new HudSnap { rt = rt, aMin = rt.anchorMin, aMax = rt.anchorMax, pivot = rt.pivot, pos = rt.anchoredPosition, size = rt.sizeDelta });
+        }
+
+        static void Place(RectTransform rt, Vector2 anchor, Vector2 pivot, Vector2 pos, Vector2 size)
+        {
+            if (rt == null) return;
+            rt.anchorMin = rt.anchorMax = anchor;
+            rt.pivot = pivot;
+            rt.anchoredPosition = pos;
+            rt.sizeDelta = size;
+        }
+
+        RectTransform HudChild(string name)
+        {
+            var t = hud.transform.Find(name);
+            return t != null ? (RectTransform)t : null;
+        }
+
+        /// <summary>
+        /// Альбом — раскладка из Build (восстанавливается из снимка). Портрет (ширина холста 650+, высота 1150+):
+        ///   сверху слева кнопки Навыки/Трейлы/Магазин, справа шестерёнка и под ней Яйца/Драконы;
+        ///   под кнопками слева колонка скорость/деньги/доход (до ~274..290 от верха);
+        ///   ниже на всю ширину обучение, тост, баннер переноски (tutTop..tutTop+222, центр экрана свободен);
+        ///   снизу слоты 16..~106, "выбран дракон"/"яиц" 106..160, прыжок справа 170..300, кнопка действия над ним 310..394,
+        ///   джойстик слева 190..390, подсказка дорожки 420..460 — ничего не пересекается.
+        /// </summary>
+        void ApplyHudLayout()
+        {
+            foreach (var s in hudSnaps)
+            {
+                if (s.rt == null) continue;
+                s.rt.anchorMin = s.aMin; s.rt.anchorMax = s.aMax; s.rt.pivot = s.pivot;
+                s.rt.anchoredPosition = s.pos; s.rt.sizeDelta = s.size;
+            }
+            cpsText.alignment = cpsAlign;
+            if (mobileControls != null) mobileControls.SetLayout(portrait);
+            promptMobilePos = portrait ? new Vector2(-190, 352) : new Vector2(-190, 222);
+            if (!portrait) return;
+
+            float W = avail.x;
+            float cb = mobile ? 80 : 96, sq = mobile ? 84 : 92;
+            var tl = new Vector2(0, 1); var tr = new Vector2(1, 1);
+            // верхний ряд
+            Place(HudChild("BtnYan"), tl, tl, new Vector2(36 + cb * 2, -12), mobile ? new Vector2(170, 70) : new Vector2(Mathf.Min(216f, W - 36 - cb * 3 - 40), 92));
+            // правая колонка под шестерёнкой (подпись шестерёнки до 12+cb+27)
+            float statTop = 12 + cb + 30;
+            Place(HudChild("BtnEggs"), tr, tr, new Vector2(-16, -statTop), new Vector2(sq, sq));
+            Place(HudChild("BtnDragons"), tr, tr, new Vector2(-16, -statTop - sq - 10), new Vector2(sq, sq));
+            // левая колонка: скорость, деньги, доход
+            float colW = Mathf.Min(360f, W - sq - 60f);
+            Place(shoeRt, tl, new Vector2(0.5f, 0.5f), new Vector2(40, -statTop - 22), new Vector2(56, 56));
+            Place(speedText.transform.parent as RectTransform, tl, tl, new Vector2(72, -statTop), new Vector2(colW - 60, 44));
+            Place(coinsText.transform.parent as RectTransform, tl, tl, new Vector2(12, -statTop - 48), new Vector2(colW, 56));
+            Place(cpsText.transform.parent as RectTransform, tl, tl, new Vector2(14, -statTop - 104), new Vector2(colW, 48));
+            cpsText.alignment = TextAnchor.MiddleLeft;
+            // обучение, тост, баннер — под обеими колонками, по центру
+            float tutTop = Mathf.Max(statTop + 152, statTop + sq * 2 + 10) + 10;
+            float tw = Mathf.Min(W - 24, 720f);
+            var tc = new Vector2(0.5f, 1);
+            Place((RectTransform)tutPanel.transform, tc, tc, new Vector2(0, -tutTop), new Vector2(tw, 104));
+            ((RectTransform)tutText.transform.parent).sizeDelta = new Vector2(tw - 160, 72);
+            var tt = tutPanel.transform.Find("T");
+            if (tt != null) ((RectTransform)tt).sizeDelta = new Vector2(tw - 20, 28);
+            Place(toastBg.rectTransform, tc, tc, new Vector2(0, -tutTop - 114), new Vector2(Mathf.Min(W - 24, 680f), 54));
+            Place(carryBg.rectTransform, tc, tc, new Vector2(0, -tutTop - 174), new Vector2(Mathf.Min(W - 24, 560f), 48));
+            // низ
+            var bc = new Vector2(0.5f, 0);
+            Place(heldText.transform.parent as RectTransform, bc, bc, new Vector2(0, mobile ? 106 : 102), new Vector2(Mathf.Min(mobile ? 540f : 620f, W - 40), 26));
+            Place(invText.transform.parent as RectTransform, bc, bc, new Vector2(0, mobile ? 134 : 130), new Vector2(Mathf.Min(380f, W - 40), 26));
+            Place(hintText.transform.parent as RectTransform, bc, bc, new Vector2(0, mobile ? 420 : 212), new Vector2(Mathf.Min(mobile ? 520f : 760f, W - 40), 40));
+        }
+
+        /// <summary>Ширина тела окна, которое получится при запрошенной ширине (см. Modal).</summary>
+        float ModalBodyW(float designW)
+        {
+            return Mathf.Min(designW, 1180f, avail.x - 2f * ModalMargin) - 40f;
+        }
+
+        float ModalMargin { get { return portrait ? 10f : 12f; } }
 
         /// <summary>Подпись под круглой кнопкой HUD (белый текст с обводкой).</summary>
         static void HudCaption(Transform button, string text, float cb)
