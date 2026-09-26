@@ -218,7 +218,14 @@ namespace DragonHeist
                     new Color(0.15f, 0.15f, 0.22f, 0.85f), () => { if (GameManager.Instance != null) GameManager.Instance.SelectSlot(k); });
                 Destroy(b.GetComponent<ButtonBounce>());
                 slotBg[i] = b.GetComponent<Image>();
-                UIKit.ApplySkin(slotBg[i], "slot", true);
+                if (UIKit.ApplySkin(slotBg[i], "slot", true))
+                {
+                    // обводка для подсветки выбранного слота золотом (у картинки своя тёмная обводка)
+                    var so = slotBg[i].gameObject.AddComponent<Outline>();
+                    so.effectColor = UIKit.Stroke; so.effectDistance = new Vector2(3f, -3f);
+                    var so2 = slotBg[i].gameObject.AddComponent<Outline>();
+                    so2.effectColor = UIKit.Stroke; so2.effectDistance = new Vector2(-3f, 3f);
+                }
                 slotIcon[i] = UIKit.Icon(b.transform, Icons.Dragon, new Vector2(0.5f, 0.5f), new Vector2(0, 8), s * 0.95f);
                 slotName[i] = UIKit.Label(b.transform, "", 12, Color.white, TextAnchor.LowerCenter);
                 var num = UIKit.Label(UIKit.Rect(b.transform, "N", new Vector2(0, 1), new Vector2(0, 1), new Vector2(4, -2), new Vector2(24, 24)), (i + 1).ToString(), 16, Gold, TextAnchor.UpperLeft);
