@@ -197,8 +197,8 @@ namespace DragonHeist
 
         void ArtE(RectTransform a)
         {
-            anim1 = Key(a, "E", new Vector2(-120, 0), new Vector2(64, 64)).rectTransform;
-            for (int i = 0; i < 5; i++) Key(a, (i + 1).ToString(), new Vector2(-10 + i * 58, 0), new Vector2(50, 50));
+            // только клавиша E (выбор слотов 1-5 убран вместе с нижним инвентарём)
+            anim1 = Key(a, "E", Vector2.zero, new Vector2(84, 84)).rectTransform;
         }
 
         void ArtJoystick(RectTransform a)
