@@ -75,7 +75,7 @@ namespace DragonHeist
             { "talk_seller",  new[]{ "Продать драконов", "Sell dragons" } },
             { "sell_title",   new[]{ "Продать драконов", "Sell dragons" } },
             { "sell_all",     new[]{ "Продать всех ({0})", "Sell all ({0})" } },
-            { "sell_empty",   new[]{ "В слотах нет драконов.\nЗабери дракона с грядки, чтобы продать.", "No dragons in your slots.\nPick one up from a plot to sell it." } },
+            { "sell_empty",   new[]{ "В сумке нет драконов.\nСними дракона в окне «Драконы» — он попадёт в сумку, и его можно продать.", "Your bag is empty.\nUnequip a dragon in the Dragons menu — it goes to the bag and can be sold." } },
             { "empty_slot",   new[]{ "Пусто", "Empty" } },
             { "settings",     new[]{ "Настройки", "Settings" } },
             { "music",        new[]{ "Музыка", "Music" } },

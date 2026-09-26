@@ -44,7 +44,8 @@ namespace DragonHeist
         Text[] upgLevel, upgCost;
         Text soundText, musicText;
         Image[] switchBtns;
-        Text[] sellRows; Button[] sellBtns; Text sellAllText; Text sellEmpty;
+        Image[] sellCards, sellIcons; Text[] sellNames, sellPrices, sellChecks; Text sellAllText, sellSelText, sellEmpty, sellInfo; Button sellAllBtn, sellSelBtn;
+        readonly HashSet<int> sellSel = new HashSet<int>();
         // слоты
         Image[] slotBg; Text[] slotName; Image[] slotIcon;
         // обучение
@@ -787,24 +788,40 @@ namespace DragonHeist
             return go;
         }
 
+        /// <summary>
+        /// Продавец: продаются только драконы из сумки (хранилища). Карточки 5×3 с ценой — нажми, чтобы выбрать
+        /// (можно несколько), затем "Продать выбранных" или "Продать всех".
+        /// </summary>
         GameObject BuildSell()
         {
             RectTransform body;
-            var go = Modal(Loc.T("sell_title"), new Color(1f, 0.75f, 0.2f), new Vector2(680, 540), out body);
-            int n = GameConfig.InventorySlots;
-            sellRows = new Text[n]; sellBtns = new Button[n];
+            var go = Modal(Loc.T("sell_title"), new Color(1f, 0.75f, 0.2f), new Vector2(900, mobile ? 600 : 620), out body);
+            float bwid = body.sizeDelta.x, bh = body.sizeDelta.y;
+            // тело (от верха): подсказка 0..30, сетка 36..(bh-76), кнопки bh-64..bh
+            sellInfo = UIKit.Fit(UIKit.Label(UIKit.Rect(body, "Info", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, 0), new Vector2(bwid, 30)), "", 19, new Color(0.8f, 0.85f, 1f)), 12);
+            int n = GameConfig.StorageSlots;
+            float gridH = bh - 36 - 76, gap = 8;
+            float ch = Mathf.Min(128f, (gridH - 2 * gap) / 3f), cw = (bwid - 4 * gap) / 5f;
+            sellCards = new Image[n]; sellIcons = new Image[n]; sellNames = new Text[n]; sellPrices = new Text[n]; sellChecks = new Text[n];
             for (int i = 0; i < n; i++)
             {
-                int k = i;
-                var row = UIKit.Panel(body, "Row" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -i * 70), new Vector2(620, 62), new Color(0.2f, 0.19f, 0.3f), 2f);
-                sellRows[i] = UIKit.Fit(UIKit.Inset(UIKit.Label(UIKit.Rect(row.transform, "T", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(14, 0), new Vector2(390, 58)), "", 20, Color.white, TextAnchor.MiddleLeft), 4, 2), 12);
-                sellBtns[i] = UIKit.Button(row.transform, "S", "", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-8, 0), new Vector2(200, 50),
-                    new Color(1f, 0.7f, 0.15f), () => { GameManager.Instance.SellSlot(k); RefreshPanels(); }, 19);
+                int k = i, col = i % 5, row = i / 5;
+                var b = UIKit.Button(body, "S" + i, "", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((col - 2) * (cw + gap), -36 - row * (ch + gap)), new Vector2(cw, ch),
+                    new Color(0.22f, 0.2f, 0.34f), () => { if (!sellSel.Remove(k)) sellSel.Add(k); RefreshPanels(); }, 14);
+                Destroy(b.GetComponent<ButtonBounce>());
+                sellCards[i] = b.GetComponent<Image>();
+                sellIcons[i] = UIKit.Icon(b.transform, Icons.Dragon, new Vector2(0, 0.5f), new Vector2(ch * 0.36f + 4, 4), ch * 0.7f);
+                sellNames[i] = UIKit.Fit(UIKit.Label(UIKit.Rect(b.transform, "N", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-6, -8), new Vector2(cw - ch * 0.72f - 10, ch * 0.45f)), "", 15, Color.white, TextAnchor.UpperLeft), 9);
+                sellPrices[i] = UIKit.Fit(UIKit.Label(UIKit.Rect(b.transform, "P", new Vector2(1, 0), new Vector2(1, 0), new Vector2(-6, 8), new Vector2(cw - ch * 0.72f - 10, ch * 0.34f)), "", 18, new Color(0.6f, 1f, 0.5f), TextAnchor.LowerLeft), 11);
+                sellChecks[i] = UIKit.Label(UIKit.Rect(b.transform, "V", new Vector2(0, 1), new Vector2(0, 1), new Vector2(4, -2), new Vector2(cw * 0.6f, 22)), Loc.Ru ? "ВЫБРАН" : "SELECTED", 13, Color.white, TextAnchor.UpperLeft);
             }
-            var all = UIKit.Button(body, "All", "", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 0), new Vector2(380, 60),
-                new Color(0.95f, 0.35f, 0.25f), () => { GameManager.Instance.SellAll(); RefreshPanels(); }, 22);
-            sellAllText = all.GetComponentInChildren<Text>();
-            sellEmpty = UIKit.Label(UIKit.Rect(body, "E", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560, 120)), Loc.T("sell_empty"), 22, new Color(0.85f, 0.85f, 0.95f));
+            var selBtn = UIKit.Button(body, "SellSel", "", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-bwid * 0.25f, 0), new Vector2(bwid * 0.46f, 60),
+                new Color(1f, 0.7f, 0.15f), () => { GameManager.Instance.SellStored(new List<int>(sellSel)); sellSel.Clear(); RefreshPanels(); }, 22);
+            sellSelText = selBtn.GetComponentInChildren<Text>(); sellSelBtn = selBtn;
+            var all = UIKit.Button(body, "All", "", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(bwid * 0.25f, 0), new Vector2(bwid * 0.46f, 60),
+                new Color(0.95f, 0.35f, 0.25f), () => { GameManager.Instance.SellStored(null); sellSel.Clear(); RefreshPanels(); }, 22);
+            sellAllText = all.GetComponentInChildren<Text>(); sellAllBtn = all;
+            sellEmpty = UIKit.Label(UIKit.Rect(body, "E", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(700, 140)), Loc.T("sell_empty"), 22, new Color(0.85f, 0.85f, 0.95f));
             return go;
         }
 
@@ -1174,23 +1191,33 @@ namespace DragonHeist
             }
             if (sellPanel.activeSelf)
             {
-                int count = 0; double total = 0;
-                for (int i = 0; i < sellRows.Length; i++)
+                int count = d.dragonStore.Count; double total = 0, selTotal = 0;
+                sellSel.RemoveWhere(x => x >= count);
+                for (int i = 0; i < sellCards.Length; i++)
                 {
-                    int id = d.dragonInv[i];
-                    bool has = id >= 0;
-                    sellRows[i].transform.parent.gameObject.SetActive(has);
+                    bool has = i < count;
+                    sellCards[i].gameObject.SetActive(has);
                     if (!has) continue;
-                    count++;
-                    var def = GameConfig.GetDragon(id);
-                    double price = gm.SlotSellPrice(i);
+                    var def = GameConfig.GetDragon(d.dragonStore[i]);
+                    double price = gm.StoreSellPrice(i);
                     total += price;
-                    string hex = ColorUtility.ToHtmlStringRGB(GameConfig.GetTier(def.tier).color);
-                    sellRows[i].text = "<color=#" + hex + ">" + Loc.DragonName(def) + "</color>\n<size=15>" + Loc.TierName(def.tier) + "</size>";
-                    sellBtns[i].GetComponentInChildren<Text>().text = Loc.F("sell", Loc.Num(price));
+                    bool sel = sellSel.Contains(i);
+                    if (sel) selTotal += price;
+                    var tc = GameConfig.GetTier(def.tier).color;
+                    sellCards[i].color = sel ? new Color(1f, 0.78f, 0.2f) : Color.Lerp(new Color(0.2f, 0.19f, 0.32f), tc, 0.25f);
+                    sellIcons[i].sprite = IconArt.Dragon(def);
+                    sellNames[i].text = Loc.DragonName(def) + "\n<size=12><color=#FFD84A>" + (Loc.Ru ? "ур." : "lv.") + d.dragonStoreLvl[i] + "</color> " + Loc.TierName(def.tier) + "</size>";
+                    sellPrices[i].text = "$" + Loc.Num(price);
+                    sellChecks[i].enabled = sel;
                 }
-                sellAllText.text = Loc.F("sell_all", Loc.Num(total));
-                sellAllText.transform.parent.gameObject.SetActive(count > 0);
+                sellInfo.text = (Loc.Ru ? "В сумке: " : "In bag: ") + count + "/" + GameConfig.StorageSlots
+                    + (Loc.Ru ? "  —  нажми на драконов, чтобы выбрать" : "  —  tap dragons to select");
+                sellSelText.text = (Loc.Ru ? "Продать выбранных " : "Sell selected ") + (sellSel.Count > 0 ? "($" + Loc.Num(selTotal) + ")" : "");
+                sellSelBtn.interactable = sellSel.Count > 0;
+                sellAllText.text = Loc.F("sell_all", "$" + Loc.Num(total));
+                sellSelBtn.gameObject.SetActive(count > 0);
+                sellAllBtn.gameObject.SetActive(count > 0);
+                sellInfo.gameObject.SetActive(count > 0);
                 sellEmpty.gameObject.SetActive(count == 0);
             }
         }

@@ -308,6 +308,31 @@ namespace DragonHeist
             SaveNow(true);
         }
 
+        // ===================== Продажа из сумки (хранилища) =====================
+        public double StoreSellPrice(int j)
+        {
+            if (j < 0 || j >= D.dragonStore.Count) return 0;
+            return GameConfig.SellPrice(GameConfig.GetDragon(D.dragonStore[j]), D.dragonStoreLvl[j]) * CoinMultiplier;
+        }
+
+        /// <summary>Продать драконов из сумки по индексам (null — всех).</summary>
+        public void SellStored(ICollection<int> idx)
+        {
+            double total = 0; int n = 0;
+            for (int j = D.dragonStore.Count - 1; j >= 0; j--)
+            {
+                if (idx != null && !idx.Contains(j)) continue;
+                total += StoreSellPrice(j);
+                D.dragonStore.RemoveAt(j); D.dragonStoreLvl.RemoveAt(j);
+                n++;
+            }
+            if (n == 0) return;
+            D.coins += total;
+            GameAudio.Play(Sfx.Coin);
+            UIManager.Instance.Toast(Loc.F("sold", Loc.Num(total)), new Color(1f, 0.9f, 0.3f));
+            SaveNow(true);
+        }
+
         public void SellAll()
         {
             double total = 0;
