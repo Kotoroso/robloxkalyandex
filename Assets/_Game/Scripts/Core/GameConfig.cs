@@ -123,7 +123,7 @@ namespace DragonHeist
             T(Tier.Common,    "Обычное",      "Common",    0.78f,0.78f,0.78f, 20,   9f,   1, 9f,  BrainrotKind.TungSahur,   1.0f, 0),
             T(Tier.Uncommon,  "Необычное",    "Uncommon",  0.35f,0.85f,0.35f, 45,   15.5f,2, 10f, BrainrotKind.Lirili,      1.1f, 60),
             T(Tier.Rare,      "Редкое",       "Rare",      0.25f,0.55f,1f,    90,   20.5f,2, 11f, BrainrotKind.Bombardiro,  1.2f, 1500),
-            T(Tier.Epic,      "Эпическое",    "Epic",      0.7f,0.3f,1f,      180,  29f,  3, 12f, BrainrotKind.Tralalero,   1.3f, 9e4),
+            T(Tier.Epic,      "Эпическое",    "Epic",      0.7f,0.3f,1f,      180,  26f,  1, 12f, BrainrotKind.Tralalero,   1.3f, 9e4),
             T(Tier.Legendary, "Легендарное",  "Legendary", 1f,0.78f,0.1f,     300,  35f,  3, 13f, BrainrotKind.Patapim,     1.45f, 6e5),
             T(Tier.Mythic,    "Мифическое",   "Mythic",    1f,0.25f,0.3f,     480,  41.5f,  4, 14f, BrainrotKind.Cappuccino,  1.6f, 1e7),
             T(Tier.Divine,    "Божественное", "Divine",    1f,0.95f,0.6f,     720,  47f,  4, 15f, BrainrotKind.VacaSaturno, 1.7f, 2.8e8),

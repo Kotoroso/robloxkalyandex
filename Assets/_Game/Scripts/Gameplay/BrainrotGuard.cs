@@ -80,7 +80,7 @@ namespace DragonHeist
             if (state == State.Chase && botTarget == null) return; // уже гонимся за игроком
             if (state == State.Sleep)
             {
-                wakeTimer = 0.45f;
+                wakeTimer = 1.1f; // боту — фора, чтобы он успевал убежать с яйцом
                 zzz.text = "!";
                 zzz.color = new Color(1f, 0.3f, 0.2f);
             }

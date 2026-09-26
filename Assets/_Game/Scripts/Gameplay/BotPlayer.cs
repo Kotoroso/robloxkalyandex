@@ -26,7 +26,7 @@ namespace DragonHeist
         List<Vector3> plots;
         readonly Queue<Step> plan = new Queue<Step>();
         Step cur;
-        float timer, phase, speed, yVel, yOff;
+        float timer, phase, speed, baseSpeed, yVel, yOff;
         Treadmill mill;
         GameObject carried;
         EggPedestal carriedFrom;
@@ -74,7 +74,7 @@ namespace DragonHeist
                 b.rnd = new System.Random(100 + i);
                 b.av = Blocky.BuildAvatar(go.transform, Skins[rnd.Next(Skins.Length)], Shirts[(i * 2 + 1) % Shirts.Length], Pants[rnd.Next(Pants.Length)], 0.6f);
                 Hair(b.av.head, Hairs[rnd.Next(Hairs.Length)], i % 3);
-                b.speed = 13f + (float)rnd.NextDouble() * 5f;
+                b.speed = b.baseSpeed = 12f + (float)rnd.NextDouble() * 3f;
                 b.timer = i * 2f; // разный старт
             }
         }
@@ -99,6 +99,9 @@ namespace DragonHeist
             Blocky.Round = false; Blocky.RoundFactor = 0.2f;
         }
 
+        /// <summary>Фейк-игрок "качается": понемногу быстрее (как настоящий игрок), но не больше +7.</summary>
+        void SpeedUp(float v) { speed = Mathf.Min(baseSpeed + 7f, speed + v); }
+
         float R(float a, float b) { return a + (float)rnd.NextDouble() * (b - a); }
         void Go(Vector3 p) { plan.Enqueue(new Step { act = Act.Walk, pos = new Vector3(p.x, Y, p.z) }); }
         void Do(Act a, float t, Vector3 p = default(Vector3)) { plan.Enqueue(new Step { act = a, time = t, pos = p }); }
@@ -106,13 +109,13 @@ namespace DragonHeist
         /// <summary>Выбираем, чем заняться, и строим маршрут (выход из своей базы — через вход в скале).</summary>
         void PlanNext()
         {
-            if (mill != null) { mill.BotOccupied = false; mill = null; }
+            if (mill != null) { mill.BotOccupied = false; mill = null; SpeedUp(0.35f); }
             int roll = rnd.Next(100);
             var gm = GameManager.Instance;
             Vector3 gateIn = new Vector3(R(-4f, 4f), Y, GameConfig.BaseMaxZ - 7f);
             Vector3 gateOut = new Vector3(R(-4f, 4f), Y, GameConfig.BaseMaxZ + 8f);
 
-            if (roll < 45 && gm != null && gm.Pedestals.Count > 0 && plots.Count > 0)
+            if (roll < 55 && gm != null && gm.Pedestals.Count > 0 && plots.Count > 0)
             {
                 // за яйцом: база → ворота → дорога → яйцо → обратно → своя грядка
                 int maxTier = Mathf.Min(3, gm.Pedestals.Count - 1);
@@ -130,7 +133,7 @@ namespace DragonHeist
                 Do(Act.Wait, R(1f, 3f));
                 return;
             }
-            if (roll < 72)
+            if (roll < 78)
             {
                 // качаться на свободной беговой дорожке
                 var free = new List<Treadmill>();
@@ -147,7 +150,7 @@ namespace DragonHeist
                     return;
                 }
             }
-            if (roll < 85)
+            if (roll < 88)
             {
                 // прогулка по спавну и прыжки по клавишам
                 Go(entrance);
@@ -156,7 +159,7 @@ namespace DragonHeist
                 Go(entrance); Go(home);
                 return;
             }
-            if (roll < 92)
+            if (roll < 94)
             {
                 // к продавцу
                 Go(entrance); Go(new Vector3(-37f, Y, -17f)); Do(Act.Wait, R(2f, 4f)); Go(entrance); Go(home);
@@ -189,6 +192,7 @@ namespace DragonHeist
             {
                 Destroy(carried);
                 carried = null; carriedFrom = null;
+                SpeedUp(0.5f);
                 Fx.Burst(cur.pos + Vector3.up * 1.2f, new Color(0.6f, 1f, 0.6f), 16, 4f, 0.4f, 0.6f);
             }
         }
