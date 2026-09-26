@@ -53,8 +53,8 @@ namespace DragonHeist
                         done = () => Mathf.Abs(InputState.Zoom) > 0.01f, art = ArtWheel },
                     new Page { text = ru ? Y + "Пробел" + E + " — прыжок" : Y + "Space" + E + " — jump",
                         done = () => InputState.JumpPressed, art = ArtSpace },
-                    new Page { text = ru ? Y + "E" + E + " — действие: украсть яйцо (удерживай), открыть яйцо, взять дракона.\n" + Y + "1-5" + E + " — выбрать дракона в слоте"
-                                         : Y + "E" + E + " — action: steal an egg (hold), open an egg, take a dragon.\n" + Y + "1-5" + E + " — pick a dragon slot",
+                    new Page { text = ru ? Y + "E" + E + " — действие: украсть яйцо (удерживай), открыть яйцо, взять дракона"
+                                         : Y + "E" + E + " — action: steal an egg (hold), open an egg, take a dragon",
                         done = null, art = ArtE },
                 };
             }
@@ -74,8 +74,8 @@ namespace DragonHeist
                     new Page { text = ru ? "Кнопка " + Y + "«Прыжок»" + E + " справа внизу — прыжок"
                                          : "The " + Y + "Jump" + E + " button at the bottom right makes you jump",
                         done = () => InputState.JumpPressed, art = ArtJumpBtn },
-                    new Page { text = ru ? "У яйца, грядки или дорожки появится " + Y + "кнопка действия" + E + " — нажми её.\nТап по слоту внизу — выбрать дракона"
-                                         : "Near eggs, plots and treadmills an " + Y + "action button" + E + " appears — tap it.\nTap a slot below to pick a dragon",
+                    new Page { text = ru ? "У яйца, грядки или дорожки появится " + Y + "кнопка действия" + E + " — нажми её"
+                                         : "Near eggs, plots and treadmills an " + Y + "action button" + E + " appears — tap it",
                         done = null, art = ArtActionBtn },
                 };
             }

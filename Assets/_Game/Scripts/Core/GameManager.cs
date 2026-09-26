@@ -226,8 +226,9 @@ namespace DragonHeist
 
         public void SelectSlot(int slot)
         {
-            if (slot < 0 || slot >= GameConfig.InventorySlots) return;
-            D.selectedSlot = (D.selectedSlot == slot || D.dragonInv[slot] < 0) ? -1 : slot;
+            // выбор дракона "в руку" убран вместе с нижним инвентарём 1-5
+            if (D.selectedSlot == -1) return;
+            D.selectedSlot = -1;
             GameAudio.Play(Sfx.Click);
             RecalcStats();
             if (OnHeldChanged != null) OnHeldChanged();
@@ -259,7 +260,6 @@ namespace DragonHeist
             D.dragonInv[slot] = p.dragonId;
             D.dragonInvLvl[slot] = p.level;
             p.state = (int)PlotState.Empty;
-            D.selectedSlot = slot;
             RecalcStats();
             if (OnHeldChanged != null) OnHeldChanged();
             GameAudio.Play(Sfx.Grab);

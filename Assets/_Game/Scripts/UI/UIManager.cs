@@ -160,8 +160,10 @@ namespace DragonHeist
             invText = UIKit.Fit(UIKit.Label(UIKit.Rect(h, "Inv", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, mobile ? 134 : 130), new Vector2(380, 26)), "", 17, new Color(1f, 0.85f, 0.4f)), 12);
 
             // ===== Слоты драконов снизу =====
-            BuildHotbar(h);
+            // нижний инвентарь 1-5 убран: надетые драконы видны в окне "Драконы" и летают рядом с игроком
+            slotBg = new Image[0]; slotName = new Text[0]; slotIcon = new Image[0];
             heldText = UIKit.Fit(UIKit.Label(UIKit.Rect(h, "Held", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, mobile ? 106 : 102), new Vector2(mobile ? 540 : 620, 26)), "", 18, new Color(0.7f, 1f, 0.85f)), 12);
+            heldText.gameObject.SetActive(false); // дракона "в руке" больше нет
             UIKit.Inset(heldText, 6, 0);
             UIKit.Inset(invText, 6, 0);
             // телефон: подписи над слотами — по ширине полосы слотов (правее джойстика, левее прыжка)

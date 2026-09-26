@@ -79,7 +79,7 @@ namespace DragonHeist
             { "take_dragon",  new[]{ "Забрать дракона", "Pick up dragon" } },
             { "place_dragon", new[]{ "Поставить дракона", "Place dragon" } },
             { "inv_full",     new[]{ "Слоты драконов заполнены (5/5)! Продай лишних продавцу", "Dragon slots are full (5/5)! Sell extras to the merchant" } },
-            { "dragon_taken", new[]{ "Дракон в слотах! Нажми на слот (или 1-5), чтобы взять в руку", "Dragon added to slots! Tap a slot (or 1-5) to hold it" } },
+            { "dragon_taken", new[]{ "Дракон надет! Он даёт бонусы и летает рядом", "Dragon equipped! It gives bonuses and flies next to you" } },
             { "seller",       new[]{ "Продавец драконов", "Dragon Merchant" } },
             { "talk_seller",  new[]{ "Продать драконов", "Sell dragons" } },
             { "sell_title",   new[]{ "Продать драконов", "Sell dragons" } },

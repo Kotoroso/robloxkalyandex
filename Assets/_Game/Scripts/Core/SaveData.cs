@@ -68,7 +68,7 @@ namespace DragonHeist
             while (treadmillAds.Count < GameConfig.Treadmills.Length) treadmillAds.Add(0);
             if (dragonInv == null) dragonInv = new List<int>();
             while (dragonInv.Count < GameConfig.InventorySlots) dragonInv.Add(-1);
-            if (selectedSlot >= GameConfig.InventorySlots) selectedSlot = -1;
+            selectedSlot = -1; // дракона "в руке" больше нет (нижний инвентарь убран)
             switchType = Mathf.Clamp(switchType, 0, 2);
             if (dragonInvLvl == null) dragonInvLvl = new List<int>();
             while (dragonInvLvl.Count < GameConfig.InventorySlots) dragonInvLvl.Add(1);
