@@ -48,9 +48,23 @@ namespace DragonHeist
         /// <summary>Общая громкость эффектов (было громко — теперь спокойнее).</summary>
         public const float SfxVolume = 0.45f;
 
+        static readonly string[] SwitchNames = { "blue", "brown", "red" };
+        AudioClip[][] realSwitches;
+
         public static void PlaySwitch(int type, bool down)
         {
             if (inst == null || inst.switches == null) return;
+            type = Mathf.Clamp(type, 0, 2);
+            // настоящие записи свитчей Cherry MX (Mechvibes, MIT) — случайное нажатие из 6
+            var real = inst.realSwitches != null ? inst.realSwitches[type] : null;
+            if (real != null && real.Length > 0)
+            {
+                if (!down) return;
+                var s = inst.NextSource();
+                s.pitch = Random.Range(0.96f, 1.04f);
+                s.PlayOneShot(real[Random.Range(0, real.Length)], 0.9f * SfxVolume * 1.6f);
+                return;
+            }
             var src = inst.NextSource();
             src.pitch = Random.Range(0.94f, 1.06f);
             src.PlayOneShot(inst.switches[Mathf.Clamp(type, 0, 2), down ? 0 : 1], (down ? 0.55f : 0.35f) * SfxVolume * 1.6f);
@@ -103,6 +117,13 @@ namespace DragonHeist
             clips[(int)Sfx.Whoosh] = Load("whoosh") ?? Make("whoosh", 0.4f, (t, d) => LP(Noise(), Lerp(0.05f, 0.4f, Mathf.Sin(t / d * Mathf.PI))) * Mathf.Sin(t / d * Mathf.PI) * 0.5f);
 
             BuildSwitches();
+            realSwitches = new AudioClip[3][];
+            for (int t = 0; t < 3; t++)
+            {
+                var list = new System.Collections.Generic.List<AudioClip>();
+                for (int i = 1; i <= 6; i++) { var c = Load("sw_" + SwitchNames[t] + "_" + i); if (c != null) list.Add(c); }
+                realSwitches[t] = list.ToArray();
+            }
 
             music = gameObject.AddComponent<AudioSource>();
             music.loop = true;

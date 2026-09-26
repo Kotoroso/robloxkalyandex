@@ -129,6 +129,33 @@ namespace DragonHeist
             FlowerBed(new Vector3(12f, 0.6f, 5f), 8f, 1.6f);
         }
 
+        /// <summary>Деревянная вывеска на двух столбах: доска из досок, рамка, крупный текст на лицевой стороне.</summary>
+        static void WoodSign(Vector3 basePos, Vector3 facing, string text, Color textColor, float width)
+        {
+            var root = new GameObject("WoodSign").transform;
+            root.SetParent(signs, false);
+            root.position = basePos;
+            root.rotation = Quaternion.LookRotation(facing);
+            var wood = Mats.Plastic(new Color(0.62f, 0.4f, 0.22f));
+            var woodDark = Mats.Plastic(new Color(0.45f, 0.28f, 0.15f));
+            float h = 3.6f;
+            // столбы
+            Blocky.Part(root, new Vector3(-width * 0.38f, 1.2f, -0.1f), new Vector3(0.45f, 2.4f, 0.45f), woodDark);
+            Blocky.Part(root, new Vector3(width * 0.38f, 1.2f, -0.1f), new Vector3(0.45f, 2.4f, 0.45f), woodDark);
+            // доски (три горизонтальные планки) и рамка
+            for (int i = 0; i < 3; i++)
+                Blocky.Part(root, new Vector3(0, 2.2f + h * (i + 0.5f) / 3f, 0), new Vector3(width, h / 3f - 0.06f, 0.35f), i % 2 == 0 ? wood : Mats.Plastic(new Color(0.66f, 0.43f, 0.24f)));
+            Blocky.Part(root, new Vector3(0, 2.2f + h + 0.12f, 0), new Vector3(width + 0.5f, 0.3f, 0.5f), woodDark);
+            Blocky.Part(root, new Vector3(0, 2.2f - 0.12f, 0), new Vector3(width + 0.5f, 0.3f, 0.5f), woodDark);
+            Blocky.Part(root, new Vector3(-width / 2f - 0.1f, 2.2f + h / 2f, 0), new Vector3(0.3f, h + 0.5f, 0.5f), woodDark);
+            Blocky.Part(root, new Vector3(width / 2f + 0.1f, 2.2f + h / 2f, 0), new Vector3(0.3f, h + 0.5f, 0.5f), woodDark);
+            // текст на лицевой стороне (не поворачивается к камере)
+            var l = Blocky.Label(root, text, new Vector3(0, 2.2f + h / 2f, 0.22f), Mathf.Clamp(width / text.Length * 1.9f, 1.4f, 3.2f), textColor);
+            l.billboard = false;
+            l.maxDistance = 160f;
+            l.transform.localRotation = Quaternion.Euler(0, 180f, 0);
+        }
+
         /// <summary>Области, где не нужны клавиши пола (спавн, площадка сдачи и т.п.).</summary>
         public static readonly List<Rect> SkipRects = new List<Rect>();
 
@@ -153,10 +180,9 @@ namespace DragonHeist
                 WallZ(center.x + hx + 1f, center.z - hz - 1f, center.z + hz + 1f);
                 entrance = new Vector3(center.x, 0, center.z + hz);
             }
-            // ник над входом (на скале) и цветная полоса-вывеска
-            Blocky.Label(signs, title, entrance + new Vector3(0, WallHeight + 3.2f, 0), 1.6f, titleColor);
-            Vector3 barSize = side < 2 ? new Vector3(0.4f, 1.2f, size.y * 0.8f) : new Vector3(size.x * 0.8f, 1.2f, 0.4f);
-            Blocky.Part(staticRoot, entrance + new Vector3(0, WallHeight + 1.2f, 0), barSize, Mats.Plastic(accent));
+            // деревянная вывеска с ником на скале над входом (смотрит внутрь спавна)
+            Vector3 dirIn = side == 0 ? Vector3.right : side == 1 ? Vector3.left : Vector3.forward;
+            WoodSign(entrance + new Vector3(0, WallHeight + 1.4f, 0) - dirIn * 0.2f, dirIn, title, titleColor, Mathf.Min(16f, (side < 2 ? size.y : size.x) * 0.85f));
             if (!bot) return;
             var rnd2 = new System.Random((int)(center.x * 13 + center.z * 7));
             for (int i = 0; i < 6; i++)
@@ -569,9 +595,15 @@ namespace DragonHeist
 #else
             var lights = Object.FindObjectsOfType<Light>();
 #endif
-            foreach (var l in lights) Object.Destroy(l.gameObject);
-
-            var sun = new GameObject("Sun").AddComponent<Light>();
+            // не удаляем свет из сцены (на него ссылаются настройки освещения) — берём существующий направленный
+            Light sun = null;
+            foreach (var l in lights)
+            {
+                if (l == null) continue;
+                if (sun == null && l.type == LightType.Directional) sun = l;
+                else l.enabled = false;
+            }
+            if (sun == null) sun = new GameObject("Sun").AddComponent<Light>();
             sun.type = LightType.Directional;
             sun.transform.rotation = Quaternion.Euler(50f, -35f, 0);
             sun.intensity = 1.0f;

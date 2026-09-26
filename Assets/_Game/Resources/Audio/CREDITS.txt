@@ -38,3 +38,8 @@ They are original work and are dedicated to the public domain under CC0.
 whoosh.ogg   band-pass noise sweep, 0.5s
 levelup.ogg  rising C-major arpeggio and chord, 1.0s (for rebirth / level up)
 magic.ogg    rising shimmer or sparkle, 0.9s (for hatch / magic)
+
+Mechanical keyboard switch sounds (sw_blue_*, sw_brown_*, sw_red_*):
+  Source: Mechvibes by Hai Nguyen — https://github.com/hainguyents13/mechvibes
+  Packs: src/audio/cherrymx-blue-pbt, cherrymx-brown-pbt, cherrymx-red-pbt (sound.ogg, trimmed to single key presses)
+  License: MIT License, Copyright (c) 2021 Hai Nguyen

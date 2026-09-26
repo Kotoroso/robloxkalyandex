@@ -48,7 +48,11 @@ namespace DragonHeist.EditorTools
             PlayerSettings.WebGL.decompressionFallback = true;       // работает на любом хостинге
             PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.None;
             PlayerSettings.WebGL.dataCaching = true;
+#if UNITY_2021_2_OR_NEWER
+            PlayerSettings.SetManagedStrippingLevel(UnityEditor.Build.NamedBuildTarget.WebGL, ManagedStrippingLevel.Medium);
+#else
             PlayerSettings.SetManagedStrippingLevel(BuildTargetGroup.WebGL, ManagedStrippingLevel.Medium);
+#endif
             AssetDatabase.SaveAssets();
             Debug.Log("[Dragon Heist] Проект настроен под WebGL / Яндекс Игры.");
         }
