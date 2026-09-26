@@ -27,11 +27,14 @@ namespace DragonHeist
             var kImg = knob.gameObject.AddComponent<Image>();
             kImg.sprite = UIKit.Circle; kImg.color = new Color(1, 1, 1, 0.55f); kImg.raycastTarget = false;
             joyKnob = knob;
+            if (UIKit.ApplySkin(bgImg, "joystick_bg", false)) bgImg.type = Image.Type.Simple;
+            if (UIKit.ApplySkin(kImg, "joystick_knob", false)) kImg.type = Image.Type.Simple;
 
             var jump = UIKit.Panel(root, "Jump", new Vector2(1, 0), new Vector2(1, 0), new Vector2(-40, 40), new Vector2(130, 130), new Color(1, 1, 1, 0.3f));
             jump.sprite = UIKit.Circle;
             jump.type = Image.Type.Simple;
             UIKit.Label(jump.transform, Loc.T("jump"), 24, Color.white);
+            if (UIKit.ApplySkin(jump, "jump", false)) { jump.type = Image.Type.Simple; UIKit.HideLabels(jump.transform); }
             UIKit.AddPointer(jump.gameObject, e => InputState.TouchJump = true, null);
         }
 

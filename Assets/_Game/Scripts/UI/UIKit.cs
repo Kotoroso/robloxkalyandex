@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
@@ -9,6 +10,54 @@ namespace DragonHeist
     public static class UIKit
     {
         static Sprite rounded, circle, gloss, pattern;
+        static readonly Dictionary<string, Sprite> skins = new Dictionary<string, Sprite>();
+
+        /// <summary>
+        /// Картинка интерфейса из Resources/Art/ui_&lt;name&gt;.png (например из нейросети), нарезанная под 9-slice:
+        /// рамка = 30% короткой стороны, на экране она всегда ~29 px, какого бы размера ни был файл. null — файла нет.
+        /// </summary>
+        public static Sprite Skin(string name)
+        {
+            Sprite s;
+            if (skins.TryGetValue(name, out s)) return s;
+            var t = Resources.Load<Texture2D>("Art/ui_" + name);
+            if (t != null)
+            {
+                float min = Mathf.Min(t.width, t.height);
+                float b = Mathf.Round(min * 0.3f);
+                t.wrapMode = name == "pattern" ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
+                s = Sprite.Create(t, new Rect(0, 0, t.width, t.height), new Vector2(0.5f, 0.5f), 100f * min / 96f, 0,
+                    SpriteMeshType.FullRect, name == "pattern" ? Vector4.zero : new Vector4(b, b, b, b));
+            }
+            skins[name] = s;
+            return s;
+        }
+
+        /// <summary>
+        /// Ставит картинку ui_&lt;name&gt; на Image вместо нарисованной кодом: убирает кодовую обводку, блик и узор
+        /// (они уже есть на картинке). tint=true — картинка белая/серая и красится цветом кнопки; false — показывается как есть.
+        /// </summary>
+        public static bool ApplySkin(Image img, string name, bool tint)
+        {
+            var s = Skin(name);
+            if (s == null || img == null) return false;
+            img.sprite = s;
+            img.type = Image.Type.Sliced;
+            if (!tint) img.color = Color.white;
+            foreach (var o in img.GetComponents<Outline>()) { o.enabled = false; Object.Destroy(o); }
+            foreach (var child in new[] { "Gloss", "Pattern" })
+            {
+                var c = img.transform.Find(child);
+                if (c != null) Object.Destroy(c.gameObject);
+            }
+            return true;
+        }
+
+        /// <summary>Прячет подпись на элементе (когда текст уже нарисован на картинке, например "NEW!").</summary>
+        public static void HideLabels(Transform t)
+        {
+            foreach (var tx in t.GetComponentsInChildren<Text>()) tx.enabled = false;
+        }
 
         public static Sprite PatternSprite { get { return Pattern; } }
 
@@ -18,6 +67,7 @@ namespace DragonHeist
             get
             {
                 if (pattern != null) return pattern;
+                if ((pattern = Skin("pattern")) != null) return pattern;
                 const int N = 32;
                 var tex = new Texture2D(N, N, TextureFormat.RGBA32, false);
                 tex.wrapMode = TextureWrapMode.Repeat;
@@ -41,6 +91,7 @@ namespace DragonHeist
             get
             {
                 if (rounded != null) return rounded;
+                if ((rounded = Skin("panel")) != null) return rounded;
                 const int N = 64; const float R = 20f;
                 var tex = new Texture2D(N, N, TextureFormat.RGBA32, false);
                 tex.wrapMode = TextureWrapMode.Clamp;
@@ -91,6 +142,7 @@ namespace DragonHeist
             get
             {
                 if (circle != null) return circle;
+                if ((circle = Skin("circle")) != null) return circle;
                 const int N = 64;
                 var tex = new Texture2D(N, N, TextureFormat.RGBA32, false);
                 var px = new Color[N * N];
@@ -201,6 +253,7 @@ namespace DragonHeist
             var pi = pt.gameObject.AddComponent<Image>();
             pi.sprite = Pattern; pi.type = Image.Type.Tiled; pi.raycastTarget = false;
             pt.SetAsFirstSibling();
+            ApplySkin(img, "button", true);
 
             if (icon != null)
             {
@@ -246,6 +299,7 @@ namespace DragonHeist
             var img = b.GetComponent<Image>();
             img.sprite = Circle;
             img.type = Image.Type.Simple;
+            if (ApplySkin(img, "button_round", true)) img.type = Image.Type.Simple;
             var gl = b.transform.Find("Gloss");
             if (gl != null) Object.Destroy(gl.gameObject);
             return b;

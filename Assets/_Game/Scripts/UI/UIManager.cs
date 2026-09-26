@@ -112,6 +112,7 @@ namespace DragonHeist
             tag.raycastTarget = false;
             var nt = UIKit.Label(tag.transform, "NEW!", 17, Color.white);
             nt.rectTransform.offsetMin = Vector2.zero; nt.rectTransform.offsetMax = Vector2.zero;
+            if (UIKit.ApplySkin(tag, "badge_new", false)) { tag.type = Image.Type.Simple; tag.preserveAspect = true; UIKit.HideLabels(tag.transform); }
             // шестерёнка справа сверху
             UIKit.CircleButton(h, "BtnSettings", Icons.Gear, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-16, -12), cb, brown, () => OnMenuButton(4));
             // красные квадраты справа: ежедневная награда (яйцо), драконы (лапа)
@@ -159,6 +160,7 @@ namespace DragonHeist
             toastBg = UIKit.Panel(h, "Toast", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(tx, -126), new Vector2(mobile ? 470 : 680, 54), new Color(0.05f, 0.05f, 0.1f, 0.75f), 2f);
             toastText = UIKit.Label(toastBg.transform, "", mobile ? 19 : 23, Color.white);
             toastBg.raycastTarget = false;
+            UIKit.ApplySkin(toastBg, "toast", true);
             toastBg.gameObject.SetActive(false);
 
             carryBg = UIKit.Panel(h, "Carry", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(tx, -186), new Vector2(mobile ? 470 : 560, 48), new Color(0.9f, 0.2f, 0.2f, 0.85f), 3f);
@@ -216,6 +218,7 @@ namespace DragonHeist
                     new Color(0.15f, 0.15f, 0.22f, 0.85f), () => { if (GameManager.Instance != null) GameManager.Instance.SelectSlot(k); });
                 Destroy(b.GetComponent<ButtonBounce>());
                 slotBg[i] = b.GetComponent<Image>();
+                UIKit.ApplySkin(slotBg[i], "slot", true);
                 slotIcon[i] = UIKit.Icon(b.transform, Icons.Dragon, new Vector2(0.5f, 0.5f), new Vector2(0, 8), s * 0.95f);
                 slotName[i] = UIKit.Label(b.transform, "", 12, Color.white, TextAnchor.LowerCenter);
                 var num = UIKit.Label(UIKit.Rect(b.transform, "N", new Vector2(0, 1), new Vector2(0, 1), new Vector2(4, -2), new Vector2(24, 24)), (i + 1).ToString(), 16, Gold, TextAnchor.UpperLeft);
@@ -228,6 +231,7 @@ namespace DragonHeist
             promptBg = UIKit.Panel(h, "Prompt", new Vector2(0, 0), new Vector2(0.5f, 0.5f), Vector2.zero, mobile ? new Vector2(300, 84) : new Vector2(330, 70),
                 new Color(0.06f, 0.06f, 0.1f, 0.85f), 3f);
             promptRt = promptBg.rectTransform;
+            UIKit.ApplySkin(promptBg, "prompt", true);
             var fill = UIKit.Panel(promptBg.transform, "Fill", Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero, new Color(0.3f, 0.9f, 0.4f, 0.55f));
             fill.rectTransform.anchorMin = Vector2.zero; fill.rectTransform.anchorMax = new Vector2(0, 1);
             fill.rectTransform.offsetMin = Vector2.zero; fill.rectTransform.offsetMax = Vector2.zero;
@@ -236,6 +240,7 @@ namespace DragonHeist
             // клавиша "E" как в ProximityPrompt
             var key = UIKit.Panel(promptBg.transform, "Key", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(10, 0), new Vector2(50, 50), Color.white, 2f);
             key.raycastTarget = false;
+            UIKit.ApplySkin(key, "key", false);
             promptKey = UIKit.Label(key.transform, mobile ? "!" : "E", 28, new Color(0.1f, 0.1f, 0.15f));
             var po = promptKey.GetComponents<Outline>();
             foreach (var o in po) o.enabled = false;
@@ -259,17 +264,20 @@ namespace DragonHeist
             UIKit.Stretch(pat, 8);
             var pi = pat.gameObject.AddComponent<Image>();
             pi.sprite = UIKit.PatternSprite; pi.type = Image.Type.Tiled; pi.raycastTarget = false; pi.color = new Color(1, 1, 1, 0.5f);
+            if (UIKit.ApplySkin(bg, "window", false)) pat.gameObject.SetActive(false);
             var header = UIKit.Panel(bg.transform, "Header", new Vector2(0.5f, 1), new Vector2(0.5f, 1), Vector2.zero, new Vector2(sz.x, 86), color, 5f);
             var hrt = header.rectTransform;
             hrt.anchorMin = new Vector2(0, 1); hrt.anchorMax = new Vector2(1, 1);
             hrt.offsetMin = new Vector2(0, -86); hrt.offsetMax = new Vector2(0, 0);
             var hg = UIKit.Rect(header.transform, "HeaderGloss", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -4), new Vector2(sz.x - 16, 34));
             var hgi = hg.gameObject.AddComponent<Image>(); hgi.sprite = UIKit.Rounded; hgi.type = Image.Type.Sliced; hgi.color = new Color(1, 1, 1, 0.18f); hgi.raycastTarget = false;
+            if (UIKit.ApplySkin(header, "header", true)) hg.gameObject.SetActive(false);
             var tl = UIKit.Label(header.transform, title.ToUpper(), 42, Color.white);
             foreach (var o in tl.GetComponents<Outline>()) o.effectDistance *= 1.4f;
             var go = bg.gameObject;
-            UIKit.Button(header.transform, "Close", "X", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-14, 0), new Vector2(66, 62),
+            var close = UIKit.Button(header.transform, "Close", "X", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-14, 0), new Vector2(66, 62),
                 new Color(0.93f, 0.22f, 0.28f), () => go.SetActive(false), 34);
+            if (UIKit.ApplySkin(close.GetComponent<Image>(), "close", false)) UIKit.HideLabels(close.transform);
             body = UIKit.Rect(bg.transform, "Body", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -44), new Vector2(sz.x - 40, sz.y - 120));
             go.AddComponent<PopIn>();
             go.SetActive(false);
@@ -420,6 +428,7 @@ namespace DragonHeist
             eggIcon.gameObject.AddComponent<TitleWobble>();
             var nw = UIKit.Panel(egg.transform, "New", new Vector2(0, 1), new Vector2(0, 1), new Vector2(10, -8), new Vector2(110, 40), new Color(0.9f, 0.2f, 0.2f), 3f);
             UIKit.Label(nw.transform, "NEW!", 22, Color.white);
+            if (UIKit.ApplySkin(nw, "badge_new", false)) { nw.type = Image.Type.Simple; nw.preserveAspect = true; UIKit.HideLabels(nw.transform); }
             UIKit.Label(UIKit.Rect(egg.transform, "T", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(90, -6), new Vector2(600, 40)), Loc.Ru ? "ДРАКОНЬЕ ЯЙЦО" : "DRAGON EGG", 32, new Color(1f, 0.95f, 0.8f));
             int k = 0;
             foreach (var d in GameConfig.Dragons)
@@ -491,6 +500,7 @@ namespace DragonHeist
             b.raycastTarget = false;
             b.transform.localRotation = Quaternion.Euler(0, 0, -10f);
             UIKit.Label(b.transform, "x2", 32, Color.white);
+            if (UIKit.ApplySkin(b, "badge_x2", false)) { b.type = Image.Type.Simple; b.preserveAspect = true; UIKit.HideLabels(b.transform); }
         }
 
         /// <summary>Магазин трейлов: горизонтальная лента карточек, покупка за монеты или Яны.</summary>
