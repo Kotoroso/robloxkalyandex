@@ -253,6 +253,7 @@ namespace DragonHeist
         public static readonly System.Collections.Generic.Dictionary<string, CatalogItem> Catalog = new System.Collections.Generic.Dictionary<string, CatalogItem>();
         public static bool PaymentsReady;
         static readonly System.Collections.Generic.List<string> pendingOwned = new System.Collections.Generic.List<string>();
+        static readonly System.Collections.Generic.HashSet<string> grantedTokens = new System.Collections.Generic.HashSet<string>();
 
         public static void InitPayments()
         {
@@ -265,8 +266,6 @@ namespace DragonHeist
 
         public static string PriceText(ProductDef p) { return PriceText(p.id, p.fallbackPrice); }
 
-        /// <summary>Курс для примерной цены в долларах (только когда каталог Яндекса недоступен). 1 ян ≈ 1 ₽.</summary>
-        public const double UsdPerYan = 0.0125;
 
         public static string PriceText(string id, string fallback)
         {
@@ -325,6 +324,8 @@ namespace DragonHeist
         {
             var gm = GameManager.Instance;
             if (gm == null) { pendingOwned.Add(id + "|" + token); return; }
+            // один и тот же токен не выдаём дважды (повторный getPurchases, пока consume ещё в пути)
+            if (!string.IsNullOrEmpty(token) && !grantedTokens.Add(token)) return;
             // все товары (включая новые noads_2h / noads_forever) выдаёт GameManager.GrantProduct
             bool consumable = gm.GrantProduct(id);
             // consume только для известных расходуемых товаров: постоянные (x2_*, trail_*, noads_forever) не расходуются

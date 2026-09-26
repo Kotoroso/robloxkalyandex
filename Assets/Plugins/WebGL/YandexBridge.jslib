@@ -51,7 +51,15 @@ mergeInto(LibraryManager.library, {
 
   YG_Consume: function (tokenPtr) {
     var token = UTF8ToString(tokenPtr);
-    if (window.ypayments) window.ypayments.consumePurchase(token).catch(function (e) { console.warn("consume", e); });
+    // consume с повторами: иначе расходуемая покупка останется необработанной (требование 1.13.1)
+    var tryConsume = function (attempt) {
+      if (!window.ypayments) return;
+      window.ypayments.consumePurchase(token).catch(function (e) {
+        console.warn("consume", e);
+        if (attempt < 5) setTimeout(function () { tryConsume(attempt + 1); }, 2000 * (attempt + 1));
+      });
+    };
+    tryConsume(0);
   },
 
   // 1 — SDK готов ИЛИ точно недоступен (нет sdk.js / init упал), чтобы Unity не ждала зря

@@ -37,19 +37,24 @@ namespace DragonHeist
         {
             UIKit.Stretch(rt);
             bool ru = Loc.Ru;
+            const string Y = "<color=#FFD84A>", E = "</color>";
             if (!mobile)
             {
                 pages = new[]
                 {
-                    new Page { text = ru ? "Ходи клавишами <color=#FFD84A>W A S D</color>" : "Walk with <color=#FFD84A>W A S D</color>",
+                    new Page { text = ru ? "Ходи клавишами " + Y + "W A S D" + E + " или " + Y + "стрелками" + E
+                                         : "Walk with " + Y + "W A S D" + E + " or the " + Y + "arrow keys" + E,
                         done = () => InputState.Move.sqrMagnitude > 0.3f, art = ArtKeys },
-                    new Page { text = ru ? "Зажми <color=#FFD84A>правую кнопку мыши</color> и двигай мышь — поворот камеры" : "Hold <color=#FFD84A>right mouse button</color> and move to turn the camera",
+                    new Page { text = ru ? "Зажми " + Y + "правую кнопку мыши" + E + " и двигай мышь, чтобы повернуть камеру"
+                                         : "Hold the " + Y + "right mouse button" + E + " and move the mouse to turn the camera",
                         done = () => InputState.LookDelta.sqrMagnitude > 20f, art = ArtMouse },
-                    new Page { text = ru ? "Крути <color=#FFD84A>колёсико мыши</color> — приблизить или отдалить камеру" : "Scroll the <color=#FFD84A>mouse wheel</color> to zoom",
+                    new Page { text = ru ? "Крути " + Y + "колёсико мыши" + E + ", чтобы приблизить или отдалить камеру"
+                                         : "Scroll the " + Y + "mouse wheel" + E + " to zoom the camera in and out",
                         done = () => Mathf.Abs(InputState.Zoom) > 0.01f, art = ArtWheel },
-                    new Page { text = ru ? "<color=#FFD84A>Пробел</color> — прыжок" : "<color=#FFD84A>Space</color> — jump",
+                    new Page { text = ru ? Y + "Пробел" + E + " — прыжок" : Y + "Space" + E + " — jump",
                         done = () => InputState.JumpPressed, art = ArtSpace },
-                    new Page { text = ru ? "<color=#FFD84A>E</color> — украсть яйцо, открыть яйцо, купить.\n<color=#FFD84A>1-5</color> — взять дракона из слота в руку" : "<color=#FFD84A>E</color> — steal, open eggs, buy.\n<color=#FFD84A>1-5</color> — hold a dragon from a slot",
+                    new Page { text = ru ? Y + "E" + E + " — действие: украсть яйцо (удерживай), открыть яйцо, взять дракона.\n" + Y + "1-5" + E + " — выбрать дракона в слоте"
+                                         : Y + "E" + E + " — action: steal an egg (hold), open an egg, take a dragon.\n" + Y + "1-5" + E + " — pick a dragon slot",
                         done = null, art = ArtE },
                 };
             }
@@ -57,15 +62,20 @@ namespace DragonHeist
             {
                 pages = new[]
                 {
-                    new Page { text = ru ? "Веди пальцем по <color=#FFD84A>левой части экрана</color> — это джойстик, чтобы ходить" : "Drag on the <color=#FFD84A>left side</color> of the screen to walk",
+                    new Page { text = ru ? "Джойстик: веди пальцем по " + Y + "левой части экрана" + E + ", чтобы бегать"
+                                         : "Joystick: drag on the " + Y + "left side of the screen" + E + " to run",
                         done = () => InputState.Move.sqrMagnitude > 0.3f, art = ArtJoystick },
-                    new Page { text = ru ? "Проведи пальцем по <color=#FFD84A>правой части экрана</color> — поворот камеры" : "Swipe on the <color=#FFD84A>right side</color> to turn the camera",
+                    new Page { text = ru ? "Проведи пальцем по " + Y + "правой части экрана" + E + ", чтобы повернуть камеру"
+                                         : "Swipe on the " + Y + "right side of the screen" + E + " to turn the camera",
                         done = () => InputState.LookDelta.sqrMagnitude > 20f, art = ArtSwipe },
-                    new Page { text = ru ? "Сведи или разведи <color=#FFD84A>два пальца</color> — приблизить камеру" : "Pinch with <color=#FFD84A>two fingers</color> to zoom",
+                    new Page { text = ru ? "Сведи или разведи " + Y + "два пальца" + E + ", чтобы приблизить или отдалить камеру"
+                                         : "Pinch with " + Y + "two fingers" + E + " to zoom the camera in and out",
                         done = () => Mathf.Abs(InputState.Zoom) > 0.01f, art = ArtPinch },
-                    new Page { text = ru ? "Кнопка <color=#FFD84A>«Прыжок»</color> справа внизу — прыжок" : "The <color=#FFD84A>Jump</color> button in the bottom right",
+                    new Page { text = ru ? "Кнопка " + Y + "«Прыжок»" + E + " справа внизу — прыжок"
+                                         : "The " + Y + "Jump" + E + " button at the bottom right makes you jump",
                         done = () => InputState.JumpPressed, art = ArtJumpBtn },
-                    new Page { text = ru ? "Рядом с яйцом или грядкой появится <color=#FFD84A>кнопка действия</color> — нажми её.\nТап по слоту внизу — дракон в руку" : "Near eggs and plots an <color=#FFD84A>action button</color> appears — tap it.\nTap a slot to hold a dragon",
+                    new Page { text = ru ? "У яйца, грядки или дорожки появится " + Y + "кнопка действия" + E + " — нажми её.\nТап по слоту внизу — выбрать дракона"
+                                         : "Near eggs, plots and treadmills an " + Y + "action button" + E + " appears — tap it.\nTap a slot below to pick a dragon",
                         done = null, art = ArtActionBtn },
                 };
             }

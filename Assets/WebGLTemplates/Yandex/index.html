@@ -20,7 +20,7 @@
 </head>
 <body oncontextmenu="return false;">
   <canvas id="unity-canvas" tabindex="-1"></canvas>
-  <div id="loader"><h1>{{{ PRODUCT_NAME }}}</h1><div id="bar"><div id="fill"></div></div></div>
+  <div id="loader"><h1 id="loader-title">{{{ PRODUCT_NAME }}}</h1><div id="bar"><div id="fill"></div></div></div>
   <script>
     window.ysdk = null;
     window.yplayer = null;
@@ -103,10 +103,19 @@
       });
     };
 
+    // Заголовок экрана загрузки на языке портала (ru/be/kk/uk/uz — русский, иначе английский)
+    function ygLoaderTitle(lang) {
+      var ru = /^(ru|be|kk|uk|uz)/i.test(lang || "");
+      var el = document.getElementById("loader-title");
+      if (el) el.textContent = ru ? "Укради Дракона" : "Steal a Dragon";
+    }
+    ygLoaderTitle(navigator.language);
+
     function initYandex() {
       if (typeof YaGames === "undefined") { window.ysdkFailed = true; window.yplayerFailed = true; return; }
       YaGames.init().then(function (sdk) {
         window.ysdk = sdk;
+        try { ygLoaderTitle(sdk.environment.i18n.lang); } catch (e) { }
         // Пауза/возобновление от платформы: реклама при запуске (без колбэков), диалог покупки, смена вкладки.
         // Платформа сама вызывает GameplayAPI.stop()/start(); игра глушит звук и ставит паузу.
         if (typeof sdk.on === "function") {
