@@ -31,7 +31,9 @@ namespace DragonHeist
         Text dragTotals;
         GameObject trailsPanel, eggsPanel;
         Text[] trailCoinBtn, trailYanBtn; Button[] trailYanButtons; Image[] trailCards;
-        Text eggsBody; Text[] equipTexts; Button[] equipBtns; Button[] unequipBtns; Text[] unequipTexts;
+        Text eggsBody; RectTransform eggsGrid; Button eggsPlant, eggsPlantAll; string eggsSig = null; int eggSel = int.MinValue;
+        readonly List<KeyValuePair<int, Image>> eggCards = new List<KeyValuePair<int, Image>>();
+        Text[] equipTexts; Button[] equipBtns; Button[] unequipBtns; Text[] unequipTexts;
         readonly List<KeyValuePair<Image, DragonDef>> store3D = new List<KeyValuePair<Image, DragonDef>>();
         bool store3DDone;
         readonly Dictionary<string, Text> yanPriceById = new Dictionary<string, Text>();
@@ -611,14 +613,74 @@ namespace DragonHeist
         public void OpenTrails() { ShowOnly(trailsPanel); }
 
         /// <summary>Инвентарь яиц: сколько яиц ждёт свободной грядки.</summary>
+        /// <summary>
+        /// Инвентарь яиц: карточка на каждый вид яйца (иконка, название, количество) — выбираешь яйцо и сажаешь его
+        /// кнопкой "Посадить" на свободную грядку, или "Посадить все".
+        /// </summary>
         GameObject BuildEggs()
         {
             RectTransform body;
-            var go = Modal(Loc.Ru ? "Яйца" : "Eggs", new Color(0.9f, 0.2f, 0.2f), new Vector2(620, 460), out body);
-            // тело 580x340: яйцо 2..102 от верха, текст 108..340 (ниже яйца, до низа тела)
-            UIKit.Icon(body, IconArt.Egg(Tier.Epic), new Vector2(0.5f, 1), new Vector2(0, -52), 100);
-            eggsBody = UIKit.Fit(UIKit.Label(UIKit.Rect(body, "T", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -54), new Vector2(560, 232)), "", 21, Color.white), 13);
+            var go = Modal(Loc.Ru ? "Яйца" : "Eggs", new Color(0.9f, 0.2f, 0.2f), new Vector2(780, 600), out body);
+            // тело 740x480 (от верха): сетка 0..300, текст 306..404, кнопки 416..480
+            eggsGrid = UIKit.Scroll(body, new Vector2(0.5f, 1), new Vector2(0, -150), new Vector2(body.sizeDelta.x, 300), false);
+            eggsBody = UIKit.Fit(UIKit.Label(UIKit.Rect(body, "T", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -306), new Vector2(body.sizeDelta.x - 20, 98)), "", 20, Color.white), 13);
+            eggsPlant = UIKit.Button(body, "Plant", Loc.Ru ? "Посадить" : "Plant", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-150, 0), new Vector2(280, 62),
+                new Color(0.3f, 0.8f, 0.35f), () => { if (eggSel != int.MinValue) GameManager.Instance.PlantFromInventory(eggSel); eggsSig = null; RefreshPanels(); }, 26);
+            eggsPlantAll = UIKit.Button(body, "PlantAll", Loc.Ru ? "Посадить все" : "Plant all", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(150, 0), new Vector2(280, 62),
+                new Color(1f, 0.6f, 0.15f), () => { GameManager.Instance.PlantAllFromInventory(); eggsSig = null; RefreshPanels(); }, 26);
             return go;
+        }
+
+        static string EggKindName(int key) { return key == -1 ? (Loc.Ru ? "Драконье яйцо" : "Dragon Egg") : Loc.TierName((Tier)key); }
+
+        void RefreshEggs(SaveData d, GameManager gm)
+        {
+            // виды яиц и количество: сначала Драконьи, потом по убыванию тира
+            var counts = new SortedDictionary<int, int>(Comparer<int>.Create((x, y) => (x == -1 ? 100 : x) == (y == -1 ? 100 : y) ? 0 : ((x == -1 ? 100 : x) > (y == -1 ? 100 : y) ? -1 : 1)));
+            foreach (var e in d.inventory) { int k = GameManager.EggKey(e); int c; counts.TryGetValue(k, out c); counts[k] = c + 1; }
+            if (!counts.ContainsKey(eggSel)) { eggSel = int.MinValue; foreach (var kv in counts) { eggSel = kv.Key; break; } }
+
+            var sig = new StringBuilder();
+            foreach (var kv in counts) sig.Append(kv.Key).Append(':').Append(kv.Value).Append(';');
+            if (sig.ToString() != eggsSig)
+            {
+                eggsSig = sig.ToString();
+                foreach (Transform c in eggsGrid) Destroy(c.gameObject);
+                eggCards.Clear();
+                float cw = 132, ch = 146, gap = 10;
+                int cols = Mathf.Max(1, Mathf.FloorToInt((eggsGrid.sizeDelta.x + gap) / (cw + gap)));
+                int i = 0;
+                foreach (var kv in counts)
+                {
+                    int key = kv.Key, col = i % cols, row = i / cols;
+                    var b = UIKit.Button(eggsGrid, "Egg" + key, "", new Vector2(0.5f, 1), new Vector2(0.5f, 1),
+                        new Vector2((col - (cols - 1) / 2f) * (cw + gap), -6 - row * (ch + gap)), new Vector2(cw, ch), new Color(0.22f, 0.17f, 0.38f), () => { eggSel = key; RefreshPanels(); }, 16);
+                    Destroy(b.GetComponent<ButtonBounce>());
+                    UIKit.Icon(b.transform, IconArt.Egg(key == -1 ? Tier.Legendary : (Tier)key, key == -1), new Vector2(0.5f, 1), new Vector2(0, -50), 78);
+                    UIKit.Fit(UIKit.Label(UIKit.Rect(b.transform, "N", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 34), new Vector2(cw - 12, 26)), EggKindName(key), 16, Color.white), 10);
+                    UIKit.Fit(UIKit.Label(UIKit.Rect(b.transform, "C", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 8), new Vector2(cw - 12, 28)), "x" + kv.Value, 22, Gold), 14);
+                    eggCards.Add(new KeyValuePair<int, Image>(key, b.GetComponent<Image>()));
+                    i++;
+                }
+                int rows = (counts.Count + cols - 1) / cols;
+                eggsGrid.sizeDelta = new Vector2(eggsGrid.sizeDelta.x, Mathf.Max(300f, 12 + rows * (ch + gap)));
+            }
+            foreach (var kv in eggCards)
+                if (kv.Value != null) kv.Value.color = kv.Key == eggSel ? new Color(1f, 0.78f, 0.2f) : new Color(0.22f, 0.17f, 0.38f);
+
+            int free = gm.FreePlotCount;
+            string freeTxt = Loc.Ru ? "Свободных грядок: " + free : "Free plots: " + free;
+            if (counts.Count == 0)
+                eggsBody.text = Loc.Ru ? "Яиц в инвентаре нет.\nУкради яйцо у брейнротов или купи Драконье яйцо в магазине!" : "No eggs.\nSteal one from brainrots or get a Dragon Egg in the store!";
+            else if (eggSel == -1)
+                eggsBody.text = (Loc.Ru ? "<color=#FFD24A>Драконье яйцо</color> — эксклюзивный дракон, растёт 1 мин\n" : "<color=#FFD24A>Dragon Egg</color> — exclusive dragon, grows 1 min\n") + freeTxt;
+            else
+            {
+                var ti = GameConfig.GetTier(eggSel);
+                eggsBody.text = (Loc.Ru ? "Яйцо «" + EggKindName(eggSel) + "» — растёт " : EggKindName(eggSel) + " egg — grows ") + Loc.Time(ti.growSeconds * gm.GrowFactor) + "\n" + freeTxt;
+            }
+            eggsPlant.interactable = counts.Count > 0 && free > 0;
+            eggsPlantAll.interactable = counts.Count > 0 && free > 0;
         }
 
         GameObject BuildDaily()
@@ -1042,24 +1104,7 @@ namespace DragonHeist
                     foreach (var o in trailCards[i].GetComponents<Outline>()) o.effectColor = eq ? Gold : UIKit.Stroke;
                 }
             }
-            if (eggsPanel.activeSelf)
-            {
-                var sb = new StringBuilder();
-                if (d.inventory.Count == 0) sb.Append(Loc.Ru ? "Яиц в инвентаре нет.\nУкради яйцо у брейнротов или открой Драконье яйцо в магазине!" : "No eggs.\nSteal one from brainrots or get a Dragon Egg in the store!");
-                else
-                {
-                    var counts = new Dictionary<string, int>();
-                    foreach (var e in d.inventory)
-                    {
-                        string name = e.dragonId == GameConfig.PremiumEggMarker ? (Loc.Ru ? "Драконье яйцо" : "Dragon Egg") : Loc.TierName((Tier)e.tier);
-                        int c; counts.TryGetValue(name, out c); counts[name] = c + 1;
-                    }
-                    foreach (var kv in counts) sb.AppendLine(kv.Key + "  x" + kv.Value);
-                    sb.AppendLine();
-                    sb.Append(Loc.Ru ? "Яйца сами посадятся на свободные грядки.\nОсвободи грядку, чтобы посадить яйцо!" : "Eggs are planted automatically on free plots.\nFree up a plot to plant them!");
-                }
-                eggsBody.text = sb.ToString();
-            }
+            if (eggsPanel.activeSelf) RefreshEggs(d, gm);
             if (dailyPanel.activeSelf)
             {
                 int next = gm.DailyNextDay;

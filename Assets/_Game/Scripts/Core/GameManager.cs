@@ -264,17 +264,7 @@ namespace DragonHeist
             D.coins += CoinsPerSec * dt;
             UpdateAdTimer(Time.unscaledDeltaTime);
 
-            // сажаем яйца из инвентаря в освободившиеся грядки
-            if (D.inventory.Count > 0)
-            {
-                int free = FindFreePlot();
-                if (free >= 0)
-                {
-                    var e = D.inventory[0];
-                    D.inventory.RemoveAt(0);
-                    Plant(free, e.tier, e.dragonId);
-                }
-            }
+            // яйца из инвентаря игрок сажает сам (окно "Яйца": выбор яйца → "Посадить")
 
             saveTimer += Time.unscaledDeltaTime;
             cloudTimer += Time.unscaledDeltaTime;
@@ -301,6 +291,51 @@ namespace DragonHeist
             if (D.coins + 0.001 < price) return false;
             D.coins -= price;
             return true;
+        }
+
+        /// <summary>Ключ вида яйца для окна инвентаря: тир или −1 для Драконьего (донатного) яйца.</summary>
+        public static int EggKey(EggItem e) { return e.dragonId == GameConfig.PremiumEggMarker ? -1 : e.tier; }
+
+        public int FreePlotCount { get { int c = 0; for (int i = 0; i < D.plotsOwned && i < D.plots.Count; i++) if (D.plots[i].state == (int)PlotState.Empty) c++; return c; } }
+
+        /// <summary>Посадить из инвентаря яйцо выбранного вида на свободную грядку.</summary>
+        public bool PlantFromInventory(int key)
+        {
+            int free = FindFreePlot();
+            if (free < 0) { UIManager.Instance.Toast(Loc.Ru ? "Нет свободных грядок — забери дракона с грядки" : "No free plots — pick up a dragon first", new Color(1f, 0.6f, 0.4f)); return false; }
+            for (int i = 0; i < D.inventory.Count; i++)
+            {
+                var e = D.inventory[i];
+                if (EggKey(e) != key) continue;
+                D.inventory.RemoveAt(i);
+                Plant(free, e.tier, e.dragonId);
+                SaveNow(false);
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>Посадить все яйца, какие влезут: сначала Драконьи, потом по убыванию тира.</summary>
+        public int PlantAllFromInventory()
+        {
+            int planted = 0;
+            while (D.inventory.Count > 0 && FindFreePlot() >= 0)
+            {
+                int best = 0;
+                for (int i = 1; i < D.inventory.Count; i++)
+                {
+                    var a = D.inventory[i]; var b = D.inventory[best];
+                    bool ap = EggKey(a) == -1, bp = EggKey(b) == -1;
+                    if ((ap && !bp) || (ap == bp && a.tier > b.tier)) best = i;
+                }
+                var e = D.inventory[best];
+                D.inventory.RemoveAt(best);
+                Plant(FindFreePlot(), e.tier, e.dragonId);
+                planted++;
+            }
+            if (planted == 0) UIManager.Instance.Toast(Loc.Ru ? "Нет свободных грядок — забери дракона с грядки" : "No free plots — pick up a dragon first", new Color(1f, 0.6f, 0.4f));
+            else SaveNow(false);
+            return planted;
         }
 
         int FindFreePlot()
