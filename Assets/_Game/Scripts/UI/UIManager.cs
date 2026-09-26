@@ -100,7 +100,8 @@ namespace DragonHeist
             var brown = new Color(0.32f, 0.23f, 0.18f, 0.95f);
             float cb = mobile ? 76 : 96;
             // круглые кнопки слева сверху: улучшения (сумка), перерождение (книга)
-            UIKit.CircleButton(h, "BtnShop", Icons.Bag, new Vector2(0, 1), new Vector2(0, 1), new Vector2(16, -12), cb, brown, () => OnMenuButton(0));
+            var sb = UIKit.CircleButton(h, "BtnShop", Icons.Bag, new Vector2(0, 1), new Vector2(0, 1), new Vector2(16, -12), cb, brown, () => OnMenuButton(0));
+            HudCaption(sb.transform, Loc.Ru ? "Улучшения" : "Upgrades", cb);
             var rb = UIKit.CircleButton(h, "BtnTrails", Icons.Shoe, new Vector2(0, 1), new Vector2(0, 1), new Vector2(26 + cb, -12), cb, brown, () => OpenTrails());
             rebirthText = UIKit.Label(UIKit.Rect(rb.transform, "R", new Vector2(0.5f, 0), new Vector2(0.5f, 1), new Vector2(0, 8), new Vector2(cb + 20, 26)), Loc.Ru ? "Трейлы" : "Trails", 17, Color.white);
             UIKit.Fit(rebirthText, 12);
@@ -115,16 +116,15 @@ namespace DragonHeist
             nt.rectTransform.offsetMin = Vector2.zero; nt.rectTransform.offsetMax = Vector2.zero;
             if (UIKit.ApplySkin(tag, "badge_new", false)) { tag.type = Image.Type.Simple; tag.preserveAspect = true; UIKit.HideLabels(tag.transform); }
             // шестерёнка справа сверху
-            UIKit.CircleButton(h, "BtnSettings", Icons.Gear, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-16, -12), cb, brown, () => OnMenuButton(4));
+            var gb = UIKit.CircleButton(h, "BtnSettings", Icons.Gear, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-16, -12), cb, brown, () => OnMenuButton(4));
+            HudCaption(gb.transform, Loc.Ru ? "Настройки" : "Settings", cb);
             // красные квадраты справа: ежедневная награда (яйцо), драконы (лапа)
             float sq = mobile ? 78 : 92;
             var red = new Color(0.9f, 0.2f, 0.2f);
-            UIKit.Button(h, "BtnEggs", "", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-16, mobile ? 120 : 60), new Vector2(sq, sq), red, () => ShowOnly(eggsPanel), 14, Icons.Egg);
-            var dailyBtn = UIKit.Button(h, "BtnDaily", Loc.Ru ? "Награда" : "Daily", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-16, -24 - cb), new Vector2(cb, cb * 0.8f),
-                new Color(0.95f, 0.3f, 0.45f), () => ShowOnly(dailyPanel), 13, Icons.Star);
-            Destroy(dailyBtn.GetComponent<ButtonBounce>());
-            dailyBtn.gameObject.AddComponent<DailyBadge>();
-            UIKit.Button(h, "BtnDragons", "", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-16, (mobile ? 120 : 60) - sq - 10), new Vector2(sq, sq), red, () => OnMenuButton(2), 14, Icons.Paw);
+            // подпись прямо на кнопке (иконка сверху, текст снизу), чтобы было понятно, что это
+            UIKit.Button(h, "BtnEggs", Loc.Ru ? "Яйца" : "Eggs", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-16, mobile ? 120 : 60), new Vector2(sq, sq), red, () => ShowOnly(eggsPanel), 17, Icons.Egg);
+            // ежедневная награда — без кнопки: окно само открывается при заходе, если награду можно забрать (AfterPlay)
+            UIKit.Button(h, "BtnDragons", Loc.Ru ? "Драконы" : "Dragons", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-16, (mobile ? 120 : 60) - sq - 10), new Vector2(sq, sq), red, () => OnMenuButton(2), 16, Icons.Paw);
 
             // скорость (кроссовок) и деньги: на ПК — слева снизу, на телефоне — под верхними кнопками (снизу джойстик)
             // Телефон (от верха экрана): кнопки 12..88, подпись "Трейлы" до ~106, скорость 114..158, деньги 162..218, доход 218..266;
@@ -207,6 +207,13 @@ namespace DragonHeist
 
             // главное меню убрано — игрок сразу попадает в игру (см. StartGame)
             gameObject.AddComponent<ResponsiveCanvas>().Init(scaler, mobile, root);
+        }
+
+        /// <summary>Подпись под круглой кнопкой HUD (белый текст с обводкой).</summary>
+        static void HudCaption(Transform button, string text, float cb)
+        {
+            var t = UIKit.Label(UIKit.Rect(button, "Caption", new Vector2(0.5f, 0), new Vector2(0.5f, 1), new Vector2(0, 8), new Vector2(cb + 24, 26)), text, 17, Color.white);
+            UIKit.Fit(t, 11);
         }
 
         Text StatPill(Transform parent, int line, Sprite icon, Color color)
