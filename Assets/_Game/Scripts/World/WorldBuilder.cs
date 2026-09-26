@@ -67,6 +67,10 @@ namespace DragonHeist
             Tower(new Vector3(gap + 1.5f, 0, maxZ), new Color(1f, 0.85f, 0.2f));
 
             Blocky.Label(signs, Loc.T("base"), new Vector3(0, 11.5f, maxZ), 3f, new Color(1f, 0.92f, 0.3f));
+            // площадка сдачи яиц у ворот
+            Blocky.Part(staticRoot, new Vector3(0, 0.12f, maxZ - 4f), new Vector3(12f, 0.06f, 6f), Mats.Glow(new Color(0.3f, 1f, 0.45f)));
+            Blocky.Part(staticRoot, new Vector3(0, 0.13f, maxZ - 4f), new Vector3(10.8f, 0.06f, 4.8f), Mats.Studs(new Color(0.25f, 0.7f, 0.3f)));
+            Blocky.Label(signs, Loc.Ru ? "СДАЙ ЯЙЦО СЮДА" : "BRING EGGS HERE", new Vector3(0, 3.2f, maxZ - 4f), 1.4f, new Color(0.5f, 1f, 0.6f));
             Arch(new Vector3(0, 0, maxZ), gap - 0.5f, new Color(0.3f, 0.55f, 1f));
 
             // Грядки: 3 колонки x 4 ряда справа
@@ -322,12 +326,14 @@ namespace DragonHeist
             for (int i = 0; i < 16; i++)
             {
                 float side = i % 2 == 0 ? -1 : 1;
-                float x = side * R(110f, 150f);
+                float x = side * R(90f, 115f);
                 float z = -80f + i * (endZ + 160f) / 16f;
                 float h = R(14f, 30f);
                 Blocky.Part(staticRoot, new Vector3(x, h * 0.4f, z), new Vector3(R(30f, 50f), h, R(30f, 50f)), Mats.Plastic(new Color(0.3f, 0.62f, 0.3f)));
             }
             Blocky.Round = false; Blocky.RoundFactor = 0.2f;
+
+            BuildMountains(endZ);
 
             // облака (отдельно от статики — медленно плывут)
             var clouds = new GameObject("Clouds").AddComponent<CloudDrift>();
@@ -342,6 +348,40 @@ namespace DragonHeist
             }
             Blocky.Round = false; Blocky.RoundFactor = 0.2f;
             Blocky.NoShadows(clouds.gameObject);
+        }
+
+        /// <summary>
+        /// Кубические горы по краям карты (как в Майнкрафте): камень, земля, трава, снежные шапки.
+        /// Закрывают пустоту на горизонте. Высота — из шума Перлина, ступеньками по 4 юнита.
+        /// </summary>
+        static void BuildMountains(float endZ)
+        {
+            const float B = 8f;                // размер блока-колонны
+            float minX = -160f, maxX = 160f, minZ = -100f, maxZ = endZ + 100f;
+            var stone = Mats.Studs(new Color(0.52f, 0.52f, 0.55f));
+            var dirt = Mats.Studs(new Color(0.5f, 0.35f, 0.22f));
+            var grassTop = Mats.Studs(new Color(0.35f, 0.68f, 0.3f));
+            var snow = Mats.Studs(new Color(0.95f, 0.97f, 1f));
+            int rings = 4;
+            for (float x = minX; x <= maxX; x += B)
+                for (float z = minZ; z <= maxZ; z += B)
+                {
+                    // расстояние до края в блоках
+                    int d = Mathf.RoundToInt(Mathf.Min(Mathf.Min(x - minX, maxX - x), Mathf.Min(z - minZ, maxZ - z)) / B);
+                    if (d >= rings) continue;
+                    float n = Mathf.PerlinNoise(x * 0.021f + 13.7f, z * 0.021f + 5.3f);
+                    float h = (rings - d) * 7f + n * 26f + 6f;
+                    h = Mathf.Max(4f, Mathf.Round(h / 4f) * 4f);
+                    float cx = x, cz = z;
+                    // камень снизу
+                    Blocky.Part(staticRoot, new Vector3(cx, (h - 4f) / 2f, cz), new Vector3(B, h - 4f, B), h > 34f ? stone : dirt);
+                    // верхний блок: снег на высоких, трава на остальных
+                    var top = h > 38f ? snow : grassTop;
+                    Blocky.Part(staticRoot, new Vector3(cx, h - 2f, cz), new Vector3(B, 4f, B), top);
+                    // выступы-ступеньки для "майнкрафтовости"
+                    if (n > 0.55f && d > 0)
+                        Blocky.Part(staticRoot, new Vector3(cx, h + 2f, cz), new Vector3(B * 0.5f, 4f, B * 0.5f), h + 4f > 38f ? snow : grassTop);
+                }
         }
 
         static void SetupLighting()

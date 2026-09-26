@@ -160,7 +160,9 @@ namespace DragonHeist
 
             Animate(dt, mv.magnitude * walkSpeed, grounded);
 
-            if (Carrying != null && transform.position.z < GameConfig.BaseMaxZ && gm != null)
+            // яйцо засчитывается только когда игрок донёс его внутрь базы
+            if (Carrying != null && gm != null && transform.position.z < GameConfig.BaseMaxZ - 1f
+                && Mathf.Abs(transform.position.x) < WorldBuilder.BaseHalfWidth)
             {
                 gm.DepositEgg(Carrying);
                 DropCarried(false);
