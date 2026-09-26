@@ -376,7 +376,7 @@ namespace DragonHeist
 
             // --- Драконье яйцо ---
             var egg = UIKit.Panel(content, "DragonEgg", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -6), new Vector2(w, 270), new Color(1f, 0.72f, 0.12f), 3f);
-            var eggIcon = UIKit.Icon(egg.transform, IconRenderer.Egg(Tier.Legendary, true), new Vector2(0, 0.5f), new Vector2(110, 10), 210);
+            var eggIcon = UIKit.Icon(egg.transform, IconArt.Egg(Tier.Legendary, true), new Vector2(0, 0.5f), new Vector2(110, 10), 210);
             eggIcon.gameObject.AddComponent<TitleWobble>();
             var nw = UIKit.Panel(egg.transform, "New", new Vector2(0, 1), new Vector2(0, 1), new Vector2(10, -8), new Vector2(110, 40), new Color(0.9f, 0.2f, 0.2f), 3f);
             UIKit.Label(nw.transform, "NEW!", 22, Color.white);
@@ -386,7 +386,7 @@ namespace DragonHeist
             {
                 if (!d.exclusive) continue;
                 var c = UIKit.Panel(egg.transform, "X" + k, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-120 + k * 96, -52), new Vector2(88, 96), new Color(d.body.r * 0.5f, d.body.g * 0.5f, d.body.b * 0.5f, 1f), 2f);
-                UIKit.Icon(c.transform, IconRenderer.Dragon(d), new Vector2(0.5f, 0.5f), new Vector2(0, 8), 96);
+                UIKit.Icon(c.transform, IconArt.Dragon(d), new Vector2(0.5f, 0.5f), new Vector2(0, 8), 96);
                 UIKit.Label(UIKit.Rect(c.transform, "P", new Vector2(1, 0), new Vector2(1, 0), new Vector2(-2, 2), new Vector2(60, 26)), d.premiumChance + "%", 17, Color.white, TextAnchor.LowerRight);
                 k++;
             }
@@ -407,7 +407,7 @@ namespace DragonHeist
             UIKit.Label(UIKit.Rect(inc.transform, "T", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -12), new Vector2(250, 50)), Loc.Ru ? "x2 Доход" : "x2 Income", 32, Color.white, TextAnchor.MiddleRight);
             YanBuy(inc.transform, "x2_income", new Vector2(1, 0), new Vector2(-110, 50), new Vector2(190, 62), new Color(0.25f, 0.8f, 0.3f), 24);
             var gr = UIKit.Panel(content, "X2Grow", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(half / 2f + 6, -290), new Vector2(half, 200), new Color(0.4f, 0.85f, 0.95f), 3f);
-            UIKit.Icon(gr.transform, IconRenderer.Egg(Tier.Rare), new Vector2(0, 0.5f), new Vector2(80, 0), 150);
+            UIKit.Icon(gr.transform, IconArt.Egg(Tier.Rare), new Vector2(0, 0.5f), new Vector2(80, 0), 150);
             UIKit.Label(UIKit.Rect(gr.transform, "T", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -8), new Vector2(260, 70)), Loc.Ru ? "x2 Скорость\nроста яиц" : "x2 Egg\nGrowth", 26, Color.white, TextAnchor.MiddleRight);
             YanBuy(gr.transform, "x2_grow", new Vector2(1, 0), new Vector2(-110, 50), new Vector2(190, 62), new Color(0.25f, 0.8f, 0.3f), 24);
 
@@ -477,7 +477,7 @@ namespace DragonHeist
         {
             RectTransform body;
             var go = Modal(Loc.Ru ? "Яйца" : "Eggs", new Color(0.9f, 0.2f, 0.2f), new Vector2(620, 460), out body);
-            UIKit.Icon(body, IconRenderer.Egg(Tier.Epic), new Vector2(0.5f, 1), new Vector2(0, -60), 120);
+            UIKit.Icon(body, IconArt.Egg(Tier.Epic), new Vector2(0.5f, 1), new Vector2(0, -60), 120);
             eggsBody = UIKit.Label(UIKit.Rect(body, "T", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -40), new Vector2(560, 230)), "", 21, Color.white);
             return go;
         }
@@ -760,7 +760,7 @@ namespace DragonHeist
                     var tc = GameConfig.GetTier(def.tier).color;
                     slotName[i].text = Loc.DragonName(def);
                     slotIcon[i].enabled = true;
-                    slotIcon[i].sprite = IconRenderer.Dragon(def);
+                    slotIcon[i].sprite = IconArt.Dragon(def);
                     slotIcon[i].color = Color.white;
                     slotBg[i].color = new Color(tc.r * 0.55f, tc.g * 0.55f, tc.b * 0.55f, 0.95f);
                 }
@@ -847,7 +847,7 @@ namespace DragonHeist
                     equipIcons[i].enabled = id >= 0;
                     if (id < 0) { equipTexts[i].text = Loc.Ru ? "<color=#8899AA>Пустой слот</color>" : "<color=#8899AA>Empty slot</color>"; continue; }
                     var def = GameConfig.GetDragon(id);
-                    equipIcons[i].sprite = IconRenderer.Dragon(def);
+                    equipIcons[i].sprite = IconArt.Dragon(def);
                     float ls = GameConfig.DragonLevelStat(d.dragonInvLvl[i]);
                     equipTexts[i].text = "<color=#" + ColorUtility.ToHtmlStringRGB(Color.Lerp(GameConfig.GetTier(def.tier).color, Color.white, 0.35f)) + ">" + Loc.DragonName(def) + "</color>\n<size=13>+"
                         + (def.speedPct * ls).ToString("0") + (Loc.Ru ? "% скор.  +" : "% spd  +") + (def.trainPct * ls).ToString("0") + (Loc.Ru ? "% прок.</size>" : "% train</size>");
@@ -862,7 +862,7 @@ namespace DragonHeist
                     var def = GameConfig.GetDragon(pl.dragonId);
                     var tc = GameConfig.GetTier(def.tier).color;
                     dragCards[i].color = Color.Lerp(new Color(0.2f, 0.2f, 0.32f), tc, 0.28f);
-                    dragIcons[i].sprite = IconRenderer.Dragon(def);
+                    dragIcons[i].sprite = IconArt.Dragon(def);
                     float ls = GameConfig.DragonLevelStat(pl.level);
                     dragTexts[i].text = "<color=#" + ColorUtility.ToHtmlStringRGB(Color.Lerp(tc, Color.white, 0.35f)) + ">" + Loc.DragonName(def) + "</color>\n"
                         + "<color=#FFD84A>" + (Loc.Ru ? "Ур. " : "Lv. ") + pl.level + "</color>   " + Loc.TierName(def.tier) + "\n"

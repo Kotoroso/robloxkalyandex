@@ -453,7 +453,7 @@ namespace DragonHeist
             get
             {
                 if (font != null) return font;
-                font = Resources.Load<Font>("Fonts/Nunito-Black");
+                font = Resources.Load<Font>("Fonts/Rubik-ExtraBold");
                 if (font == null) { try { font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); } catch { } }
                 if (font == null) { try { font = Resources.GetBuiltinResource<Font>("Arial.ttf"); } catch { } }
                 return font;

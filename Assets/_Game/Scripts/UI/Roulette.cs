@@ -96,7 +96,7 @@ namespace DragonHeist
             card.raycastTarget = false;
             var shine = UIKit.Panel(card.transform, "Shine", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -4), new Vector2(CardW - 10, 70), new Color(tc.r, tc.g, tc.b, 0.45f));
             shine.raycastTarget = false;
-            UIKit.Icon(card.transform, IconRenderer.Dragon(d), new Vector2(0.5f, 1), new Vector2(0, -58), 118);
+            UIKit.Icon(card.transform, IconArt.Dragon(d), new Vector2(0.5f, 1), new Vector2(0, -58), 118);
             UIKit.Label(UIKit.Rect(card.transform, "N", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 30), new Vector2(CardW - 8, 44)), Loc.DragonName(d), 16, Color.white);
             UIKit.Label(UIKit.Rect(card.transform, "T", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 6), new Vector2(CardW - 8, 24)), Loc.TierName(d.tier), 14, Color.Lerp(tc, Color.white, 0.3f));
             return card;
