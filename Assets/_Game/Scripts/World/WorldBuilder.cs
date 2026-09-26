@@ -46,8 +46,14 @@ namespace DragonHeist
 
             BuildKeyboards(endZ);
 
+            // Статика: тысячи деталей-кубиков (горы, стены, деревья, декор, вывески) объединяются в меши
+            // по ячейкам 64x64 и материалам (мелочь — в DecorLayer с отсечением по дистанции), затем static batching.
+            // Раньше каждая деталь была отдельным рендерером: огромная нагрузка на отсечение/батчинг в CPU.
+            MeshMerge.MergeStatic(signs, staticRoot, 64f);
+            MeshMerge.MergeStatic(staticRoot, staticRoot, 64f);
             foreach (var r in staticRoot.GetComponentsInChildren<Renderer>()) r.receiveShadows = true;
             StaticBatchingUtility.Combine(staticRoot.gameObject);
+            MeshMerge.ReleaseReplaced(staticRoot);
         }
 
         // ============================ БАЗА ============================
@@ -319,6 +325,8 @@ namespace DragonHeist
             Blocky.Part(staticRoot, center + new Vector3(0, h / 2f, 0), size, Mats.Studs(WallBrown), true);
             Vector3 top = alongX ? new Vector3(length + 0.2f, 1.4f, 2.4f) : new Vector3(2.4f, 1.4f, length + 0.2f);
             Blocky.Part(staticRoot, center + new Vector3(0, h + 0.7f, 0), top, Mats.Studs(WallGreen), false);
+            // невидимое продолжение стены вверх — на большой скорости через стену не перепрыгнуть
+            AddWall(center + new Vector3(0, h + 60f, 0), alongX ? new Vector3(length, 120f, 2f) : new Vector3(2f, 120f, length));
         }
 
         static void Tower(Vector3 pos, Color flag) { }
@@ -337,6 +345,7 @@ namespace DragonHeist
                 Key3D(b1, "S", new Vector3(0, 1.6f, -0.6f));
                 Key3D(b1, "D", new Vector3(1.5f, 1.6f, -0.6f));
             }
+            MeshMerge.Merge(b1);
             else
             {
                 Blocky.Part(b1, new Vector3(0, 2.3f, -0.4f), new Vector3(3f, 3f, 0.2f), Mats.Plastic(new Color(0.8f, 0.85f, 0.95f)), false, PrimitiveType.Cylinder).localRotation = Quaternion.Euler(90, 0, 0);
@@ -355,6 +364,7 @@ namespace DragonHeist
             Blocky.Round = false; Blocky.RoundFactor = 0.2f; Blocky.RoundSteps = 1;
             var hint = Blocky.Label(b2, mobile ? "" : (ru ? "зажми ПКМ" : "hold RMB"), new Vector3(0, 0.6f, -0.3f), 0.55f, new Color(1f, 0.85f, 0.3f));
             hint.billboard = false;
+            MeshMerge.Merge(b2);
         }
 
         static Transform Board(Vector3 pos, string title)
@@ -421,9 +431,10 @@ namespace DragonHeist
             Blocky.Part(staticRoot, new Vector3(0, 0.04f, startZ + runLen / 2f), new Vector3(GameConfig.RunwayWidth, 0.1f, runLen),
                 Mats.Keycaps(new Color(0.93f, 0.88f, 0.78f)), true);
             // невидимые стены + деревянный забор
-            AddWall(new Vector3(-half - 0.5f, 3f, startZ + runLen / 2f), new Vector3(1f, 6f, runLen));
-            AddWall(new Vector3(half + 0.5f, 3f, startZ + runLen / 2f), new Vector3(1f, 6f, runLen));
-            AddWall(new Vector3(0, 3f, endZ + 0.5f), new Vector3(GameConfig.RunwayWidth + 2f, 6f, 1f));
+            // высокие (120) — чтобы не перепрыгнуть на большой скорости
+            AddWall(new Vector3(-half - 0.5f, 60f, startZ + runLen / 2f), new Vector3(1f, 120f, runLen));
+            AddWall(new Vector3(half + 0.5f, 60f, startZ + runLen / 2f), new Vector3(1f, 120f, runLen));
+            AddWall(new Vector3(0, 60f, endZ + 0.5f), new Vector3(GameConfig.RunwayWidth + 2f, 120f, 1f));
             CastleWall(new Vector3(-half - 1f, 0, startZ + runLen / 2f), runLen, false, null);
             CastleWall(new Vector3(half + 1f, 0, startZ + runLen / 2f), runLen, false, null);
             Blocky.Part(staticRoot, new Vector3(0, 1.5f, endZ + 0.5f), new Vector3(GameConfig.RunwayWidth + 2f, 3f, 1f), Mats.Studs(new Color(0.63f, 0.42f, 0.25f)), false);
@@ -592,6 +603,7 @@ namespace DragonHeist
                     Blocky.Part(c, new Vector3(k * 4f - parts * 2f, R(-1f, 1.5f), R(-2f, 2f)), new Vector3(R(6f, 9f), R(3f, 5f), R(5f, 8f)), white);
             }
             Blocky.Round = false; Blocky.RoundFactor = 0.2f;
+            MeshMerge.Merge(clouds.transform); // по мешу на облако (плывут пивоты Cloud)
             Blocky.NoShadows(clouds.gameObject);
         }
 
@@ -653,6 +665,7 @@ namespace DragonHeist
             sun.shadows = mobile ? LightShadows.None : LightShadows.Soft;
             sun.shadowStrength = 0.5f;
             RenderSettings.sun = sun;
+            Perf.ApplySun(sun); // тени по профилю качества (на мобилке — выключены)
 
             // процедурное небо (если шейдер есть в сборке), иначе — сплошной цвет
             var skyShader = Shader.Find("Skybox/Procedural");
@@ -678,11 +691,15 @@ namespace DragonHeist
             RenderSettings.fogStartDistance = 110f;
             RenderSettings.fogEndDistance = 380f;
 
-            QualitySettings.shadowDistance = 50f;
-            QualitySettings.pixelLightCount = 1;
-            QualitySettings.antiAliasing = mobile ? 0 : 4;
-            QualitySettings.vSyncCount = 0;
-            Application.targetFrameRate = 60;
+            // качество (тени, сглаживание, лимит FPS, дальность камеры/тумана) — в Perf (профили + губернатор FPS)
+            if (Perf.Instance == null)
+            {
+                QualitySettings.shadowDistance = 45f;
+                QualitySettings.pixelLightCount = 1;
+                QualitySettings.antiAliasing = mobile ? 0 : 4;
+                QualitySettings.vSyncCount = 0;
+                Application.targetFrameRate = 60;
+            }
         }
     }
 
@@ -691,8 +708,9 @@ namespace DragonHeist
     {
         void Update()
         {
-            foreach (Transform c in transform)
+            for (int i = 0; i < transform.childCount; i++)
             {
+                var c = transform.GetChild(i);
                 var p = c.position;
                 p.x += Time.deltaTime * 1.5f;
                 if (p.x > 170f) p.x = -170f;

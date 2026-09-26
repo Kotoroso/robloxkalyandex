@@ -214,7 +214,7 @@ namespace DragonHeist
             wasGrounded = grounded;
             Fx.SetRate(dust, grounded && mv.sqrMagnitude > 0.1f && walkSpeed > 14f ? Mathf.Min(30f, walkSpeed * 1.2f) : 0f);
 
-            if (transform.position.y < -40f) Respawn();
+            if (transform.position.y < -40f || OutOfMap(transform.position)) Respawn();
 
             // поворот модели по направлению движения
             if (wish.sqrMagnitude > 0.01f)
@@ -430,6 +430,14 @@ namespace DragonHeist
             var rig = CameraRig.Cam != null ? CameraRig.Cam.GetComponent<CameraRig>() : null;
             if (rig != null) rig.Shake(0.6f);
             if (GameManager.Instance != null) GameManager.Instance.OnCaught();
+        }
+
+        /// <summary>Страховка: если всё-таки оказался за пределами карты (перелетел стену) — возвращаем на спавн.</summary>
+        static bool OutOfMap(Vector3 p)
+        {
+            float endZ = GameConfig.ZoneCenterZ(GameConfig.Tiers.Length - 1) + GameConfig.ZoneLength / 2f + 8f;
+            if (p.z > GameConfig.BaseMaxZ + 1f) return Mathf.Abs(p.x) > GameConfig.RunwayWidth / 2f + 2f || p.z > endZ; // дорога и зоны
+            return Mathf.Abs(p.x) > 80f || p.z < GameConfig.BaseMinZ - 24f;                                            // база с нишами
         }
 
         public void Respawn()
