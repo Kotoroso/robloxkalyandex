@@ -988,6 +988,10 @@ namespace DragonHeist
             toastBg.transform.localScale = Vector3.one * 1.1f;
         }
 
+        float hudTextTimer;
+        /// <summary>Меняем текст, только если он действительно изменился (иначе uGUI перестраивает меш).</summary>
+        static void SetText(Text t, string s) { if (t != null && t.text != s) t.text = s; }
+
         void Update()
         {
             var gm = GameManager.Instance;
@@ -995,11 +999,16 @@ namespace DragonHeist
             if (gm == null) return;
             InputState.Blocked = (menu != null && menu.activeSelf) || Roulette.Active || ResponsiveCanvas.RotateBlocking;
 
-            coinsText.text = "$" + Loc.Num(d.coins);
-            cpsText.text = "+$" + Loc.Num(gm.CoinsPerSec) + (Loc.Ru ? " /сек" : " /s");
-            speedText.text = Loc.Num(d.speedPoints);
-
-            invText.text = d.inventory.Count > 0 ? Loc.F("inventory", d.inventory.Count) : "";
+            // тексты HUD — 8 раз в секунду, а не каждый кадр (меньше мусора и перестроек канваса)
+            hudTextTimer -= Time.unscaledDeltaTime;
+            if (hudTextTimer <= 0)
+            {
+                hudTextTimer = 0.125f;
+                SetText(coinsText, "$" + Loc.Num(d.coins));
+                SetText(cpsText, "+$" + Loc.Num(gm.CoinsPerSec) + (Loc.Ru ? " /сек" : " /s"));
+                SetText(speedText, Loc.Num(d.speedPoints));
+                SetText(invText, d.inventory.Count > 0 ? Loc.F("inventory", d.inventory.Count) : "");
+            }
 
             if (toastTimer > 0)
             {

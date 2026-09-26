@@ -140,6 +140,7 @@ namespace DragonHeist
             cam.layerCullDistances = d;
             cam.layerCullSpherical = true;
             appliedCam = cam;
+            lastChange = Time.realtimeSinceStartup; // прогрев после постройки мира / смены профиля — не меряем
         }
 
         void Update()

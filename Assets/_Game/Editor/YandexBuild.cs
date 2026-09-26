@@ -76,9 +76,9 @@ namespace DragonHeist.EditorTools
         {
             if (Build())
             {
-                EditorUtility.RevealInFinder(OutDir + "/index.html");
+                EditorUtility.RevealInFinder(File.Exists(OutDir + ".zip") ? OutDir + ".zip" : OutDir + "/index.html");
                 EditorUtility.DisplayDialog("Dragon Heist",
-                    "Готово! Заархивируй СОДЕРЖИМОЕ папки " + OutDir + " (index.html должен быть в корне zip) и загрузи в консоль Яндекс Игр.", "OK");
+                    "Готово! Архив для загрузки: " + OutDir + ".zip — загрузи его в консоль Яндекс Игр (Черновик → Архив с игрой).", "OK");
             }
         }
 
@@ -108,7 +108,35 @@ namespace DragonHeist.EditorTools
             var report = BuildPipeline.BuildPlayer(opts);
             bool ok = report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded;
             Debug.Log("[Dragon Heist] Build " + report.summary.result + " size=" + report.summary.totalSize / (1024 * 1024) + "MB");
+            if (ok) MakeZip();
             return ok;
+        }
+
+        /// <summary>Готовый архив для загрузки в консоль Яндекс Игр: Builds/YandexWebGL.zip, index.html — в корне архива.</summary>
+        static void MakeZip()
+        {
+            string zipPath = OutDir + ".zip";
+            try
+            {
+                if (File.Exists(zipPath)) File.Delete(zipPath);
+                string root = Path.GetFullPath(OutDir);
+                using (var fs = new FileStream(zipPath, FileMode.Create))
+                using (var zip = new System.IO.Compression.ZipArchive(fs, System.IO.Compression.ZipArchiveMode.Create))
+                {
+                    foreach (var file in Directory.GetFiles(root, "*", SearchOption.AllDirectories))
+                    {
+                        string rel = file.Substring(root.Length).TrimStart('/', '\\').Replace('\\', '/');
+                        var entry = zip.CreateEntry(rel, System.IO.Compression.CompressionLevel.Optimal);
+                        using (var es = entry.Open())
+                        using (var src = File.OpenRead(file)) src.CopyTo(es);
+                    }
+                }
+                Debug.Log("[Dragon Heist] Архив для Яндекс Игр: " + Path.GetFullPath(zipPath));
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError("[Dragon Heist] Не удалось создать zip: " + e.Message + ". Заархивируй содержимое папки " + OutDir + " вручную.");
+            }
         }
 
         static void EnsureScene()
