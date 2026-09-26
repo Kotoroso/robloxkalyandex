@@ -58,7 +58,7 @@ namespace DragonHeist
         {
             if (plots == null) plots = new List<PlotData>();
             if (inventory == null) inventory = new List<EggItem>();
-            plotsOwned = Mathf.Clamp(plotsOwned, GameConfig.StartPlots, GameConfig.MaxPlots);
+            plotsOwned = GameConfig.MaxPlots;   // покупки грядок нет: старые сохранения с 3-5 грядками получают все 6
             while (plots.Count < GameConfig.MaxPlots) plots.Add(new PlotData());
             treadmillsMask |= 1;
             if (treadmillAds == null) treadmillAds = new List<int>();

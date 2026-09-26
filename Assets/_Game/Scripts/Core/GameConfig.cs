@@ -90,7 +90,7 @@ namespace DragonHeist
     {
         public const float BaseWalkSpeed = 12f;
         public const float BaseJump = 7.5f;
-        public const int StartPlots = 3;
+        public const int StartPlots = 6;   // покупки грядок нет: все грядки доступны сразу (= MaxPlots)
         public const int MaxPlots = 6;
         public const int InventorySlots = 5;
         public const float AdSpeedupFactor = 0.1f;      // реклама режет оставшееся время на 90%
@@ -124,7 +124,7 @@ namespace DragonHeist
             T(Tier.Divine,    "Божественное", "Divine",    1f,0.95f,0.6f,     720,  47f,  4, 15f, BrainrotKind.VacaSaturno, 1.7f, 2.8e8),
             T(Tier.Secret,    "Секретное",    "Secret",    0.1f,1f,0.95f,     1080, 55f,  4, 16f, BrainrotKind.Bombardiro,  2.0f, 8e9),
             T(Tier.Celestial, "Небесное",     "Celestial", 0.55f,0.45f,1f,    1500, 63f,  5, 17f, BrainrotKind.TungSahur,   2.3f, 1.6e11),
-            T(Tier.Ancient,   "Древнее",      "Ancient",   0.85f,0.52f,0.25f, 1800, 72f,  5, 18f, BrainrotKind.Tralalero,   2.5f, 1.2e13),
+            T(Tier.Ancient,   "Древнее",      "Ancient",   0.85f,0.52f,0.25f, 1800, 72f,  5, 18f, BrainrotKind.Tralalero,   2.5f, 1e13),
             T(Tier.Galactic,  "Галактическое","Galactic",  0.25f,0.35f,0.95f, 2400, 78f,  5, 19f, BrainrotKind.Patapim,     2.7f, 4e14),
             T(Tier.Omega,     "Омега",        "Omega",     1f,0.15f,0.6f,     3000, 88f,  6, 20f, BrainrotKind.VacaSaturno, 3.0f, 2e16),
         };

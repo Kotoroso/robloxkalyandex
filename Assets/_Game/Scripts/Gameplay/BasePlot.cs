@@ -17,7 +17,7 @@ namespace DragonHeist
         Transform eggRoot;
 
         public PlotData Data { get { return SaveManager.Data.plots[index]; } }
-        public bool Owned { get { return index < SaveManager.Data.plotsOwned; } }
+        public bool Owned { get { return true; } }   // покупки грядок нет — все грядки открыты
 
         public static BasePlot Build(Transform parent, int index, Vector3 pos)
         {
@@ -38,6 +38,7 @@ namespace DragonHeist
             Blocky.Part(tr, new Vector3(-3.3f, 0.6f, 0), new Vector3(0.4f, 0.4f, 6.2f), wood);
             Blocky.Round = false; Blocky.RoundFactor = 0.2f;
             p.lockedVisual = Blocky.Part(tr, new Vector3(0, 0.6f, 0), new Vector3(5.8f, 0.2f, 5.8f), Mats.Studs(new Color(0.4f, 0.4f, 0.4f), 6, 6)).gameObject;
+            p.lockedVisual.SetActive(false);
             p.label = Blocky.Label(tr, "", new Vector3(0, 5.5f, 0), 1f, Color.white);
             p.eggRoot = Blocky.Pivot(tr, "Content", new Vector3(0, 0.55f, 0));
             PlayerController.Interactables.Add(p);

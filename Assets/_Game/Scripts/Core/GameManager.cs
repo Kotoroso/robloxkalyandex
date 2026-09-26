@@ -439,21 +439,11 @@ namespace DragonHeist
             SaveNow(true);
         }
 
+        /// <summary>Покупки грядок больше нет: все MaxPlots грядок открыты с начала (StartPlots = MaxPlots). Оставлено для совместимости.</summary>
         public bool TryBuyPlot()
         {
-            if (D.plotsOwned >= GameConfig.MaxPlots) return false;
-            double cost = GameConfig.PlotCost(D.plotsOwned);
-            if (!TrySpend(cost))
-            {
-                UIManager.Instance.Toast(Loc.T("no_money"), new Color(1f, 0.5f, 0.3f));
-                GameAudio.Play(Sfx.Error);
-                return false;
-            }
-            D.plotsOwned++;
-            GameAudio.Play(Sfx.Buy);
-            UIManager.Instance.Toast(Loc.T("plot_bought"), new Color(0.5f, 1f, 0.5f));
-            SaveNow(true);
-            return true;
+            D.plotsOwned = GameConfig.MaxPlots;
+            return false;
         }
 
         public double RebirthCost { get { return GameConfig.RebirthCost(D.rebirths); } }
@@ -478,7 +468,7 @@ namespace DragonHeist
             D.rebirths++;
             D.coins = 0;
             D.speedPoints = 0;
-            D.plotsOwned = Mathf.Min(GameConfig.MaxPlots, D.plotsOwned + 1);
+            D.plotsOwned = GameConfig.MaxPlots;
             RecalcStats();
             foreach (var t in Treadmill.All) t.Refresh();
             GameAudio.Play(Sfx.Rebirth);
