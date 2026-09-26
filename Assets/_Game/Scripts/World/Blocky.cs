@@ -153,103 +153,233 @@ namespace DragonHeist
         }
 
         // ================= ДРАКОН =================
+        // Все детали разнесены минимум на 0.03 по параллельным граням (иначе грани "съедают" друг друга — z-fighting).
+        // Выступающие детали (живот, пластины, глаза, зрачки, блики, румянец, полосы) явно выдвинуты наружу.
+
+        static Color Hsv(float h, float s, float v) { return Color.HSVToRGB(Mathf.Repeat(h, 1f), Mathf.Clamp01(s), Mathf.Clamp01(v)); }
+
+        /// <summary>Сочнее и ярче: поднимаем насыщенность и яркость, серые/белые/чёрные оставляем нейтральными.</summary>
+        static Color Vivid(Color c, float valFloor)
+        {
+            float h, s, v;
+            Color.RGBToHSV(c, out h, out s, out v);
+            if (s < 0.12f) return Hsv(h, s, Mathf.Max(v, 0.16f));
+            return Hsv(h, s * 1.2f + 0.08f, Mathf.Max(v, valFloor) * 1.08f + 0.04f);
+        }
+
+        static float Sat(Color c) { float h, s, v; Color.RGBToHSV(c, out h, out s, out v); return s * Mathf.Min(1f, v * 2f); }
+        static float Hue(Color c) { float h, s, v; Color.RGBToHSV(c, out h, out s, out v); return h; }
+        static float Val(Color c) { float h, s, v; Color.RGBToHSV(c, out h, out s, out v); return v; }
+        static float HueDist(float a, float b) { float d = Mathf.Abs(a - b); return Mathf.Min(d, 1f - d); }
+
+        /// <summary>Контрастный акцент (полоски, когти, плавник): от цвета тела, крыльев или живота.</summary>
+        static Color AccentColor(Color body, Color belly, Color wing)
+        {
+            float h;
+            if (Sat(body) > 0.15f)
+            {
+                // если крылья уже контрастные (как у Грозовика) — берём их тон, иначе комплементарный к телу
+                if (Sat(wing) > 0.3f && HueDist(Hue(body), Hue(wing)) > 0.2f) h = Hue(wing);
+                else h = Hue(body) + 0.5f;
+            }
+            else if (Sat(wing) > 0.15f) h = Hue(wing);
+            else if (Sat(belly) > 0.15f) h = Hue(belly);
+            else h = 0.07f; // полностью серый дракон — тёплые "угольки"
+            return Hsv(h, 0.85f, 1f);
+        }
+
         public static GameObject BuildDragon(Transform parent, DragonDef d)
         {
             float s = (0.8f + Mathf.Min((int)d.tier, 11) * 0.11f) * (d.exclusive ? 1.15f : 1f);
+            int tier = (int)d.tier;
             var root = new GameObject("Dragon_" + d.nameEn);
             root.transform.SetParent(parent, false);
             var m = Pivot(root.transform, "Model", Vector3.zero);
             m.localScale = Vector3.one * s;
-            var body = Plastic(d.body); var belly = Plastic(d.belly); var wing = Plastic(d.wing);
-            var dark = Plastic(new Color(0.08f, 0.08f, 0.08f)); var white = Plastic(Color.white);
-            var horn = Plastic(Color.Lerp(d.belly, Color.white, 0.4f));
-            Round = true;
 
-            Part(m, new Vector3(0, 1.3f, 0), new Vector3(1.6f, 1.3f, 2.4f), body);
-            Part(m, new Vector3(0, 1.05f, 0.25f), new Vector3(1.3f, 0.9f, 1.9f), belly);
-            // шея и голова
+            // ---- палитра (небольшой набор цветов — материалы кэшируются в Mats) ----
+            Color cBody = Vivid(d.body, 0.32f), cBelly = Vivid(d.belly, 0.55f), cWing = Vivid(d.wing, 0.3f);
+            Color cAccent = AccentColor(cBody, cBelly, cWing);
+            Color cMembrane;
+            if (Sat(cWing) < 0.15f && Val(cWing) > 0.6f) cMembrane = Color.Lerp(cAccent, Color.white, 0.45f); // белые крылья → цветная перепонка
+            else if (Val(cWing) < 0.35f) cMembrane = Color.Lerp(cWing, cAccent, 0.5f);                      // тёмные крылья → перепонка с акцентом
+            else cMembrane = Color.Lerp(cWing, Color.white, 0.38f);
+            float accH = Hue(cAccent);
+            Color cGlow = Color.Lerp(cAccent, Color.white, 0.3f);
+
+            var body = Plastic(cBody); var belly = Plastic(cBelly); var wing = Plastic(cWing);
+            var membrane = Plastic(cMembrane); var accent = Plastic(cAccent);
+            var plate = Plastic(Color.Lerp(cBelly, cAccent, 0.35f));
+            var white = Plastic(Color.white);
+            var blush = Plastic(new Color(1f, 0.52f, 0.64f));
+            var gold = Plastic(new Color(1f, 0.8f, 0.18f));
+            var glow = Mats.Glow(cGlow);
+            bool fancyEyes = tier >= (int)Tier.Secret || d.exclusive;
+            var iris = fancyEyes ? Mats.Glow(cAccent) : Plastic(Hsv(accH, 0.85f, 0.28f));
+            var horn = tier >= (int)Tier.Legendary ? gold : Plastic(Color.Lerp(cBelly, Color.white, 0.35f));
+            var claw = tier >= (int)Tier.Mythic ? glow : accent;
+            var spikeMat = tier >= (int)Tier.Epic ? glow : wing;
+            var finMat = tier >= (int)Tier.Legendary ? glow : accent;
+            var stripeMat = d.exclusive ? Mats.Glow(cAccent) : accent;
+
+            Round = true;
+            RoundFactor = 0.2f;
+            RoundSteps = 2;
+
+            // ---- туловище: живот выступает спереди (+0.13) и снизу (+0.08), по бокам утоплен ----
+            Part(m, new Vector3(0, 1.3f, 0), new Vector3(1.6f, 1.3f, 2.4f), body);             // x±0.8 y0.65..1.95 z±1.2
+            Part(m, new Vector3(0, 1.02f, 0.38f), new Vector3(1.2f, 0.9f, 1.9f), belly);      // x±0.6 y0.57..1.47 z-0.57..1.33
+            RoundSteps = 1;
+            // чешуйчатые пластины на груди (выступают на 0.09 из живота)
+            Part(m, new Vector3(0, 0.84f, 1.36f), new Vector3(0.86f, 0.13f, 0.12f), plate);
+            Part(m, new Vector3(0, 1.14f, 1.36f), new Vector3(0.86f, 0.13f, 0.12f), plate);
+            // шея (повёрнута — параллельных граней с туловищем и головой нет)
             var neck = Part(m, new Vector3(0, 2.1f, 1.1f), new Vector3(0.8f, 1.2f, 0.8f), body);
             neck.localRotation = Quaternion.Euler(25, 0, 0);
+
+            // цветные полосы-обручи на спине: на 0.04 шире/выше туловища
+            int stripes = (tier >= (int)Tier.Legendary && !d.exclusive) ? 3 : 2;
+            for (int i = 0; i < stripes; i++)
+            {
+                float z = stripes == 3 ? 0.55f - i * 0.6f : 0.35f - i * 0.7f;
+                Part(m, new Vector3(0, 1.595f, z), new Vector3(1.68f, 0.79f, 0.24f), stripeMat);  // x±0.84 y1.2..1.99
+            }
+
+            // ---- голова ----
             var head = Pivot(m, "Head", new Vector3(0, 2.8f, 1.6f));
-            Part(head, Vector3.zero, new Vector3(1.1f, 0.9f, 1.1f), body);
-            Part(head, new Vector3(0, -0.15f, 0.75f), new Vector3(0.8f, 0.5f, 0.7f), body);
-            Part(head, new Vector3(0, -0.35f, 0.7f), new Vector3(0.7f, 0.12f, 0.6f), belly);
-            Part(head, new Vector3(-0.3f, 0.15f, 0.52f), new Vector3(0.25f, 0.3f, 0.1f), white);
-            Part(head, new Vector3(0.3f, 0.15f, 0.52f), new Vector3(0.25f, 0.3f, 0.1f), white);
-            Part(head, new Vector3(-0.3f, 0.12f, 0.58f), new Vector3(0.13f, 0.18f, 0.05f), dark);
-            Part(head, new Vector3(0.3f, 0.12f, 0.58f), new Vector3(0.13f, 0.18f, 0.05f), dark);
-            var h1 = Part(head, new Vector3(-0.3f, 0.65f, -0.25f), new Vector3(0.18f, 0.6f, 0.18f), horn);
-            h1.localRotation = Quaternion.Euler(-30, 0, 0);
-            var h2 = Part(head, new Vector3(0.3f, 0.65f, -0.25f), new Vector3(0.18f, 0.6f, 0.18f), horn);
-            h2.localRotation = Quaternion.Euler(-30, 0, 0);
-            // крылья
-            var lw = Pivot(m, "LWing", new Vector3(-0.7f, 1.9f, 0.1f));
-            Part(lw, new Vector3(-1.1f, 0, 0), new Vector3(2.2f, 0.1f, 1.5f), wing);
-            Part(lw, new Vector3(-1.9f, 0, -0.6f), new Vector3(0.8f, 0.1f, 0.8f), wing);
-            var rw = Pivot(m, "RWing", new Vector3(0.7f, 1.9f, 0.1f));
-            Part(rw, new Vector3(1.1f, 0, 0), new Vector3(2.2f, 0.1f, 1.5f), wing);
-            Part(rw, new Vector3(1.9f, 0, -0.6f), new Vector3(0.8f, 0.1f, 0.8f), wing);
-            // хвост
-            var t1 = Part(m, new Vector3(0, 1.15f, -1.6f), new Vector3(0.8f, 0.7f, 1.0f), body);
-            var t2 = Part(m, new Vector3(0, 1.0f, -2.4f), new Vector3(0.55f, 0.5f, 0.9f), body);
-            var t3 = Part(m, new Vector3(0, 0.9f, -3.1f), new Vector3(0.35f, 0.35f, 0.7f), body);
-            var tip = Part(m, new Vector3(0, 1.0f, -3.55f), new Vector3(0.5f, 0.5f, 0.1f), wing);
-            tip.localRotation = Quaternion.Euler(0, 0, 45);
+            RoundFactor = 0.16f; RoundSteps = 2;
+            Part(head, Vector3.zero, new Vector3(1.1f, 0.9f, 1.1f), body);                     // x±0.55 y±0.45 z±0.55
+            Part(head, new Vector3(0, -0.2f, 0.72f), new Vector3(0.72f, 0.4f, 0.7f), body);    // морда: x±0.36 y-0.4..0 z0.37..1.07
+            RoundFactor = 0.2f; RoundSteps = 1;
+            Part(head, new Vector3(0, -0.43f, 0.7f), new Vector3(0.62f, 0.14f, 0.62f), belly); // челюсть: x±0.31 y-0.5..-0.36 z0.39..1.01
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float sx = side;
+                // белок (z0.50..0.62, выступает на 0.07) → зрачок (+0.05) → блик (+0.04); блики с одной стороны — "глянец"
+                Part(head, new Vector3(0.25f * sx, 0.21f, 0.56f), new Vector3(0.28f, 0.32f, 0.12f), white);
+                Part(head, new Vector3(0.23f * sx, 0.19f, 0.64f), new Vector3(0.16f, 0.22f, 0.06f), iris);
+                Part(head, new Vector3(0.23f * sx + 0.04f, 0.25f, 0.68f), new Vector3(0.07f, 0.07f, 0.06f), white);
+                // румянец: под глазами, сбоку от морды (зазор 0.03), выступает на 0.05
+                Part(head, new Vector3(0.44f * sx, -0.06f, 0.52f), new Vector3(0.1f, 0.1f, 0.16f), blush);
+                // рога: наклонены назад и в стороны; с Легендарных — большие золотые
+                bool big = tier >= (int)Tier.Legendary;
+                var h = Part(head, new Vector3(0.3f * sx, big ? 0.7f : 0.62f, -0.25f),
+                    big ? new Vector3(0.2f, 0.72f, 0.2f) : new Vector3(0.17f, 0.52f, 0.17f), horn);
+                h.localRotation = Quaternion.Euler(-30, 0, -15 * sx);
+            }
+            if (tier >= (int)Tier.Divine && !d.exclusive)
+            {
+                // светящийся камень во лбу
+                var gem = Part(head, new Vector3(0, 0.47f, 0.22f), new Vector3(0.16f, 0.1f, 0.16f), glow);
+                gem.localRotation = Quaternion.Euler(0, 45, 0);
+            }
+
+            // ---- крылья: кость по переднему краю, светлая перепонка, ребро, ромб-кончик ----
+            // толщины: перепонка 0.08 < ребро 0.14 < кончик 0.2 < кость 0.22 (зазоры ≥0.03)
+            var lw = Pivot(m, "LWing", new Vector3(-0.72f, 1.8f, 0.05f));
+            var rw = Pivot(m, "RWing", new Vector3(0.72f, 1.8f, 0.05f));
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var w = side < 0 ? lw : rw;
+                float sx = side;
+                Part(w, new Vector3(1.1f * sx, 0, 0.62f), new Vector3(2.2f, 0.22f, 0.24f), wing);       // кость z0.50..0.74
+                Part(w, new Vector3(1.05f * sx, 0, -0.1f), new Vector3(2.0f, 0.08f, 1.35f), membrane);  // перепонка z-0.775..0.575
+                Part(w, new Vector3(1.0f * sx, 0, -0.18f), new Vector3(0.12f, 0.14f, 1.3f), wing);      // ребро торчит за край на 0.06
+                var tip = Part(w, new Vector3(1.95f * sx, 0, -0.35f), new Vector3(0.8f, 0.2f, 0.8f), wing);
+                tip.localRotation = Quaternion.Euler(0, 45, 0);
+                if (d.exclusive)
+                {
+                    // эксклюзив: вторая, светящаяся пара крыльев ниже и позади основной
+                    var w2 = Pivot(w, side < 0 ? "LWing2" : "RWing2", new Vector3(-0.05f * sx, -0.28f, -0.55f));
+                    w2.localRotation = Quaternion.Euler(0, 0, -12 * sx);
+                    Part(w2, new Vector3(0.85f * sx, 0, 0), new Vector3(1.7f, 0.08f, 1.0f), glow);
+                }
+            }
+
+            // ---- хвост: загибается вверх, у каждого сегмента свой наклон → нет параллельных граней ----
+            var t1 = Part(m, new Vector3(0, 1.22f, -1.6f), new Vector3(0.78f, 0.66f, 1.0f), body);
+            t1.localRotation = Quaternion.Euler(8, 0, 0);
+            var t2 = Part(m, new Vector3(0, 1.38f, -2.42f), new Vector3(0.56f, 0.5f, 0.9f), body);
+            t2.localRotation = Quaternion.Euler(18, 0, 0);
+            var t3 = Part(m, new Vector3(0, 1.6f, -3.1f), new Vector3(0.38f, 0.36f, 0.8f), body);
+            t3.localRotation = Quaternion.Euler(30, 0, 0);
             t1.name = "Tail1"; t2.name = "Tail2"; t3.name = "Tail3";
-            // лапы
-            Part(m, new Vector3(-0.55f, 0.35f, 0.8f), new Vector3(0.45f, 0.7f, 0.45f), body);
-            Part(m, new Vector3(0.55f, 0.35f, 0.8f), new Vector3(0.45f, 0.7f, 0.45f), body);
-            Part(m, new Vector3(-0.55f, 0.35f, -0.7f), new Vector3(0.45f, 0.7f, 0.45f), body);
-            Part(m, new Vector3(0.55f, 0.35f, -0.7f), new Vector3(0.45f, 0.7f, 0.45f), body);
-            // гребень на спине для высоких тиров
-            for (int i = 0; i < (int)d.tier; i++)
-                Part(m, new Vector3(0, 2.0f, 0.8f - i * 0.45f), new Vector3(0.12f, 0.4f, 0.3f), wing);
+            // плавник-"пика" (плоский ромб, наклонён как последний сегмент, грань выше его на 0.14)
+            var fin = Part(m, new Vector3(0, 1.92f, -3.66f), new Vector3(0.66f, 0.08f, 0.66f), finMat);
+            fin.localRotation = Quaternion.Euler(30, 0, 0) * Quaternion.Euler(0, 45, 0);
+            fin.name = "TailFin";
+
+            // ---- лапы и цветные когти (когти шире лапы на 0.03 с каждой стороны и приподняты над землёй) ----
+            for (int i = 0; i < 4; i++)
+            {
+                float lx = i % 2 == 0 ? -0.55f : 0.55f, lz = i < 2 ? 0.8f : -0.7f;
+                Part(m, new Vector3(lx, 0.35f, lz), new Vector3(0.45f, 0.7f, 0.45f), body);
+                if (i < 2) Part(m, new Vector3(lx, 0.11f, lz + 0.255f), new Vector3(0.51f, 0.14f, 0.16f), claw);
+            }
+
+            // ---- гребень: число шипов растёт с тиром; эксклюзивам — светящиеся кристаллы ----
+            int spikes = d.exclusive ? 4 : Mathf.Min(2 + tier / 3, 5);
+            float z0 = 0.7f, z1 = -1.0f;
+            for (int i = 0; i < spikes; i++)
+            {
+                float t = spikes > 1 ? i / (float)(spikes - 1) : 0f;
+                float z = Mathf.Lerp(z0, z1, t);
+                float hgt = (d.exclusive ? 0.8f : 0.5f) - Mathf.Abs(t - 0.35f) * (d.exclusive ? 0.3f : 0.25f);
+                Transform sp;
+                if (d.exclusive)
+                {
+                    sp = Part(m, new Vector3(0, 1.95f + hgt * 0.3f, z), new Vector3(0.22f, hgt, 0.22f), glow);
+                    sp.localRotation = Quaternion.Euler(-25, 0, 0) * Quaternion.Euler(0, 45, 0);
+                }
+                else
+                {
+                    sp = Part(m, new Vector3(0, 1.95f + hgt * 0.3f, z), new Vector3(0.14f, hgt, 0.24f), spikeMat);
+                    sp.localRotation = Quaternion.Euler(-25, 0, 0);
+                }
+            }
 
             if (d.exclusive)
             {
-                // эксклюзив: светящиеся кристаллы-шипы, вторая пара крыльев, корона
-                var glow = Mats.Glow(Color.Lerp(d.wing, Color.white, 0.3f));
-                for (int i = 0; i < 5; i++)
+                // корона: обод на 0.05 шире головы и выше глаз на 0.04, три зубца (центральный — светящийся)
+                Part(head, new Vector3(0, 0.48f, 0), new Vector3(1.2f, 0.16f, 1.2f), gold);        // x,z±0.6 y0.40..0.56
+                for (int i = -1; i <= 1; i++)
                 {
-                    var sp = Part(m, new Vector3(0, 2.15f + (i % 2) * 0.1f, 0.9f - i * 0.5f), new Vector3(0.22f, 0.7f - i * 0.08f, 0.22f), glow);
-                    sp.localRotation = Quaternion.Euler(-25, 45, 0);
+                    var pt = Part(head, new Vector3(0.36f * i, 0.66f, 0.42f), new Vector3(0.15f, i == 0 ? 0.38f : 0.3f, 0.15f), i == 0 ? glow : gold);
+                    pt.localRotation = Quaternion.Euler(0, 45, 0);
                 }
-                var lw2 = Pivot(lw, "LWing2", new Vector3(-0.2f, -0.35f, -0.5f));
-                Part(lw2, new Vector3(-0.9f, 0, 0), new Vector3(1.8f, 0.08f, 1.1f), wing);
-                var rw2 = Pivot(rw, "RWing2", new Vector3(0.2f, -0.35f, -0.5f));
-                Part(rw2, new Vector3(0.9f, 0, 0), new Vector3(1.8f, 0.08f, 1.1f), wing);
-                var gold = Plastic(new Color(1f, 0.82f, 0.2f));
-                Part(head, new Vector3(0, 0.55f, 0), new Vector3(0.9f, 0.15f, 0.9f), gold);
-                for (int i = 0; i < 4; i++)
-                    Part(head, new Vector3((i % 2 == 0 ? -0.35f : 0.35f), 0.75f, (i < 2 ? -0.35f : 0.35f)), new Vector3(0.16f, 0.3f, 0.16f), gold);
-                Part(m, new Vector3(0, 1.3f, 0), new Vector3(1.75f, 1.0f, 2.0f), Mats.UnlitAlpha(new Color(d.belly.r, d.belly.g, d.belly.b, 0.25f), Mats.SoftDot), false, PrimitiveType.Sphere);
+                // полупрозрачная сфера-аура убрана: она мерцала при сортировке с частицами; свечение даёт Glow-детали
             }
+
             Round = false;
+            RoundFactor = 0.2f;
+            RoundSteps = 1;
             var idle = root.AddComponent<DragonIdle>();
             idle.lWing = lw; idle.rWing = rw; idle.head = head; idle.model = m;
-            AttachDragonFx(root.transform, m, head, d, s);
+            AttachDragonFx(root.transform, m, head, d, s, body);
             return root;
         }
 
         /// <summary>Эффекты редких драконов: огонь, иней, аура, нимб, радуга, звёзды, пустота.</summary>
-        static void AttachDragonFx(Transform root, Transform model, Transform head, DragonDef d, float s)
+        static void AttachDragonFx(Transform root, Transform model, Transform head, DragonDef d, float s, Material bodyMat)
         {
+            Color sparkle = Color.Lerp(Vivid(d.wing, 0.3f), Color.white, 0.4f);
             switch (d.fx)
             {
-                case DragonFx.Sparkle: Fx.Sparkles(root, new Vector3(0, 1.8f * s, 0), Color.Lerp(d.wing, Color.white, 0.4f), 1.5f * s, 6f); break;
+                case DragonFx.Sparkle: Fx.Sparkles(root, new Vector3(0, 1.8f * s, 0), sparkle, 1.5f * s, 6f); break;
                 case DragonFx.Frost: Fx.Sparkles(root, new Vector3(0, 2.2f * s, 0), new Color(0.7f, 0.95f, 1f), 1.8f * s, 8f); break;
                 case DragonFx.Fire: Fx.Flames(root, new Vector3(0, 1.2f * s, 0), 1.2f * s); break;
-                case DragonFx.Aura: Fx.Sparkles(root, new Vector3(0, 1.2f * s, 0), d.belly, 2.4f * s, 14f); break;
+                case DragonFx.Aura: Fx.Sparkles(root, new Vector3(0, 1.2f * s, 0), Vivid(d.belly, 0.55f), 2.4f * s, 14f); break;
                 case DragonFx.Stars: Fx.Sparkles(root, new Vector3(0, 2.5f * s, 0), Color.white, 3f * s, 10f); break;
                 case DragonFx.Void: Fx.Sparkles(root, new Vector3(0, 1.5f * s, 0), new Color(0.5f, 0.1f, 1f), 2f * s, 12f); break;
                 case DragonFx.Rainbow:
                     foreach (var r in model.GetComponentsInChildren<Renderer>())
-                        if (r.sharedMaterial == Mats.Plastic(d.body)) root.gameObject.AddComponent<RainbowTint>().target = r;
+                        if (r.sharedMaterial == bodyMat) root.gameObject.AddComponent<RainbowTint>().target = r;
                     Fx.Sparkles(root, new Vector3(0, 2f * s, 0), Color.white, 2f * s, 8f);
                     break;
                 case DragonFx.Halo:
                 {
-                    var halo = Part(head, new Vector3(0, 1.1f, -0.1f), new Vector3(1.4f, 1.4f, 1f), Mats.UnlitAlpha(new Color(1f, 0.9f, 0.4f, 1f), Mats.RingTexture), false, PrimitiveType.Quad);
+                    // выше рогов и короны (верх рогов ≈1.0, короны ≈0.85 в координатах головы)
+                    var halo = Part(head, new Vector3(0, 1.25f, -0.1f), new Vector3(1.4f, 1.4f, 1f), Mats.UnlitAlpha(new Color(1f, 0.9f, 0.4f, 1f), Mats.RingTexture), false, PrimitiveType.Quad);
                     halo.localRotation = Quaternion.Euler(90, 0, 0);
                     Fx.Sparkles(root, new Vector3(0, 2.5f * s, 0), new Color(1f, 0.9f, 0.5f), 1.2f * s, 5f);
                     break;
