@@ -47,6 +47,8 @@ namespace DragonHeist
         public List<int> upgrades = new List<int>();       // уровни улучшений из магазина
         public int totalHatched;
         public List<int> dragonInvLvl = new List<int>();   // уровни драконов в слотах
+        public List<int> dragonStore = new List<int>();    // хранилище: до 15 драконов (бонусов не дают)
+        public List<int> dragonStoreLvl = new List<int>();
         public bool controlsSeen;
         public long lastDailyDay = -1;                     // номер дня (UTC), когда забрана награда
         public int dailyStreak;
@@ -84,6 +86,13 @@ namespace DragonHeist
             // старые сохранения: выкидываем несуществующих драконов
             for (int i = 0; i < dragonInv.Count; i++) if (dragonInv[i] >= GameConfig.Dragons.Length) dragonInv[i] = -1;
             foreach (var p in plots) if (p.state == 2 && (p.dragonId < 0 || p.dragonId >= GameConfig.Dragons.Length)) p.state = 0;
+            if (dragonStore == null) dragonStore = new List<int>();
+            if (dragonStoreLvl == null) dragonStoreLvl = new List<int>();
+            for (int i = dragonStore.Count - 1; i >= 0; i--)
+                if (dragonStore[i] < 0 || dragonStore[i] >= GameConfig.Dragons.Length) { dragonStore.RemoveAt(i); if (i < dragonStoreLvl.Count) dragonStoreLvl.RemoveAt(i); }
+            while (dragonStoreLvl.Count < dragonStore.Count) dragonStoreLvl.Add(1);
+            while (dragonStoreLvl.Count > dragonStore.Count) dragonStoreLvl.RemoveAt(dragonStoreLvl.Count - 1);
+            for (int i = 0; i < dragonStoreLvl.Count; i++) dragonStoreLvl[i] = Mathf.Clamp(dragonStoreLvl[i], 1, GameConfig.DragonMaxLevel);
         }
 
         public static long Now() { return DateTimeOffset.UtcNow.ToUnixTimeSeconds(); }

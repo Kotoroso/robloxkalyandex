@@ -117,6 +117,60 @@ namespace DragonHeist
             SaveNow(true);
         }
 
+        // ===================== Хранилище (до 15 драконов, бонусов не дают) =====================
+        public int StoreCount { get { return D.dragonStore.Count; } }
+        public bool StoreFull { get { return D.dragonStore.Count >= GameConfig.StorageSlots; } }
+
+        bool AddToStore(int id, int lvl)
+        {
+            if (StoreFull) return false;
+            D.dragonStore.Add(id); D.dragonStoreLvl.Add(lvl);
+            return true;
+        }
+
+        /// <summary>"Снять": надетый дракон уходит в хранилище (если оно полное — на свободную грядку).</summary>
+        public void UnequipToStore(int slot)
+        {
+            if (slot < 0 || slot >= D.dragonInv.Count || D.dragonInv[slot] < 0) return;
+            if (!AddToStore(D.dragonInv[slot], D.dragonInvLvl[slot])) { UnequipToPlot(slot); return; }
+            D.dragonInv[slot] = -1; D.dragonInvLvl[slot] = 1;
+            if (D.selectedSlot == slot) D.selectedSlot = -1;
+            RecalcStats();
+            if (OnHeldChanged != null) OnHeldChanged();
+            GameAudio.Play(Sfx.Click);
+            SaveNow(true);
+        }
+
+        /// <summary>Надеть дракона из хранилища в свободный слот.</summary>
+        public void EquipFromStore(int j)
+        {
+            if (j < 0 || j >= D.dragonStore.Count) return;
+            int slot = FreeSlot();
+            if (slot < 0) { UIManager.Instance.Toast(Loc.T("inv_full"), new Color(1f, 0.6f, 0.3f)); GameAudio.Play(Sfx.Error); return; }
+            D.dragonInv[slot] = D.dragonStore[j]; D.dragonInvLvl[slot] = D.dragonStoreLvl[j];
+            D.dragonStore.RemoveAt(j); D.dragonStoreLvl.RemoveAt(j);
+            RecalcStats();
+            if (OnHeldChanged != null) OnHeldChanged();
+            GameAudio.Play(Sfx.Grab);
+            SaveNow(true);
+        }
+
+        /// <summary>Поставить дракона из хранилища на свободную грядку (будет приносить монеты).</summary>
+        public void StoreToPlot(int j)
+        {
+            if (j < 0 || j >= D.dragonStore.Count) return;
+            int free = FindFreePlot();
+            if (free < 0) { UIManager.Instance.Toast(Loc.Ru ? "Нет свободной грядки!" : "No free plot!", new Color(1f, 0.6f, 0.3f)); GameAudio.Play(Sfx.Error); return; }
+            var p = D.plots[free];
+            int id = D.dragonStore[j];
+            p.state = (int)PlotState.Dragon; p.dragonId = id; p.tier = (int)GameConfig.GetDragon(id).tier; p.level = D.dragonStoreLvl[j];
+            D.dragonStore.RemoveAt(j); D.dragonStoreLvl.RemoveAt(j);
+            RecalcStats();
+            if (free < Plots.Count) Plots[free].ForceRefresh();
+            GameAudio.Play(Sfx.Plant);
+            SaveNow(true);
+        }
+
         /// <summary>Надеть дракона с грядки (то же, что "Забрать дракона").</summary>
         public void EquipFromPlot(int plot) { if (plot < Plots.Count) TakeDragon(Plots[plot]); }
 
@@ -186,7 +240,18 @@ namespace DragonHeist
             int slot = FreeSlot();
             if (slot < 0)
             {
-                UIManager.Instance.Toast(Loc.T("inv_full"), new Color(1f, 0.6f, 0.3f));
+                // слоты заняты — дракон уходит в хранилище
+                if (AddToStore(p.dragonId, p.level))
+                {
+                    p.state = (int)PlotState.Empty;
+                    RecalcStats();
+                    GameAudio.Play(Sfx.Grab);
+                    UIManager.Instance.Toast(Loc.Ru ? "Слоты заняты — дракон в хранилище (" + D.dragonStore.Count + "/" + GameConfig.StorageSlots + ")" : "Slots full — dragon moved to storage", new Color(0.6f, 1f, 0.8f));
+                    plot.ForceRefresh();
+                    SaveNow(true);
+                    return;
+                }
+                UIManager.Instance.Toast(Loc.Ru ? "Слоты и хранилище заполнены!" : "Slots and storage are full!", new Color(1f, 0.6f, 0.3f));
                 GameAudio.Play(Sfx.Error);
                 return;
             }

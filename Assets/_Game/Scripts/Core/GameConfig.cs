@@ -98,6 +98,7 @@ namespace DragonHeist
         public const int StartPlots = 6;   // покупки грядок нет: все грядки доступны сразу (= MaxPlots)
         public const int MaxPlots = 6;
         public const int InventorySlots = 5;
+        public const int StorageSlots = 15;   // хранилище драконов (без бонусов)
         public const float AdSpeedupFactor = 0.1f;      // реклама режет оставшееся время на 90%
         public const float InterstitialCooldown = 60f;
         public const float AdInterval = 120f;           // полноэкранная реклама каждые 2 минуты игры
