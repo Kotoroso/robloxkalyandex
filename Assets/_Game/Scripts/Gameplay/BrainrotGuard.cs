@@ -23,6 +23,8 @@ namespace DragonHeist
         float catchRadius;
         float cooldown;
         BotPlayer botTarget; // фейк-игрок с нашим яйцом
+        /// <summary>Реальная скорость охранника (ускорение уменьшено так же, как у игрока).</summary>
+        float MoveSpeed { get { return GameConfig.MoveSpeed(info.guardSpeed); } }
 
         /// <summary>Высота пола в зонах (верх клавиш клавиатурного пола).</summary>
         public const float GroundY = 0.58f; // верх клавиш пола (0.13 + 0.45)
@@ -152,7 +154,7 @@ namespace DragonHeist
                 if (state == State.Chase && botTarget == null)
                 {
                     target = pp;
-                    wantSpeed = info.guardSpeed;
+                    wantSpeed = MoveSpeed;
                     if (cooldown <= 0 && playerDist < catchRadius && Mathf.Abs(pp.y - pos.y) < 3.5f * info.guardScale)
                     {
                         cooldown = 1f;
@@ -171,7 +173,7 @@ namespace DragonHeist
                 {
                     Vector3 bp = botTarget.transform.position;
                     target = bp;
-                    wantSpeed = info.guardSpeed * 0.85f;
+                    wantSpeed = MoveSpeed * 0.85f;
                     if (cooldown <= 0 && Flat(bp - pos).magnitude < catchRadius)
                     {
                         cooldown = 1f;
@@ -186,7 +188,7 @@ namespace DragonHeist
             if (state == State.Return)
             {
                 target = homePos;
-                wantSpeed = info.guardSpeed * 0.6f;
+                wantSpeed = MoveSpeed * 0.6f;
                 if (Flat(pos - homePos).magnitude < 4f) { state = State.Patrol; PickPatrolPoint(); }
             }
             else if (state == State.Patrol)
@@ -199,7 +201,7 @@ namespace DragonHeist
                 else
                 {
                     target = patrolTarget;
-                    wantSpeed = Mathf.Max(4f, info.guardSpeed * 0.3f);
+                    wantSpeed = Mathf.Max(4f, MoveSpeed * 0.3f);
                 }
             }
 

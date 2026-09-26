@@ -90,6 +90,10 @@ namespace DragonHeist
     public static class GameConfig
     {
         public const float BaseWalkSpeed = 12f;
+        /// <summary>Во сколько раз реальное ускорение слабее показанного числа скорости (число на экране прежнее).</summary>
+        public const float SpeedScale = 3.5f;
+        /// <summary>Реальная скорость движения из "показанной": базовая остаётся, прибавка сверх базы делится на SpeedScale.</summary>
+        public static float MoveSpeed(float shown) { return shown <= BaseWalkSpeed ? shown : BaseWalkSpeed + (shown - BaseWalkSpeed) / SpeedScale; }
         public const float BaseJump = 7.5f;
         public const int StartPlots = 6;   // покупки грядок нет: все грядки доступны сразу (= MaxPlots)
         public const int MaxPlots = 6;

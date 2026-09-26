@@ -161,7 +161,7 @@ namespace DragonHeist
             if (invulnerable > 0) invulnerable -= dt;
 
             var gm = GameManager.Instance;
-            float walkSpeed = gm != null ? gm.WalkSpeed : GameConfig.BaseWalkSpeed;
+            float walkSpeed = GameConfig.MoveSpeed(gm != null ? gm.WalkSpeed : GameConfig.BaseWalkSpeed); // число на экране — gm.WalkSpeed, движение медленнее
             float jumpPower = gm != null ? gm.JumpPower : GameConfig.BaseJump;
 
             if (!subscribed && gm != null) { gm.OnHeldChanged += RebuildHeld; gm.OnTrailChanged += RebuildTrail; subscribed = true; RebuildHeld(); RebuildTrail(); }
@@ -212,7 +212,7 @@ namespace DragonHeist
             }
             airTime = grounded ? 0 : airTime + dt;
             wasGrounded = grounded;
-            Fx.SetRate(dust, grounded && mv.sqrMagnitude > 0.1f && walkSpeed > 18f ? Mathf.Min(30f, walkSpeed * 0.6f) : 0f);
+            Fx.SetRate(dust, grounded && mv.sqrMagnitude > 0.1f && walkSpeed > 14f ? Mathf.Min(30f, walkSpeed * 1.2f) : 0f);
 
             if (transform.position.y < -40f) Respawn();
 
