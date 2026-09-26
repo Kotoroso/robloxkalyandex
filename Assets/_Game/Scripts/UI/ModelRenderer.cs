@@ -70,7 +70,7 @@ namespace DragonHeist
             try
             {
                 var model = Blocky.BuildDragon(null, d);
-                s = Render(model, 5.6f + Mathf.Min((int)d.tier, 11) * 0.35f, new Vector3(0, 2f, 0), 35f);
+                s = Render(model, 35f);
             }
             catch (System.Exception e)
             {
@@ -81,16 +81,31 @@ namespace DragonHeist
             return s;
         }
 
-        static Sprite Render(GameObject model, float distance, Vector3 focus, float yaw)
+        /// <summary>Рендер модели целиком: камера сама подбирает расстояние по габаритам (крылья, хвост, корона — всё в кадре).</summary>
+        static Sprite Render(GameObject model, float yaw)
         {
             Ensure();
             foreach (var ps in model.GetComponentsInChildren<ParticleSystem>()) ps.gameObject.SetActive(false);
             foreach (var mb in model.GetComponentsInChildren<MonoBehaviour>()) mb.enabled = false;
             model.transform.position = Studio;
             model.transform.rotation = Quaternion.Euler(0, 180f + yaw, 0);
-            Vector3 f = Studio + focus;
-            cam.transform.position = f + new Vector3(distance * 0.25f, distance * 0.3f, -distance);
-            cam.transform.LookAt(f);
+
+            // габариты всех видимых частей (без частиц и прозрачных квадов-нимбов)
+            bool has = false;
+            var b = new Bounds(Studio, Vector3.zero);
+            foreach (var r in model.GetComponentsInChildren<MeshRenderer>())
+            {
+                if (!r.gameObject.activeInHierarchy) continue;
+                if (!has) { b = r.bounds; has = true; } else b.Encapsulate(r.bounds);
+            }
+            if (!has) b = new Bounds(Studio + Vector3.up * 2f, Vector3.one * 4f);
+            float radius = b.extents.magnitude;
+            float dist = radius / Mathf.Sin(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * 1.02f;
+            Vector3 dir = new Vector3(0.25f, 0.3f, -1f).normalized;
+            cam.transform.position = b.center + dir * dist;
+            cam.transform.LookAt(b.center);
+            cam.nearClipPlane = Mathf.Max(0.1f, dist - radius * 2f);
+            cam.farClipPlane = dist + radius * 2f;
 
             bool fog = RenderSettings.fog;
             RenderSettings.fog = false;

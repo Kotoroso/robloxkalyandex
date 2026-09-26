@@ -131,7 +131,6 @@ namespace DragonHeist
             SpawnBoards();
             BotPlayer.SpawnAll(dynamicRoot, BotHomes, BotEntrances, BotPlots);
 
-            for (int i = 0; i < 3; i++) Lamp(new Vector3(-bx + 2f, 0, -44f + i * 8f));
             FlowerBed(new Vector3(-12f, 0.6f, 5f), 8f, 1.6f);
             FlowerBed(new Vector3(12f, 0.6f, 5f), 8f, 1.6f);
         }
