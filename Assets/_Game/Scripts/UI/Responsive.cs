@@ -30,42 +30,53 @@ namespace DragonHeist
     /// <summary>
     /// Адаптация под популярные разрешения игроков Яндекс Игр:
     /// 16:9 (1920x1080, 1366x768, 1536x864, 1280x720), узкие окна со стики-баннером (~4:3..16:10),
-    /// вытянутые телефоны (19.5:9, 20:9), планшеты 4:3, ПОРТРЕТ (телефон вертикально — в Яндекс Играх так играют часто).
-    /// Меняет, по какой стороне масштабируется интерфейс, и вертикальный FOV камеры, чтобы горизонтальный обзор не "сжимался".
+    /// вытянутые телефоны (19.5:9, 20:9), планшеты 4:3. Меняет, по какой стороне масштабируется интерфейс,
+    /// и вертикальный FOV камеры, чтобы горизонтальный обзор не "сжимался".
+    /// Игра только альбомная: в портрете весь экран закрывает подсказка "Поверните устройство" (блокирует ввод, игра идёт дальше).
     ///
     /// Размер холста (в единицах интерфейса) для популярных экранов:
-    ///   телефон, альбом (холст 1150x650, по высоте): 640x360 → 1156x650, 740x360 → 1336x650, 844x390 → 1406x650,
-    ///     915x412 → 1443x650, 932x430 → 1409x650; планшет 1024x768 → 1105x829, 1180x820 → 1092x759;
-    ///   ПК (1400x790): 1366x768 → 1405x790, 1920x1080 / 2560x1440 → 1404x790, 21:9 2560x1080 → 1872x790;
-    ///   портрет (650x1150, "Expand": ширина >= 650 и высота >= 1150): 360x640 → 650x1156, 390x844 → 650x1407,
-    ///     412x915 → 650x1444, планшет 768x1024 → 863x1150.
-    /// Когда размер экрана устоялся (поворот телефона, изменение окна), вызывается Changed — UIManager
-    /// переставляет HUD (альбом/портрет) и перестраивает окна под новый размер.
+    ///   телефон (опорный 1150x650): 640x360 → 1156x650, 740x360 → 1336x650, 844x390 → 1406x650,
+    ///     915x412 → 1443x650, 932x430 → 1409x650; планшет 1024x768 → 1105x829, 1180x820 (iPad) → 1092x759;
+    ///   ПК (опорный 1400x790): 1366x768 → 1405x790, 1920x1080 / 2560x1440 → 1404x790, 21:9 2560x1080 → 1872x790,
+    ///     узкое окно 4:3 1024x768 → 1346x1009.
+    /// Итого в альбоме холст всегда >= ~1090 x 650 (телефон/планшет) и >= ~1336 x 790 (ПК) — под это рассчитан HUD и окна.
     /// </summary>
     public class ResponsiveCanvas : MonoBehaviour
     {
         CanvasScaler scaler;
         Vector2Int lastRes;
-        Rect lastSafe;
-        bool mobile, pending, first = true;
-        float pendingTimer;
+        GameObject rotateHint;
+        bool mobile;
 
-        /// <summary>Размер холста в единицах интерфейса (для текущего экрана).</summary>
-        public static Vector2 CanvasSize { get; private set; }
-        /// <summary>Безопасная область (без чёлки/выреза) в единицах холста, начало — левый нижний угол.</summary>
-        public static Rect SafeRect { get; private set; }
-        /// <summary>Экран выше, чем шире (телефон вертикально, узкое окно).</summary>
-        public static bool Portrait { get; private set; }
-        /// <summary>Размер экрана изменился и устоялся (с задержкой ~0.25 c, чтобы не перестраивать окна на каждом кадре ресайза).</summary>
-        public System.Action Changed;
+        /// <summary>Безопасная область (без выреза/чёлки) альбомного холста, в единицах интерфейса. В портрете — как если бы экран повернули.</summary>
+        public static Vector2 LandscapeSafeSize { get; private set; }
+        /// <summary>Сейчас портрет: показана подсказка повернуть устройство, ввод в игре заблокирован.</summary>
+        public static bool RotateBlocking { get; private set; }
 
         public void Init(CanvasScaler s, bool isMobile, Transform root)
         {
             scaler = s;
             mobile = isMobile;
-            // Раньше в портрете весь экран закрывала подсказка "Поверни телефон" — теперь интерфейс сам
-            // перестраивается под портрет (см. UIManager.ApplyLayout), играть можно в любой ориентации.
             Measure(mobile);
+            // оверлей "Поверните устройство": на весь экран, перехватывает все нажатия
+            var rt = UIKit.Rect(root, "RotateHint", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            UIKit.Stretch(rt);
+            var img = rt.gameObject.AddComponent<Image>();
+            img.color = new Color(0.08f, 0.1f, 0.2f, 0.98f);
+            img.raycastTarget = true;
+            // "телефон", который поворачивается из вертикального положения в горизонтальное
+            var phone = UIKit.Panel(rt, "Phone", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 150), new Vector2(120, 200), new Color(0.35f, 0.75f, 1f), 5f);
+            phone.raycastTarget = false;
+            var screen = UIKit.Panel(phone.transform, "Screen", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(96, 164), new Color(0.1f, 0.12f, 0.25f));
+            screen.raycastTarget = false;
+            var icon = UIKit.Icon(screen.transform, Icons.Dragon, new Vector2(0.5f, 0.5f), Vector2.zero, 80);
+            icon.raycastTarget = false;
+            phone.gameObject.AddComponent<RotateHintAnim>();
+            var t = UIKit.Label(UIKit.Rect(rt, "T", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -90), new Vector2(580, 200)),
+                Loc.Ru ? "Поверните устройство\nгоризонтально" : "Rotate your device\nto landscape", 44, Color.white);
+            UIKit.Fit(t, 24);
+            rotateHint = rt.gameObject;
+            rotateHint.SetActive(false);
         }
 
         /// <summary>Опорное разрешение и match CanvasScaler для экрана res.</summary>
@@ -74,8 +85,7 @@ namespace DragonHeist
             float aspect = res.x / Mathf.Max(1f, res.y);
             if (aspect < 1f)
             {
-                // портрет: ширина холста >= 650 и высота >= 1150 (как ScreenMatchMode.Expand):
-                // телефоны (<= 9:16) — по ширине, планшеты/почти квадратные окна — по высоте
+                // портрет (только подсказка повернуть): ширина холста >= 650 и высота >= 1150 — надпись всегда влезает
                 refRes = new Vector2(650, 1150);
                 match = aspect <= 650f / 1150f ? 0f : 1f;
             }
@@ -89,35 +99,32 @@ namespace DragonHeist
             }
         }
 
-        /// <summary>Считает размер холста и безопасную область так же, как CanvasScaler (ScaleWithScreenSize, MatchWidthOrHeight).</summary>
+        /// <summary>
+        /// Безопасная область альбомного холста так же, как её посчитает CanvasScaler (ScaleWithScreenSize, MatchWidthOrHeight).
+        /// Если сейчас портрет — считаем для повёрнутого экрана (окна строятся один раз, сразу под альбом).
+        /// </summary>
         public static void Measure(bool isMobile)
         {
             int w = Screen.width, h = Screen.height;
             if (w <= 0 || h <= 0) return;
+            var sa = Screen.safeArea;
+            if (h > w) { int tmp = w; w = h; h = tmp; sa = new Rect(0, 0, w, h); }
+            if (sa.width <= 1f || sa.height <= 1f) sa = new Rect(0, 0, w, h);
             Vector2 refRes; float match;
             Params(new Vector2(w, h), isMobile, out refRes, out match);
             float lw = Mathf.Log(w / refRes.x, 2f), lh = Mathf.Log(h / refRes.y, 2f);
             float scale = Mathf.Pow(2f, Mathf.Lerp(lw, lh, match));
             if (scale <= 0f) scale = 1f;
-            CanvasSize = new Vector2(w / scale, h / scale);
-            var sa = Screen.safeArea;
-            if (sa.width <= 1f || sa.height <= 1f) sa = new Rect(0, 0, w, h);
-            SafeRect = new Rect(sa.x / scale, sa.y / scale, sa.width / scale, sa.height / scale);
-            Portrait = w < h;
+            LandscapeSafeSize = new Vector2(sa.width / scale, sa.height / scale);
         }
 
         void Update()
         {
-            if (scaler == null) return;
-            if (pending)
-            {
-                pendingTimer -= Time.unscaledDeltaTime;
-                if (pendingTimer <= 0f) { pending = false; if (Changed != null) Changed(); }
-            }
+            // подсказка всегда поверх всего (рулетка, обучение управлению создаются позже)
+            if (rotateHint != null && rotateHint.activeSelf) rotateHint.transform.SetAsLastSibling();
             var res = new Vector2Int(Screen.width, Screen.height);
-            var safe = Screen.safeArea;
-            if (res == lastRes && safe == lastSafe) return;
-            lastRes = res; lastSafe = safe;
+            if (res == lastRes || scaler == null) return;
+            lastRes = res;
             if (res.x <= 0 || res.y <= 0) return;
             float aspect = res.x / (float)res.y;
 
@@ -125,11 +132,8 @@ namespace DragonHeist
             Params(new Vector2(res.x, res.y), mobile, out refRes, out match);
             scaler.referenceResolution = refRes;
             scaler.matchWidthOrHeight = match;
-            Measure(mobile);
-            // первый раз — сразу (на старте), дальше — когда размер перестанет меняться
-            pending = true;
-            pendingTimer = first ? 0f : 0.25f;
-            first = false;
+            RotateBlocking = aspect < 1f;
+            if (rotateHint != null) rotateHint.SetActive(RotateBlocking);
 
             // FOV: сохраняем горизонтальный обзор ~100° на узких экранах, на широких — вертикальный 70°
             var cam = CameraRig.Cam;
@@ -139,6 +143,19 @@ namespace DragonHeist
                 float vfov = 2f * Mathf.Atan(Mathf.Tan(hfov / 2f) / Mathf.Max(0.5f, aspect)) * Mathf.Rad2Deg;
                 cam.fieldOfView = Mathf.Clamp(vfov, 62f, 85f);
             }
+        }
+    }
+
+    /// <summary>Анимация подсказки: телефон поворачивается из вертикального положения в горизонтальное и обратно.</summary>
+    public class RotateHintAnim : MonoBehaviour
+    {
+        void Update()
+        {
+            // 0..1.2 c — стоит вертикально, 1.2..2 c — поворот, 2..3.2 c — горизонтально, потом рывком назад
+            float t = Mathf.Repeat(Time.unscaledTime, 3.2f);
+            float k = Mathf.Clamp01((t - 1.2f) / 0.8f);
+            k = k * k * (3f - 2f * k);
+            transform.localRotation = Quaternion.Euler(0, 0, -90f * k);
         }
     }
 

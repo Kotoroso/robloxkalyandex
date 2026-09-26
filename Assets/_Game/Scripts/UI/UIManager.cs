@@ -52,18 +52,8 @@ namespace DragonHeist
         GameObject tutPanel; Text tutText;
         float refreshTimer;
         bool mobile;
-        // адаптация под экран: безопасная область холста (в единицах интерфейса) и ориентация
+        // безопасная область холста в альбомной ориентации (в единицах интерфейса) — окна не бывают больше неё
         Vector2 avail = new Vector2(1150, 650);
-        bool portrait;
-        string layoutKey;
-        bool rotateTipShown;
-        RectTransform shoeRt;
-        TextAnchor cpsAlign;
-        MobileControls mobileControls;
-        Vector2 promptMobilePos = new Vector2(-190, 222);
-        float eggsGridMinH = 300f;
-        struct HudSnap { public RectTransform rt; public Vector2 aMin, aMax, pivot, pos, size; }
-        readonly List<HudSnap> hudSnaps = new List<HudSnap>();
 
         /// <summary>Открыто окно "Навыки" (для обучения).</summary>
         public bool SkillsOpen { get { return shopPanel != null && shopPanel.activeSelf; } }
@@ -150,12 +140,10 @@ namespace DragonHeist
             // Телефон (от верха экрана): кнопки 12..92, подписи под ними 95..119, скорость 122..166, деньги 170..226, доход 226..274;
             //   ширина колонки <= 374, чтобы не заезжать на обучение/тост (они начинаются правее, x >= ~390).
             // ПК (от низа экрана): деньги 14..110 (x 90..440, левее слотов), скорость 134..204, кроссовок 124..212.
-            // В портрете колонка всегда сверху слева (см. ApplyHudLayout).
             Vector2 statAnchor = mobile ? new Vector2(0, 1) : new Vector2(0, 0);
             Vector2 speedPos = mobile ? new Vector2(12, -122) : new Vector2(14, 134);
             Vector2 moneyPos = mobile ? new Vector2(12, -170) : new Vector2(90, 14);
             var shoe = UIKit.Icon(h, Icons.Shoe, statAnchor, speedPos + new Vector2(mobile ? 28 : 44, mobile ? -22 : 34), mobile ? 56 : 88);
-            shoeRt = shoe.rectTransform;
             speedText = UIKit.Label(UIKit.Rect(h, "Speed", statAnchor, new Vector2(0, mobile ? 1 : 0), speedPos + new Vector2(mobile ? 60 : 100, 0), new Vector2(300, mobile ? 44 : 70)),
                 "", mobile ? 30 : 48, Cyan, TextAnchor.MiddleLeft);
             coinsText = UIKit.Label(UIKit.Rect(h, "Money", statAnchor, new Vector2(0, mobile ? 1 : 0), moneyPos, new Vector2(mobile ? 360 : 350, mobile ? 56 : 96)),
@@ -168,7 +156,6 @@ namespace DragonHeist
             cpsText = UIKit.Label(UIKit.Rect(h, "Cps", mobile ? new Vector2(0, 1) : new Vector2(1, 0), mobile ? new Vector2(0, 1) : new Vector2(1, 0),
                 mobile ? new Vector2(14, -226) : new Vector2(-16, 14), new Vector2(360, 48)), "", mobile ? 20 : 30, new Color(1f, 0.95f, 0.6f), mobile ? TextAnchor.MiddleLeft : TextAnchor.MiddleRight);
             UIKit.Fit(cpsText, 14);
-            cpsAlign = cpsText.alignment;
             // над слотами (слоты 16..~103 с учётом увеличения выбранного): "выбран дракон" и под ним "яиц в инвентаре"
             invText = UIKit.Fit(UIKit.Label(UIKit.Rect(h, "Inv", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, mobile ? 134 : 130), new Vector2(380, 26)), "", 17, new Color(1f, 0.85f, 0.4f)), 12);
 
@@ -177,6 +164,17 @@ namespace DragonHeist
             heldText = UIKit.Fit(UIKit.Label(UIKit.Rect(h, "Held", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, mobile ? 106 : 102), new Vector2(mobile ? 540 : 620, 26)), "", 18, new Color(0.7f, 1f, 0.85f)), 12);
             UIKit.Inset(heldText, 6, 0);
             UIKit.Inset(invText, 6, 0);
+            // телефон: подписи над слотами — по ширине полосы слотов (правее джойстика, левее прыжка)
+            var hotbarStrip = mobile ? h.Find("Hotbar") : null;
+            if (hotbarStrip != null)
+                foreach (var ht in new[] { heldText, invText })
+                {
+                    var r = (RectTransform)ht.transform.parent;
+                    float y = r.anchoredPosition.y;
+                    r.SetParent(hotbarStrip, false);
+                    r.anchorMin = new Vector2(0, 0); r.anchorMax = new Vector2(1, 0);
+                    r.offsetMin = new Vector2(0, y); r.offsetMax = new Vector2(0, y + 26);
+                }
 
             // ===== Обучение (сверху по центру) =====
             // На телефоне слева сверху кнопки до x=358 ("Магазин"), справа — шестерёнка/награда от W-102:
@@ -215,25 +213,12 @@ namespace DragonHeist
             adBg.raycastTarget = false;
             adBg.gameObject.SetActive(false);
 
-            // запоминаем альбомную раскладку HUD — в портрете она переставляется, при повороте обратно восстанавливается
-            SnapHud();
-
-            // ===== Панели (размер окон — по текущему экрану) =====
-            MeasureScreen();
-            BuildPanels();
-            layoutKey = LayoutKey();
-
-            if (mobile) { mobileControls = hud.AddComponent<MobileControls>(); mobileControls.Build(h); }
-
-            // главное меню убрано — игрок сразу попадает в игру (см. StartGame)
-            var rc = gameObject.AddComponent<ResponsiveCanvas>();
-            rc.Init(scaler, mobile, root);
-            rc.Changed = OnScreenChanged;
-            ApplyHudLayout();
-        }
-
-        void BuildPanels()
-        {
+            // ===== Панели =====
+            // Игра только в альбомной ориентации: окна считаются по альбомному холсту (даже если загрузка началась
+            // в портрете — тогда поверх всего подсказка "Поверните устройство", а окна уже готовы под поворот).
+            ResponsiveCanvas.Measure(mobile);
+            var ls = ResponsiveCanvas.LandscapeSafeSize;
+            if (ls.x > 100f && ls.y > 100f) avail = ls;
             shopPanel = BuildShop();
             rebirthPanel = BuildRebirth();
             dragonsPanel = BuildDragons();
@@ -243,148 +228,15 @@ namespace DragonHeist
             trailsPanel = BuildTrails();
             eggsPanel = BuildEggs();
             dailyPanel = BuildDaily();
+
+            if (mobile) hud.AddComponent<MobileControls>().Build(h);
+
+            // главное меню убрано — игрок сразу попадает в игру (см. StartGame)
+            gameObject.AddComponent<ResponsiveCanvas>().Init(scaler, mobile, root);
         }
 
-        // ============================ АДАПТАЦИЯ ПОД ЭКРАН ============================
-        /// <summary>Безопасная область холста (без выреза/чёлки) и ориентация — из ResponsiveCanvas.</summary>
-        void MeasureScreen()
-        {
-            ResponsiveCanvas.Measure(mobile);
-            var sr = ResponsiveCanvas.SafeRect;
-            if (sr.width > 100f && sr.height > 100f) avail = new Vector2(sr.width, sr.height);
-            portrait = ResponsiveCanvas.Portrait;
-        }
-
-        /// <summary>
-        /// Окна зависят только от ориентации и доступного места (с ограничением сверху: окна не больше дизайн-размера),
-        /// поэтому на ПК при обычном ресайзе окна браузера ничего не перестраивается.
-        /// </summary>
-        string LayoutKey()
-        {
-            return (portrait ? "P" : "L") + Mathf.RoundToInt(Mathf.Min(avail.x, 1000f) / 10f) + "x" + Mathf.RoundToInt(Mathf.Min(avail.y, portrait ? 1200f : 800f) / 10f);
-        }
-
-        /// <summary>Поворот телефона / изменение окна: переставить HUD, перестроить окна под новый размер.</summary>
-        void OnScreenChanged()
-        {
-            MeasureScreen();
-            ApplyHudLayout();
-            var key = LayoutKey();
-            if (key != layoutKey) { layoutKey = key; RebuildPanels(); }
-            if (portrait && mobile && !rotateTipShown && hud.activeSelf)
-            {
-                rotateTipShown = true;
-                Toast(Loc.Ru ? "Совет: горизонтально обзор шире!" : "Tip: landscape gives a wider view!", new Color(0.8f, 0.9f, 1f), 3.5f);
-            }
-        }
-
-        void RebuildPanels()
-        {
-            int openIdx = -1;
-            for (int i = 0; i < panels.Count; i++) if (panels[i] != null && panels[i].activeSelf) openIdx = i;
-            int sib = panels.Count > 0 && panels[0] != null ? panels[0].transform.GetSiblingIndex() : -1;
-            foreach (var p in panels) if (p != null) { p.transform.SetParent(null, false); Destroy(p); }
-            panels.Clear();
-            yanPriceById.Clear(); yanBtnById.Clear(); store3D.Clear(); store3DDone = false;
-            eggCards.Clear(); eggsSig = null;
-            BuildPanels();
-            // окна остаются на своём месте в иерархии (под рулеткой/обучением управления, если они открыты)
-            if (sib >= 0) for (int i = 0; i < panels.Count; i++) panels[i].transform.SetSiblingIndex(sib + i);
-            if (openIdx >= 0 && openIdx < panels.Count)
-            {
-                panels[openIdx].SetActive(true);
-                RefreshPanels();
-            }
-        }
-
-        void SnapHud()
-        {
-            hudSnaps.Clear();
-            var list = new List<RectTransform>();
-            foreach (Transform c in hud.transform) list.Add((RectTransform)c);
-            list.Add((RectTransform)tutText.transform.parent);
-            var tt = tutPanel.transform.Find("T");
-            if (tt != null) list.Add((RectTransform)tt);
-            foreach (var rt in list)
-                hudSnaps.Add(new HudSnap { rt = rt, aMin = rt.anchorMin, aMax = rt.anchorMax, pivot = rt.pivot, pos = rt.anchoredPosition, size = rt.sizeDelta });
-        }
-
-        static void Place(RectTransform rt, Vector2 anchor, Vector2 pivot, Vector2 pos, Vector2 size)
-        {
-            if (rt == null) return;
-            rt.anchorMin = rt.anchorMax = anchor;
-            rt.pivot = pivot;
-            rt.anchoredPosition = pos;
-            rt.sizeDelta = size;
-        }
-
-        RectTransform HudChild(string name)
-        {
-            var t = hud.transform.Find(name);
-            return t != null ? (RectTransform)t : null;
-        }
-
-        /// <summary>
-        /// Альбом — раскладка из Build (восстанавливается из снимка). Портрет (ширина холста 650+, высота 1150+):
-        ///   сверху слева кнопки Навыки/Трейлы/Магазин, справа шестерёнка и под ней Яйца/Драконы;
-        ///   под кнопками слева колонка скорость/деньги/доход (до ~274..290 от верха);
-        ///   ниже на всю ширину обучение, тост, баннер переноски (tutTop..tutTop+222, центр экрана свободен);
-        ///   снизу слоты 16..~106, "выбран дракон"/"яиц" 106..160, прыжок справа 170..300, кнопка действия над ним 310..394,
-        ///   джойстик слева 190..390, подсказка дорожки 420..460 — ничего не пересекается.
-        /// </summary>
-        void ApplyHudLayout()
-        {
-            foreach (var s in hudSnaps)
-            {
-                if (s.rt == null) continue;
-                s.rt.anchorMin = s.aMin; s.rt.anchorMax = s.aMax; s.rt.pivot = s.pivot;
-                s.rt.anchoredPosition = s.pos; s.rt.sizeDelta = s.size;
-            }
-            cpsText.alignment = cpsAlign;
-            if (mobileControls != null) mobileControls.SetLayout(portrait);
-            promptMobilePos = portrait ? new Vector2(-190, 352) : new Vector2(-190, 222);
-            if (!portrait) return;
-
-            float W = avail.x;
-            float cb = mobile ? 80 : 96, sq = mobile ? 84 : 92;
-            var tl = new Vector2(0, 1); var tr = new Vector2(1, 1);
-            // верхний ряд
-            Place(HudChild("BtnYan"), tl, tl, new Vector2(36 + cb * 2, -12), mobile ? new Vector2(170, 70) : new Vector2(Mathf.Min(216f, W - 36 - cb * 3 - 40), 92));
-            // правая колонка под шестерёнкой (подпись шестерёнки до 12+cb+27)
-            float statTop = 12 + cb + 30;
-            Place(HudChild("BtnEggs"), tr, tr, new Vector2(-16, -statTop), new Vector2(sq, sq));
-            Place(HudChild("BtnDragons"), tr, tr, new Vector2(-16, -statTop - sq - 10), new Vector2(sq, sq));
-            // левая колонка: скорость, деньги, доход
-            float colW = Mathf.Min(360f, W - sq - 60f);
-            Place(shoeRt, tl, new Vector2(0.5f, 0.5f), new Vector2(40, -statTop - 22), new Vector2(56, 56));
-            Place(speedText.transform.parent as RectTransform, tl, tl, new Vector2(72, -statTop), new Vector2(colW - 60, 44));
-            Place(coinsText.transform.parent as RectTransform, tl, tl, new Vector2(12, -statTop - 48), new Vector2(colW, 56));
-            Place(cpsText.transform.parent as RectTransform, tl, tl, new Vector2(14, -statTop - 104), new Vector2(colW, 48));
-            cpsText.alignment = TextAnchor.MiddleLeft;
-            // обучение, тост, баннер — под обеими колонками, по центру
-            float tutTop = Mathf.Max(statTop + 152, statTop + sq * 2 + 10) + 10;
-            float tw = Mathf.Min(W - 24, 720f);
-            var tc = new Vector2(0.5f, 1);
-            Place((RectTransform)tutPanel.transform, tc, tc, new Vector2(0, -tutTop), new Vector2(tw, 104));
-            ((RectTransform)tutText.transform.parent).sizeDelta = new Vector2(tw - 160, 72);
-            var tt = tutPanel.transform.Find("T");
-            if (tt != null) ((RectTransform)tt).sizeDelta = new Vector2(tw - 20, 28);
-            Place(toastBg.rectTransform, tc, tc, new Vector2(0, -tutTop - 114), new Vector2(Mathf.Min(W - 24, 680f), 54));
-            Place(carryBg.rectTransform, tc, tc, new Vector2(0, -tutTop - 174), new Vector2(Mathf.Min(W - 24, 560f), 48));
-            // низ
-            var bc = new Vector2(0.5f, 0);
-            Place(heldText.transform.parent as RectTransform, bc, bc, new Vector2(0, mobile ? 106 : 102), new Vector2(Mathf.Min(mobile ? 540f : 620f, W - 40), 26));
-            Place(invText.transform.parent as RectTransform, bc, bc, new Vector2(0, mobile ? 134 : 130), new Vector2(Mathf.Min(380f, W - 40), 26));
-            Place(hintText.transform.parent as RectTransform, bc, bc, new Vector2(0, mobile ? 420 : 212), new Vector2(Mathf.Min(mobile ? 520f : 760f, W - 40), 40));
-        }
-
-        /// <summary>Ширина тела окна, которое получится при запрошенной ширине (см. Modal).</summary>
-        float ModalBodyW(float designW)
-        {
-            return Mathf.Min(designW, 1180f, avail.x - 2f * ModalMargin) - 40f;
-        }
-
-        float ModalMargin { get { return portrait ? 10f : 12f; } }
+        /// <summary>Минимальный отступ окна от краёв безопасной области.</summary>
+        const float ModalMargin = 12f;
 
         /// <summary>Подпись под круглой кнопкой HUD (белый текст с обводкой).</summary>
         static void HudCaption(Transform button, string text, float cb)
@@ -406,14 +258,24 @@ namespace DragonHeist
         void BuildHotbar(Transform h)
         {
             int n = GameConfig.InventorySlots;
-            float s = mobile ? 78 : 74, gap = 10;
+            float s = mobile ? 80 : 74, gap = 10;
             float total = n * s + (n - 1) * gap;
             slotBg = new Image[n]; slotName = new Text[n]; slotIcon = new Image[n];
+            // Телефон: слоты не лезут в зону джойстика (левые 42% экрана) и не заходят на прыжок (справа, x >= W-170):
+            // полоса от 0.42W+8 до W-180, слоты по её центру. Полоса >= 453 при самом узком холсте (~1092) — 5 слотов (440) влезают.
+            Transform bar = h;
+            if (mobile)
+            {
+                var strip = UIKit.Rect(h, "Hotbar", new Vector2(0.5f, 0), new Vector2(0.5f, 0), Vector2.zero, Vector2.zero);
+                strip.anchorMin = new Vector2(0.42f, 0); strip.anchorMax = new Vector2(1, 0);
+                strip.offsetMin = new Vector2(8, 0); strip.offsetMax = new Vector2(-180, s + 30);
+                bar = strip;
+            }
             for (int i = 0; i < n; i++)
             {
                 int k = i;
                 float x = -total / 2f + s / 2f + i * (s + gap);
-                var b = UIKit.Button(h, "Slot" + i, "", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(x, 16), new Vector2(s, s),
+                var b = UIKit.Button(bar, "Slot" + i, "", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(x, 16), new Vector2(s, s),
                     new Color(0.15f, 0.15f, 0.22f, 0.85f), () => { if (GameManager.Instance != null) GameManager.Instance.SelectSlot(k); });
                 Destroy(b.GetComponent<ButtonBounce>());
                 slotBg[i] = b.GetComponent<Image>();
@@ -469,16 +331,12 @@ namespace DragonHeist
         /// </summary>
         GameObject Modal(string title, Color color, Vector2 size, out RectTransform body)
         {
-            // окно никогда не больше безопасной области экрана (с отступом): на узком/портретном экране
-            // оно сужается, а содержимое каждого окна раскладывается по фактической ширине/высоте тела
+            // окно никогда не больше безопасной области экрана (с отступом 12 и сдвигом -6 вниз).
+            // Альбом: холст телефона >= ~1090x650, ПК >= ~1336x790 — самые большие окна (960x610 / 960x740) влезают
+            // с запасом, в т.ч. с вырезом сбоку (до ~80 единиц с каждой стороны); ограничение — страховка.
             float m = ModalMargin;
             Vector2 sz = new Vector2(Mathf.Min(size.x, 1180f, avail.x - 2f * m), Mathf.Min(size.y, avail.y - 2f * m - 12f));
-            // по центру безопасной области (вырез/чёлка не закрывают окно), чуть ниже центра, если есть место
-            Vector2 off = Vector2.zero;
-            var cs = ResponsiveCanvas.CanvasSize;
-            var sr = ResponsiveCanvas.SafeRect;
-            if (cs.x > 0 && sr.width > 100f) off = new Vector2(sr.x + sr.width / 2f - cs.x / 2f, sr.y + sr.height / 2f - cs.y / 2f);
-            var bg = UIKit.Panel(root, "Modal_" + title, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), off + new Vector2(0, -6), sz, new Color(0.12f, 0.15f, 0.3f, 0.98f), 5f);
+            var bg = UIKit.Panel(root, "Modal_" + title, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -6), sz, new Color(0.12f, 0.15f, 0.3f, 0.98f), 5f);
             var pat = UIKit.Rect(bg.transform, "Pattern", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
             UIKit.Stretch(pat, 8);
             var pi = pat.gameObject.AddComponent<Image>();
@@ -1133,7 +991,7 @@ namespace DragonHeist
             var gm = GameManager.Instance;
             var d = SaveManager.Data;
             if (gm == null) return;
-            InputState.Blocked = (menu != null && menu.activeSelf) || Roulette.Active;
+            InputState.Blocked = (menu != null && menu.activeSelf) || Roulette.Active || ResponsiveCanvas.RotateBlocking;
 
             coinsText.text = "$" + Loc.Num(d.coins);
             cpsText.text = "+$" + Loc.Num(gm.CoinsPerSec) + (Loc.Ru ? " /сек" : " /s");
