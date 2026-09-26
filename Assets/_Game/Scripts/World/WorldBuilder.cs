@@ -40,6 +40,8 @@ namespace DragonHeist
             BuildRunway(gm, half, endZ);
             BuildScenery(half, endZ);
 
+            BuildKeyboards(endZ);
+
             foreach (var r in staticRoot.GetComponentsInChildren<Renderer>()) r.receiveShadows = true;
             StaticBatchingUtility.Combine(staticRoot.gameObject);
         }
@@ -178,7 +180,61 @@ namespace DragonHeist
                     dr.transform.rotation = Quaternion.Euler(0, rnd2.Next(360), 0);
                 }
             }
-            BotHomes.Add(center + new Vector3(0, 0.15f, 0));
+            BotHomes.Add(center + new Vector3(0, 0.6f, 0));
+        }
+
+        // ===================== Пол из механических клавиш =====================
+        const float KeyFloorY = 0.13f;
+
+        static Color[] Tints(Color c)
+        {
+            return new[] { Color.Lerp(c, Color.white, 0.55f), Color.Lerp(c, Color.white, 0.3f), Color.Lerp(c, Color.white, 0.8f), c * 0.9f + new Color(0, 0, 0, 0.1f) };
+        }
+
+        /// <summary>Есть ли в клетке объект (грядка, дорожка, стена, постамент...) — там клавиш не ставим.</summary>
+        static bool Occupied(Vector3 c)
+        {
+            foreach (var r in SkipRects) if (r.Contains(new Vector2(c.x, c.z))) return true;
+            var hits = Physics.OverlapBox(new Vector3(c.x, KeyFloorY + 0.6f, c.z), new Vector3(0.85f, 0.35f, 0.85f));
+            foreach (var h in hits)
+            {
+                string n = h.gameObject.name;
+                if (n.StartsWith("Gate_") || n.StartsWith("InvisibleWall")) continue;
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>ASMR-клавиатура по всей карте: база, ниши-базы, дорога, зоны тиров (у каждой своя палитра).</summary>
+        static void BuildKeyboards(float endZ)
+        {
+            Physics.SyncTransforms();
+            var root = new GameObject("KeyboardFloor").transform; // не в staticRoot: меши клавиш уже объединены
+            float bx = BaseHalfWidth, minZ = GameConfig.BaseMinZ, maxZ = GameConfig.BaseMaxZ;
+            System.Func<Vector3, bool> skip = Occupied;
+            KeycapFloor.Build(root, new Rect(-bx, minZ, bx * 2f, maxZ - minZ), KeyFloorY, KeycapFloor.PastelPalette, 1, skip);
+            KeycapFloor.Build(root, new Rect(bx, -46f, 26f, 32f), KeyFloorY, Tints(new Color(0.45f, 0.7f, 1f)), 2, skip);
+            KeycapFloor.Build(root, new Rect(-bx - 18f, -42f, 18f, 20f), KeyFloorY, Tints(new Color(1f, 0.5f, 0.5f)), 3, skip);
+            KeycapFloor.Build(root, new Rect(-30f, minZ - 16f, 18f, 16f), KeyFloorY, Tints(new Color(1f, 0.75f, 0.3f)), 4, skip);
+            KeycapFloor.Build(root, new Rect(12f, minZ - 16f, 18f, 16f), KeyFloorY, Tints(new Color(0.65f, 0.5f, 1f)), 5, skip);
+            float half = GameConfig.RunwayWidth / 2f;
+            // дорога между зонами — кофейная палитра, зоны — в цветах своего тира
+            System.Func<Vector3, bool> runwaySkip = c =>
+            {
+                for (int t = 0; t < GameConfig.Tiers.Length; t++)
+                {
+                    float cz = GameConfig.ZoneCenterZ(t);
+                    if (c.z >= cz - GameConfig.ZoneLength / 2f && c.z < cz + GameConfig.ZoneLength / 2f) return true;
+                }
+                return Occupied(c);
+            };
+            KeycapFloor.Build(root, new Rect(-half, maxZ, half * 2f, endZ - maxZ), KeyFloorY, KeycapFloor.CoffeePalette, 6, runwaySkip);
+            for (int t = 0; t < GameConfig.Tiers.Length; t++)
+            {
+                float cz = GameConfig.ZoneCenterZ(t);
+                KeycapFloor.Build(root, new Rect(-half, cz - GameConfig.ZoneLength / 2f, half * 2f, GameConfig.ZoneLength), KeyFloorY,
+                    Tints(GameConfig.Tiers[t].color), 10 + t, skip);
+            }
         }
 
         static void WallZ(float x, float z0, float z1) { CastleWall(new Vector3(x, 0, (z0 + z1) / 2f), Mathf.Abs(z1 - z0), false, null); }

@@ -180,7 +180,7 @@ namespace DragonHeist
                     if (s == pts.Count - 2 && len - along < 3f) break;
                     var c = chevrons[used++];
                     c.gameObject.SetActive(true);
-                    c.position = a + dir * along + Vector3.up * 0.25f;
+                    c.position = a + dir * along + Vector3.up * 0.66f;
                     c.rotation = Quaternion.LookRotation(Vector3.down, dir);
                     dist += Spacing;
                 }
@@ -197,7 +197,7 @@ namespace DragonHeist
             beam.gameObject.SetActive(true);
             arrow.gameObject.SetActive(true);
             float pulse = 1f + Mathf.Sin(t * 4f) * 0.08f;
-            ring.position = new Vector3(target.x, 0.3f, target.z);
+            ring.position = new Vector3(target.x, 0.68f, target.z);
             ring.localScale = new Vector3(6f * pulse, 6f * pulse, 1f);
             ring.rotation = Quaternion.Euler(90, t * 40f, 0);
             beam.position = new Vector3(target.x, 15f, target.z);

@@ -24,7 +24,7 @@ namespace DragonHeist
         float cooldown;
 
         /// <summary>Высота пола в зонах (верх клавиш клавиатурного пола).</summary>
-        public const float GroundY = 0.1f; // станет 0.62, когда пол из 3D-клавиш будет встроен
+        public const float GroundY = 0.58f; // верх клавиш пола (0.13 + 0.45)
 
         public string DisplayName { get { return Loc.Ru ? NamesRu[(int)info.guardKind] : NamesEn[(int)info.guardKind]; } }
 

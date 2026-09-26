@@ -73,7 +73,7 @@ namespace DragonHeist
         {
             float x = -30f + (float)r.NextDouble() * 60f;
             float z = GameConfig.BaseMinZ + 4f + (float)r.NextDouble() * (GameConfig.BaseMaxZ - GameConfig.BaseMinZ - 8f);
-            return new Vector3(x, 0.15f, z);
+            return new Vector3(x, 0.6f, z);
         }
 
         void PickTask()
