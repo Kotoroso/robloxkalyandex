@@ -439,90 +439,201 @@ namespace DragonHeist
             return UIKit.Fit(UIKit.Label(UIKit.Rect(chip.transform, "V", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(50, 0), new Vector2(150, 40)), "", 21, color, TextAnchor.MiddleLeft), 13);
         }
 
-        /// <summary>
-        /// Драконы: сверху бонусы и 5 НАДЕТЫХ (дают бонусы, летают рядом), ниже драконы на грядках (монеты):
-        /// улучшить за монеты или надеть. Везде — 3D-миниатюры настоящих моделей.
-        /// </summary>
+        // ===== Окно "Драконы": слева прокручиваемый список (надетые / на грядках / в сумке), справа — выбранный дракон =====
+        RectTransform dragList; Image dragBig; Text dragInfo, dragTitle; Button[] dragAct = new Button[3]; Text[] dragActText = new Text[3];
+        string dragSig; int dragSelKind = -1, dragSelIdx = -1; // kind: 0 — надетый слот, 1 — грядка, 2 — сумка
+        readonly List<KeyValuePair<int, Image>> dragItems = new List<KeyValuePair<int, Image>>();
+
         GameObject BuildDragons()
         {
-            // Содержимое (сверху вниз, от верха области): бонусы 6..52, подсказка 56..80, 5 надетых 84..260,
-            // заголовок грядок 268..296, 2 ряда грядок 302..452 и 464..614 — всего 618.
-            // ПК (холст 790 в высоту): окно 740, тело 620 — всё видно без прокрутки.
-            // Телефон (холст 650): окно 610, тело 490 — содержимое прокручивается, окно не вылезает за экран.
-            const float contentH = 618f;
             RectTransform body;
-            var go = Modal(Loc.T("dragons"), new Color(1f, 0.55f, 0.15f), new Vector2(960, mobile ? 610 : 740), out body);
-            var content = UIKit.Scroll(body, new Vector2(0.5f, 0.5f), Vector2.zero, body.sizeDelta, false);
-            content.sizeDelta = new Vector2(body.sizeDelta.x, Mathf.Max(contentH, body.sizeDelta.y));
-            Transform c0 = content;
-            statChips = new[]
+            var go = Modal(Loc.T("dragons"), new Color(1f, 0.55f, 0.15f), new Vector2(960, mobile ? 610 : 700), out body);
+            float W = body.sizeDelta.x, H = body.sizeDelta.y;
+            // бонусы сверху
+            float chipW = (W - 30) / 4f;
+            statChips = new Text[4];
+            Sprite[] ci = { Icons.Bolt, Icons.Coin, Icons.Star, Icons.Shoe };
+            Color[] cc = { Cyan, Gold, Pink, new Color(0.6f, 0.8f, 1f) };
+            for (int i = 0; i < 4; i++)
             {
-                StatChip(c0, Icons.Bolt, Cyan, new Vector2(-330, -6)),
-                StatChip(c0, Icons.Coin, Gold, new Vector2(-110, -6)),
-                StatChip(c0, Icons.Star, Pink, new Vector2(110, -6)),
-                StatChip(c0, Icons.Shoe, new Color(0.6f, 0.8f, 1f), new Vector2(330, -6)),
-            };
-            dragTotals = UIKit.Fit(UIKit.Label(UIKit.Rect(c0, "Hint", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -56), new Vector2(900, 26)), "", 18, new Color(0.75f, 0.8f, 0.95f)), 12);
-            int ns = GameConfig.InventorySlots;
-            equipTexts = new Text[ns]; unequipBtns = new Button[ns]; unequipTexts = new Text[ns]; equipIcons = new Image[ns];
-            float eqStep = Mathf.Min(180f, (body.sizeDelta.x - 10f) / ns), eqW = eqStep - 10f;
-            for (int i = 0; i < ns; i++)
+                var chip = UIKit.Panel(body, "Chip" + i, new Vector2(0, 1), new Vector2(0, 1), new Vector2(i * (chipW + 10), 0), new Vector2(chipW, 46), new Color(0.12f, 0.12f, 0.2f, 1f), 2f);
+                UIKit.Icon(chip.transform, ci[i], new Vector2(0, 0.5f), new Vector2(26, 0), 38);
+                statChips[i] = UIKit.Fit(UIKit.Label(UIKit.Rect(chip.transform, "V", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(50, 0), new Vector2(chipW - 56, 40)), "", 20, cc[i], TextAnchor.MiddleLeft), 12);
+            }
+            // слева — список с полосой прокрутки
+            float listW = W * 0.58f, listH = H - 58;
+            var listBg = UIKit.Panel(body, "ListBg", new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -56), new Vector2(listW, listH), new Color(0.08f, 0.09f, 0.18f, 0.9f), 2f);
+            dragList = UIKit.Scroll(listBg.transform, new Vector2(0.5f, 0.5f), new Vector2(-9, 0), new Vector2(listW - 30, listH - 12), false);
+            AddScrollbar(dragList.parent as RectTransform, listBg.rectTransform);
+            // справа — выбранный дракон
+            float detW = W - listW - 12;
+            var det = UIKit.Panel(body, "Detail", new Vector2(1, 1), new Vector2(1, 1), new Vector2(0, -56), new Vector2(detW, listH), new Color(0.14f, 0.13f, 0.26f, 0.95f), 3f);
+            dragTitle = UIKit.Fit(UIKit.Label(UIKit.Rect(det.transform, "T", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -6), new Vector2(detW - 16, 40)), "", 24, Color.white), 14);
+            float big = Mathf.Min(detW - 60, listH * 0.36f);
+            dragBig = UIKit.Icon(det.transform, Icons.Dragon, new Vector2(0.5f, 1), new Vector2(0, -48 - big / 2f), big);
+            float infoTop = 52 + big, btnArea = 3 * 54 + 8;
+            dragInfo = UIKit.Fit(UIKit.Label(UIKit.Rect(det.transform, "I", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -infoTop), new Vector2(detW - 20, Mathf.Max(60, listH - infoTop - btnArea))), "", 17, new Color(0.9f, 0.92f, 1f), TextAnchor.UpperCenter), 11);
+            Color[] bc = { new Color(0.3f, 0.55f, 1f), new Color(0.28f, 0.8f, 0.38f), new Color(0.95f, 0.45f, 0.25f) };
+            for (int i = 0; i < 3; i++)
             {
                 int k = i;
-                // карточка 170x176: иконка 4..84, текст 82..120, кнопка "Снять" 124..168 (от верха карточки)
-                var c = UIKit.Panel(c0, "Eq" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((i - (ns - 1) / 2f) * eqStep, -84), new Vector2(eqW, 176), new Color(0.2f, 0.34f, 0.3f), 3f);
-                equipIcons[i] = UIKit.Icon(c.transform, Icons.Dragon, new Vector2(0.5f, 1), new Vector2(0, -44), 80);
-                equipTexts[i] = UIKit.Fit(UIKit.Inset(UIKit.Label(UIKit.Rect(c.transform, "T", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 54), new Vector2(eqW - 6, 42)), "", 15, Color.white), 2, 2), 10);
-                unequipBtns[i] = UIKit.Button(c.transform, "Un", Loc.Ru ? "Снять" : "Unequip", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 8), new Vector2(eqW - 24, 44),
-                    new Color(0.95f, 0.45f, 0.25f), () => { GameManager.Instance.UnequipToStore(k); RefreshPanels(); }, 17);
+                dragAct[i] = UIKit.Button(det.transform, "A" + i, "", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 8 + (2 - i) * 54), new Vector2(detW - 30, 48), bc[i], () => { DragonAction(k); RefreshPanels(); }, 18);
+                dragActText[i] = dragAct[i].GetComponentInChildren<Text>();
             }
-            UIKit.Fit(UIKit.Label(UIKit.Rect(c0, "PlT", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -268), new Vector2(900, 28)),
-                Loc.Ru ? "На грядках — приносят монеты" : "On plots — earn coins", 20, new Color(1f, 0.9f, 0.6f)), 13);
-            int n = GameConfig.MaxPlots;
-            dragCards = new Image[n]; dragTexts = new Text[n]; dragBtnTexts = new Text[n]; dragBtns = new Button[n]; equipBtns = new Button[n]; dragIcons = new Image[n];
-            float cw = 296, ch = 150;
-            int rows = (n + 2) / 3;
-            float needH = 302 + rows * (ch + 12);
-            if (needH > content.sizeDelta.y) content.sizeDelta = new Vector2(content.sizeDelta.x, needH);
-            for (int i = 0; i < n; i++)
-            {
-                int k = i;
-                int col = i % 3, row = i / 3;
-                // карточка 296x150: иконка x10..106 y4..100, текст x112..290 y6..94, кнопки y98..142
-                var card = UIKit.Panel(c0, "D" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((col - 1) * (cw + 12), -302 - row * (ch + 12)), new Vector2(cw, ch), new Color(0.22f, 0.22f, 0.34f), 3f);
-                dragCards[i] = card;
-                dragIcons[i] = UIKit.Icon(card.transform, Icons.Dragon, new Vector2(0, 1), new Vector2(58, -52), 96);
-                dragTexts[i] = UIKit.Fit(UIKit.Label(UIKit.Rect(card.transform, "T", new Vector2(0, 1), new Vector2(0, 1), new Vector2(112, -6), new Vector2(cw - 118, 88)), "", 15, Color.white, TextAnchor.UpperLeft), 10);
-                dragBtns[i] = UIKit.Button(card.transform, "Up", "", new Vector2(0, 0), new Vector2(0, 0), new Vector2(8, 8), new Vector2(170, 44),
-                    new Color(0.28f, 0.8f, 0.38f), () => { if (GameManager.Instance.TryUpgradeDragon(k)) RefreshPanels(); }, 16);
-                dragBtnTexts[i] = dragBtns[i].GetComponentInChildren<Text>();
-                equipBtns[i] = UIKit.Button(card.transform, "Eq", Loc.Ru ? "Надеть" : "Equip", new Vector2(1, 0), new Vector2(1, 0), new Vector2(-8, 8), new Vector2(104, 44),
-                    new Color(0.3f, 0.55f, 1f), () => { GameManager.Instance.EquipFromPlot(k); RefreshPanels(); }, 16);
-            }
-
-            // --- Хранилище: до 15 драконов (бонусов не дают), 5 в ряд ---
-            float stTop = 302 + rows * (ch + 12) + 10;
-            storeTitle = UIKit.Fit(UIKit.Label(UIKit.Rect(c0, "StT", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -stTop), new Vector2(900, 28)), "", 20, new Color(0.7f, 0.85f, 1f)), 13);
-            int ss = GameConfig.StorageSlots;
-            storeCards = new Image[ss]; storeIcons = new Image[ss]; storeTexts = new Text[ss];
-            float sw = eqW, sh = 150;
-            for (int i = 0; i < ss; i++)
-            {
-                int k = i, col = i % 5, row = i / 5;
-                // карточка: иконка 4..76, текст 76..104, кнопки 106..144 (от верха карточки)
-                var c = UIKit.Panel(c0, "St" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((col - 2) * eqStep, -(stTop + 34) - row * (sh + 10)), new Vector2(sw, sh), new Color(0.2f, 0.22f, 0.34f), 3f);
-                storeCards[i] = c;
-                storeIcons[i] = UIKit.Icon(c.transform, Icons.Dragon, new Vector2(0.5f, 1), new Vector2(0, -40), 72);
-                storeTexts[i] = UIKit.Fit(UIKit.Inset(UIKit.Label(UIKit.Rect(c.transform, "T", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -76), new Vector2(sw - 6, 28)), "", 14, Color.white), 2, 1), 9);
-                float bw = (sw - 18) / 2f;
-                UIKit.Button(c.transform, "Eq", Loc.Ru ? "Надеть" : "Equip", new Vector2(0, 0), new Vector2(0, 0), new Vector2(6, 6), new Vector2(bw, 40),
-                    new Color(0.3f, 0.55f, 1f), () => { GameManager.Instance.EquipFromStore(k); RefreshPanels(); }, 14);
-                UIKit.Button(c.transform, "Pl", Loc.Ru ? "Грядка" : "Plot", new Vector2(1, 0), new Vector2(1, 0), new Vector2(-6, 6), new Vector2(bw, 40),
-                    new Color(0.28f, 0.8f, 0.38f), () => { GameManager.Instance.StoreToPlot(k); RefreshPanels(); }, 14);
-            }
-            float allH = stTop + 34 + 3 * (sh + 10) + 8;
-            if (allH > content.sizeDelta.y) content.sizeDelta = new Vector2(content.sizeDelta.x, allH);
             return go;
+        }
+
+        /// <summary>Видимая полоса прокрутки справа от списка.</summary>
+        static void AddScrollbar(RectTransform viewport, RectTransform holder)
+        {
+            var sr = viewport.GetComponent<ScrollRect>();
+            var track = UIKit.Rect(holder, "Scrollbar", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-4, 0), new Vector2(14, holder.sizeDelta.y - 16));
+            var ti = track.gameObject.AddComponent<Image>(); ti.sprite = UIKit.Rounded; ti.type = Image.Type.Sliced; ti.color = new Color(1, 1, 1, 0.1f);
+            var area = UIKit.Rect(track, "Area", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero); UIKit.Stretch(area, 1);
+            var handle = UIKit.Rect(area, "Handle", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero); UIKit.Stretch(handle, 0);
+            var hi = handle.gameObject.AddComponent<Image>(); hi.sprite = UIKit.Rounded; hi.type = Image.Type.Sliced; hi.color = new Color(1f, 0.75f, 0.3f, 0.9f);
+            var sb = track.gameObject.AddComponent<Scrollbar>();
+            sb.handleRect = handle; sb.targetGraphic = hi; sb.direction = Scrollbar.Direction.BottomToTop;
+            if (sr != null) { sr.verticalScrollbar = sb; sr.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent; }
+        }
+
+        static string Hex(Color c) { return ColorUtility.ToHtmlStringRGB(c); }
+
+        void DragonAction(int btn)
+        {
+            var gm = GameManager.Instance;
+            int k = dragSelKind, i = dragSelIdx;
+            if (k == 0) { if (btn == 0) gm.UnequipToStore(i); else if (btn == 1) gm.UnequipToPlot(i); }
+            else if (k == 1) { if (btn == 0) gm.EquipFromPlot(i); else if (btn == 1) gm.TryUpgradeDragon(i); else gm.PlotToStore(i); }
+            else if (k == 2) { if (btn == 0) gm.EquipFromStore(i); else if (btn == 1) gm.StoreToPlot(i); }
+            dragSig = null;
+        }
+
+        void RefreshDragons(SaveData d, GameManager gm)
+        {
+            statChips[0].text = "+" + gm.DragonSpeedPct.ToString("0") + "%";
+            statChips[1].text = "$" + Loc.Num(gm.CoinsPerSec) + (Loc.Ru ? "/с" : "/s");
+            statChips[2].text = "+" + gm.DragonTrainPct.ToString("0") + "%";
+            statChips[3].text = "+" + gm.DragonJump.ToString("0.#");
+
+            // что где лежит
+            var eq = new List<int>(); var pl = new List<int>();
+            for (int i = 0; i < d.dragonInv.Count; i++) if (d.dragonInv[i] >= 0) eq.Add(i);
+            for (int i = 0; i < d.plotsOwned && i < d.plots.Count; i++) if (d.plots[i].state == (int)PlotState.Dragon) pl.Add(i);
+            var sig = new System.Text.StringBuilder();
+            foreach (var i in eq) sig.Append('e').Append(i).Append(':').Append(d.dragonInv[i]).Append(d.dragonInvLvl[i]);
+            foreach (var i in pl) sig.Append('p').Append(i).Append(':').Append(d.plots[i].dragonId).Append(d.plots[i].level);
+            for (int i = 0; i < d.dragonStore.Count; i++) sig.Append('s').Append(d.dragonStore[i]).Append(d.dragonStoreLvl[i]);
+
+            // выбор по умолчанию — первый дракон
+            bool valid = (dragSelKind == 0 && eq.Contains(dragSelIdx)) || (dragSelKind == 1 && pl.Contains(dragSelIdx)) || (dragSelKind == 2 && dragSelIdx < d.dragonStore.Count);
+            if (!valid) { dragSelKind = -1; if (eq.Count > 0) { dragSelKind = 0; dragSelIdx = eq[0]; } else if (pl.Count > 0) { dragSelKind = 1; dragSelIdx = pl[0]; } else if (d.dragonStore.Count > 0) { dragSelKind = 2; dragSelIdx = 0; } }
+
+            if (sig.ToString() != dragSig)
+            {
+                dragSig = sig.ToString();
+                foreach (Transform c in dragList) Destroy(c.gameObject);
+                dragItems.Clear();
+                float lw = dragList.sizeDelta.x, gap = 8;
+                int cols = 3; float cw = (lw - (cols - 1) * gap) / cols, ch = cw * 0.9f;
+                float y = 4;
+                System.Action<string> header = t =>
+                {
+                    UIKit.Fit(UIKit.Label(UIKit.Rect(dragList, "H", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -y), new Vector2(lw, 30)), t, 19, new Color(1f, 0.88f, 0.55f), TextAnchor.MiddleLeft), 12);
+                    y += 34;
+                };
+                System.Action<int, int, int, int> item = null;
+                int n = 0;
+                item = (kind, idx, id, lvl) =>
+                {
+                    int col = n % cols, row = n / cols;
+                    var def = GameConfig.GetDragon(id);
+                    var tc = GameConfig.GetTier(def.tier).color;
+                    int kk = kind, ii = idx;
+                    var b = UIKit.Button(dragList, "D", "", new Vector2(0, 1), new Vector2(0, 1), new Vector2(col * (cw + gap), -(y + row * (ch + gap))), new Vector2(cw, ch),
+                        Color.Lerp(new Color(0.2f, 0.2f, 0.32f), tc, 0.3f), () => { dragSelKind = kk; dragSelIdx = ii; RefreshPanels(); }, 14);
+                    Destroy(b.GetComponent<ButtonBounce>());
+                    UIKit.Icon(b.transform, IconArt.Dragon(def), new Vector2(0.5f, 1), new Vector2(0, -ch * 0.38f), ch * 0.62f);
+                    UIKit.Fit(UIKit.Label(UIKit.Rect(b.transform, "N", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 6), new Vector2(cw - 8, ch * 0.28f)),
+                        Loc.DragonName(def) + " <color=#FFD84A>" + (Loc.Ru ? "ур." : "lv.") + lvl + "</color>", 14, Color.white), 9);
+                    dragItems.Add(new KeyValuePair<int, Image>(kind * 100 + idx, b.GetComponent<Image>()));
+                    n++;
+                };
+                System.Action endSection = () => { if (n > 0) y += ((n + cols - 1) / cols) * (ch + gap) + 6; n = 0; };
+
+                header((Loc.Ru ? "Надетые " : "Equipped ") + eq.Count + "/" + GameConfig.InventorySlots + (Loc.Ru ? "  — дают бонусы" : "  — give bonuses"));
+                foreach (var i in eq) item(0, i, d.dragonInv[i], d.dragonInvLvl[i]);
+                endSection();
+                header((Loc.Ru ? "На грядках " : "On plots ") + pl.Count + "/" + GameConfig.MaxPlots + (Loc.Ru ? "  — приносят монеты" : "  — earn coins"));
+                foreach (var i in pl) item(1, i, d.plots[i].dragonId, d.plots[i].level);
+                endSection();
+                header((Loc.Ru ? "В сумке " : "In bag ") + d.dragonStore.Count + "/" + GameConfig.StorageSlots + (Loc.Ru ? "  — просто хранятся" : "  — just stored"));
+                for (int i = 0; i < d.dragonStore.Count; i++) item(2, i, d.dragonStore[i], d.dragonStoreLvl[i]);
+                endSection();
+                dragList.sizeDelta = new Vector2(lw, Mathf.Max(y + 8, (dragList.parent as RectTransform).sizeDelta.y));
+            }
+            foreach (var kv in dragItems)
+                if (kv.Value != null) kv.Value.color = kv.Key == dragSelKind * 100 + dragSelIdx ? new Color(1f, 0.78f, 0.2f) : kv.Value.color.a > 0 ? RestColor(kv.Key, d) : kv.Value.color;
+
+            // правая панель
+            bool has = dragSelKind >= 0;
+            dragBig.enabled = has;
+            for (int i = 0; i < 3; i++) dragAct[i].gameObject.SetActive(false);
+            if (!has)
+            {
+                dragTitle.text = Loc.Ru ? "Драконов пока нет" : "No dragons yet";
+                dragInfo.text = Loc.Ru ? "Укради яйцо у брейнротов, вырасти его на грядке и открой — появится дракон!" : "Steal an egg from brainrots, grow it on a plot and open it to get a dragon!";
+                return;
+            }
+            int sid, slvl;
+            if (dragSelKind == 0) { sid = d.dragonInv[dragSelIdx]; slvl = d.dragonInvLvl[dragSelIdx]; }
+            else if (dragSelKind == 1) { sid = d.plots[dragSelIdx].dragonId; slvl = d.plots[dragSelIdx].level; }
+            else { sid = d.dragonStore[dragSelIdx]; slvl = d.dragonStoreLvl[dragSelIdx]; }
+            var sd = GameConfig.GetDragon(sid);
+            var stc = GameConfig.GetTier(sd.tier).color;
+            dragBig.sprite = IconArt.Dragon(sd);
+            dragTitle.text = "<color=#" + Hex(Color.Lerp(stc, Color.white, 0.3f)) + ">" + Loc.DragonName(sd) + "</color>";
+            float ls = GameConfig.DragonLevelStat(slvl);
+            string where = dragSelKind == 0 ? (Loc.Ru ? "Надет — даёт бонусы" : "Equipped — gives bonuses") : dragSelKind == 1 ? (Loc.Ru ? "На грядке — приносит монеты" : "On a plot — earns coins") : (Loc.Ru ? "В сумке — бонусов не даёт" : "In the bag — no bonuses");
+            dragInfo.text = Loc.TierName(sd.tier) + "   <color=#FFD84A>" + (Loc.Ru ? "Ур. " : "Lv. ") + slvl + "</color>\n"
+                + "<color=#9CFF8A>$" + Loc.Num(sd.coinsPerSec * GameConfig.DragonLevelIncome(slvl)) + (Loc.Ru ? "/сек на грядке</color>\n" : "/s on a plot</color>\n")
+                + "<color=#8FE8FF>+" + (sd.speedPct * ls).ToString("0") + (Loc.Ru ? "% скорость   +" : "% speed   +") + (sd.trainPct * ls).ToString("0") + (Loc.Ru ? "% прокачка</color>\n" : "% training</color>\n")
+                + "<size=14><color=#AAB4D0>" + where + "</color></size>";
+            bool slotsFull = gm.FreeSlot() < 0, bagFull = gm.StoreFull, noPlot = gm.FreePlotCount == 0;
+            if (dragSelKind == 0)
+            {
+                SetAct(0, Loc.Ru ? "Снять в сумку" : "Move to bag", !bagFull);
+                SetAct(1, Loc.Ru ? "Поставить на грядку" : "Put on a plot", !noPlot);
+            }
+            else if (dragSelKind == 1)
+            {
+                SetAct(0, Loc.Ru ? "Надеть" : "Equip", !slotsFull || !bagFull);
+                bool max = slvl >= GameConfig.DragonMaxLevel;
+                SetAct(1, max ? "MAX" : (Loc.Ru ? "Улучшить $" : "Upgrade $") + Loc.Num(gm.DragonUpgradeCost(dragSelIdx)), !max);
+                SetAct(2, Loc.Ru ? "Убрать в сумку" : "Move to bag", !bagFull);
+            }
+            else
+            {
+                SetAct(0, Loc.Ru ? "Надеть" : "Equip", !slotsFull);
+                SetAct(1, Loc.Ru ? "Поставить на грядку" : "Put on a plot", !noPlot);
+            }
+        }
+
+        Color RestColor(int key, SaveData d)
+        {
+            int kind = key / 100, idx = key % 100, id;
+            if (kind == 0) id = idx < d.dragonInv.Count ? d.dragonInv[idx] : -1;
+            else if (kind == 1) id = idx < d.plots.Count ? d.plots[idx].dragonId : -1;
+            else id = idx < d.dragonStore.Count ? d.dragonStore[idx] : -1;
+            if (id < 0) return new Color(0.2f, 0.2f, 0.32f);
+            return Color.Lerp(new Color(0.2f, 0.2f, 0.32f), GameConfig.GetTier(GameConfig.GetDragon(id).tier).color, 0.3f);
+        }
+
+        void SetAct(int i, string text, bool enabled)
+        {
+            dragAct[i].gameObject.SetActive(true);
+            dragActText[i].text = text;
+            dragAct[i].interactable = enabled;
         }
 
         Button YanBuy(Transform parent, string id, Vector2 anchor, Vector2 pos, Vector2 size, Color color, int font)
@@ -1136,61 +1247,7 @@ namespace DragonHeist
                 string zoneReq = (gm.RebirthZoneOk ? "<color=#7CFF7C>" : "<color=#FF7C7C>") + (Loc.Ru ? "Нужна зона: " : "Zone required: ") + Loc.TierName((Tier)gm.RebirthReqTier) + "</color>";
                 rebirthBody.text = Loc.F("rebirth_desc", next.ToString("0")) + "\n\n" + zoneReq + "\n<color=#FFD84A>" + Loc.F("rebirth_cost", Loc.Num(gm.RebirthCost)) + "</color>";
             }
-            if (dragonsPanel.activeSelf)
-            {
-                statChips[0].text = "+" + gm.DragonSpeedPct.ToString("0") + "%";
-                statChips[1].text = "$" + Loc.Num(gm.CoinsPerSec) + (Loc.Ru ? "/с" : "/s");
-                statChips[2].text = "+" + gm.DragonTrainPct.ToString("0") + "%";
-                statChips[3].text = "+" + gm.DragonJump.ToString("0.#");
-                dragTotals.text = Loc.Ru ? "Надетые драконы дают бонусы и летают рядом с тобой" : "Equipped dragons give bonuses and fly next to you";
-                for (int i = 0; i < equipTexts.Length; i++)
-                {
-                    int id = d.dragonInv[i];
-                    unequipBtns[i].gameObject.SetActive(id >= 0);
-                    equipIcons[i].enabled = id >= 0;
-                    if (id < 0) { equipTexts[i].text = Loc.Ru ? "<color=#8899AA>Пустой слот</color>" : "<color=#8899AA>Empty slot</color>"; continue; }
-                    var def = GameConfig.GetDragon(id);
-                    equipIcons[i].sprite = IconArt.Dragon(def);
-                    float ls = GameConfig.DragonLevelStat(d.dragonInvLvl[i]);
-                    equipTexts[i].text = "<color=#" + ColorUtility.ToHtmlStringRGB(Color.Lerp(GameConfig.GetTier(def.tier).color, Color.white, 0.35f)) + ">" + Loc.DragonName(def) + "</color>\n<size=13>+"
-                        + (def.speedPct * ls).ToString("0") + (Loc.Ru ? "% скор.  +" : "% spd  +") + (def.trainPct * ls).ToString("0") + (Loc.Ru ? "% прок.</size>" : "% train</size>");
-                }
-                bool full = gm.FreeSlot() < 0;
-                for (int i = 0; i < dragCards.Length; i++)
-                {
-                    bool owned = i < d.plotsOwned && d.plots[i].state == (int)PlotState.Dragon;
-                    dragCards[i].gameObject.SetActive(owned);
-                    if (!owned) continue;
-                    var pl = d.plots[i];
-                    var def = GameConfig.GetDragon(pl.dragonId);
-                    var tc = GameConfig.GetTier(def.tier).color;
-                    dragCards[i].color = Color.Lerp(new Color(0.2f, 0.2f, 0.32f), tc, 0.28f);
-                    dragIcons[i].sprite = IconArt.Dragon(def);
-                    float ls = GameConfig.DragonLevelStat(pl.level);
-                    dragTexts[i].text = "<color=#" + ColorUtility.ToHtmlStringRGB(Color.Lerp(tc, Color.white, 0.35f)) + ">" + Loc.DragonName(def) + "</color>\n"
-                        + "<color=#FFD84A>" + (Loc.Ru ? "Ур. " : "Lv. ") + pl.level + "</color>   " + Loc.TierName(def.tier) + "\n"
-                        + "<color=#9CFF8A>$" + Loc.Num(def.coinsPerSec * GameConfig.DragonLevelIncome(pl.level)) + (Loc.Ru ? "/сек</color>" : "/s</color>")
-                        + "\n<size=13><color=#AAB4D0>" + (Loc.Ru ? "надетый: +" : "equipped: +") + (def.speedPct * ls).ToString("0") + "% / +" + (def.trainPct * ls).ToString("0") + "%</color></size>";
-                    bool max = pl.level >= GameConfig.DragonMaxLevel;
-                    dragBtnTexts[i].text = max ? "MAX" : (Loc.Ru ? "Улучшить $" : "Upgrade $") + Loc.Num(gm.DragonUpgradeCost(i));
-                    dragBtns[i].interactable = !max;
-                    equipBtns[i].interactable = !full || !gm.StoreFull;
-                }
-                storeTitle.text = (Loc.Ru ? "Хранилище " : "Storage ") + d.dragonStore.Count + "/" + GameConfig.StorageSlots
-                    + (Loc.Ru ? "  <size=15><color=#AAB4D0>— бонусов не дают, надень или поставь на грядку</color></size>" : "  <size=15><color=#AAB4D0>— no bonuses; equip or put on a plot</color></size>");
-                for (int i = 0; i < storeCards.Length; i++)
-                {
-                    bool has = i < d.dragonStore.Count;
-                    storeIcons[i].enabled = has;
-                    foreach (var b in storeCards[i].GetComponentsInChildren<Button>(true)) b.gameObject.SetActive(has);
-                    if (!has) { storeCards[i].color = new Color(0.16f, 0.17f, 0.26f); storeTexts[i].text = Loc.Ru ? "<color=#667788>пусто</color>" : "<color=#667788>empty</color>"; continue; }
-                    var def = GameConfig.GetDragon(d.dragonStore[i]);
-                    var tc = GameConfig.GetTier(def.tier).color;
-                    storeCards[i].color = Color.Lerp(new Color(0.2f, 0.2f, 0.32f), tc, 0.25f);
-                    storeIcons[i].sprite = IconArt.Dragon(def);
-                    storeTexts[i].text = Loc.DragonName(def) + " <color=#FFD84A>" + (Loc.Ru ? "ур." : "lv.") + d.dragonStoreLvl[i] + "</color>";
-                }
-            }
+            if (dragonsPanel.activeSelf) RefreshDragons(d, gm);
             if (yanPanel.activeSelf)
             {
                 if (!store3DDone)

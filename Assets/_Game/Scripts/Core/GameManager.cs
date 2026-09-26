@@ -172,6 +172,20 @@ namespace DragonHeist
             SaveNow(true);
         }
 
+        /// <summary>Убрать дракона с грядки в сумку.</summary>
+        public void PlotToStore(int plot)
+        {
+            if (plot < 0 || plot >= D.plots.Count) return;
+            var p = D.plots[plot];
+            if (p.state != (int)PlotState.Dragon) return;
+            if (!AddToStore(p.dragonId, p.level)) { UIManager.Instance.Toast(Loc.Ru ? "Сумка заполнена!" : "Bag is full!", new Color(1f, 0.6f, 0.3f)); GameAudio.Play(Sfx.Error); return; }
+            p.state = (int)PlotState.Empty;
+            RecalcStats();
+            if (plot < Plots.Count) Plots[plot].ForceRefresh();
+            GameAudio.Play(Sfx.Grab);
+            SaveNow(true);
+        }
+
         /// <summary>Надеть дракона с грядки (то же, что "Забрать дракона").</summary>
         public void EquipFromPlot(int plot) { if (plot < Plots.Count) TakeDragon(Plots[plot]); }
 
