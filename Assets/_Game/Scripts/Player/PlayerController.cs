@@ -56,7 +56,7 @@ namespace DragonHeist
         }
 
         readonly List<GameObject> pets = new List<GameObject>();
-        TrailRenderer trail;
+        TrailRenderer trail, trailCore;
         ParticleSystem trailSparks;
         float trailHue;
 
@@ -86,30 +86,50 @@ namespace DragonHeist
             foreach (var p in pets) p.GetComponent<PetFollow>().total = pets.Count;
         }
 
-        /// <summary>Эффект при беге из магазина трейлов.</summary>
+        /// <summary>
+        /// Трейл из магазина: светящийся след за туловищем — широкое мягкое свечение + яркая сердцевина
+        /// + (у редких) искры. Альфа-смешивание, чтобы след был виден и на белой клавиатуре.
+        /// </summary>
         public void RebuildTrail()
         {
-            if (trail != null) Destroy(trail.gameObject);
-            if (trailSparks != null) Destroy(trailSparks.gameObject);
-            trail = null; trailSparks = null;
+            if (trail != null) Destroy(trail.transform.parent.gameObject);
+            trail = null; trailCore = null; trailSparks = null;
             int t = SaveManager.Data.equippedTrail;
-            if (t < 0) return;
+            if (t < 0 || t >= GameConfig.Trails.Length) return;
             var def = GameConfig.Trails[t];
-            var go = new GameObject("Trail");
-            go.transform.SetParent(transform, false);
-            go.transform.localPosition = new Vector3(0, 1.2f, -0.3f);
-            trail = go.AddComponent<TrailRenderer>();
-            trail.sharedMaterial = Mats.Particle(null, def.sparkles);
-            trail.time = 0.45f;
-            trail.minVertexDistance = 0.2f;
-            trail.widthCurve = AnimationCurve.Linear(0f, 1.6f, 1f, 0f);
-            trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            trail.receiveShadows = false;
+            var root = new GameObject("Trail");
+            root.transform.SetParent(transform, false);
+            root.transform.localPosition = new Vector3(0, 1.6f, 0); // центр туловища
+            trail = MakeTrail(root.transform, "Glow", false, 1.9f, 0.55f, def.a, def.b, 0.75f);
+            trailCore = MakeTrail(root.transform, "Core", true, 0.7f, 0.38f, Color.Lerp(def.a, Color.white, 0.55f), def.a, 1f);
+            if (def.sparkles) trailSparks = Fx.Sparkles(root.transform, Vector3.zero, Color.Lerp(def.a, Color.white, 0.3f), 0.7f, 0f);
+        }
+
+        static TrailRenderer MakeTrail(Transform parent, string name, bool core, float width, float time, Color head, Color tail, float alpha)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            var tr = go.AddComponent<TrailRenderer>();
+            tr.sharedMaterial = Mats.TrailMat(core);
+            tr.time = time;
+            tr.minVertexDistance = 0.15f;
+            tr.numCapVertices = 4;
+            tr.textureMode = LineTextureMode.Stretch;
+            tr.alignment = LineAlignment.View;
+            tr.widthCurve = new AnimationCurve(new Keyframe(0f, width * 0.8f), new Keyframe(0.15f, width), new Keyframe(1f, 0f));
+            tr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            tr.receiveShadows = false;
+            tr.colorGradient = TrailGradient(head, tail, alpha);
+            tr.emitting = false;
+            return tr;
+        }
+
+        static Gradient TrailGradient(Color head, Color tail, float alpha)
+        {
             var g = new Gradient();
-            g.SetKeys(new[] { new GradientColorKey(def.a, 0f), new GradientColorKey(def.b, 1f) },
-                      new[] { new GradientAlphaKey(0.9f, 0f), new GradientAlphaKey(0f, 1f) });
-            trail.colorGradient = g;
-            if (def.sparkles) trailSparks = Fx.Sparkles(go.transform, Vector3.zero, def.a, 0.6f, 0f);
+            g.SetKeys(new[] { new GradientColorKey(head, 0f), new GradientColorKey(tail, 1f) },
+                      new[] { new GradientAlphaKey(alpha, 0f), new GradientAlphaKey(alpha * 0.8f, 0.4f), new GradientAlphaKey(0f, 1f) });
+            return g;
         }
 
         public static PlayerController Create(Vector3 spawn)
@@ -218,16 +238,16 @@ namespace DragonHeist
         {
             if (trail == null) return;
             trail.emitting = moving;
+            if (trailCore != null) trailCore.emitting = moving;
             int t = SaveManager.Data.equippedTrail;
-            if (t >= 0 && GameConfig.Trails[t].rainbow)
+            if (t >= 0 && t < GameConfig.Trails.Length && GameConfig.Trails[t].rainbow)
             {
                 trailHue = Mathf.Repeat(trailHue + dt * 0.5f, 1f);
-                var g = new Gradient();
-                g.SetKeys(new[] { new GradientColorKey(Color.HSVToRGB(trailHue, 0.8f, 1f), 0f), new GradientColorKey(Color.HSVToRGB(Mathf.Repeat(trailHue + 0.3f, 1f), 0.8f, 1f), 1f) },
-                          new[] { new GradientAlphaKey(0.9f, 0f), new GradientAlphaKey(0f, 1f) });
-                trail.colorGradient = g;
+                Color h = Color.HSVToRGB(trailHue, 0.85f, 1f), e = Color.HSVToRGB(Mathf.Repeat(trailHue + 0.35f, 1f), 0.85f, 1f);
+                trail.colorGradient = TrailGradient(h, e, 0.75f);
+                if (trailCore != null) trailCore.colorGradient = TrailGradient(Color.Lerp(h, Color.white, 0.55f), h, 1f);
             }
-            Fx.SetRate(trailSparks, moving ? 20f : 0f);
+            Fx.SetRate(trailSparks, moving ? 25f : 0f);
         }
 
         // ===== ASMR-клавиатура по всей карте: щелчок свитча и RGB-вспышка на каждой "клавише" =====

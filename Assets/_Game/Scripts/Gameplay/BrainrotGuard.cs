@@ -66,7 +66,7 @@ namespace DragonHeist
                 GameAudio.Play(Sfx.Laugh, 0.7f);
             }
             idleTimer = 0;
-            if (p != null && Flat(p.transform.position - home.transform.position).magnitude < GameConfig.LeashRadius + 10f)
+            if (p != null && ((p.Carrying != null && p.Carrying.from == home) || Flat(p.transform.position - home.transform.position).magnitude < GameConfig.LeashRadius + 10f))
                 state = State.Chase;
             else state = State.Patrol;
         }
@@ -122,13 +122,15 @@ namespace DragonHeist
                 float leash = GameConfig.LeashRadius + (int)info.tier * 1.5f;
 
                 if (state != State.Chase && !playerInBase && !p.IsInvulnerable &&
-                    (playerDist < info.aggroRadius * 0.6f || (p.Carrying != null && p.Carrying.from == home && playerFromHome < leash)))
+                    (playerDist < info.aggroRadius * 0.6f || (p.Carrying != null && p.Carrying.from == home)))
                     state = State.Chase;
                 // вор далеко и яйцо на месте — через 8 сек снова засыпает
                 if (state == State.Patrol && playerFromHome > leash) { idleTimer += dt; if (idleTimer > 8f) { GoToSleep(); return; } }
                 else if (state == State.Patrol) idleTimer = 0;
 
-                if (state == State.Chase && (playerFromHome > leash || playerInBase || p.IsInvulnerable))
+                // вор с НАШИМ яйцом — гонимся до самого выхода (до базы), без поводка
+                bool thief = p.Carrying != null && p.Carrying.from == home;
+                if (state == State.Chase && (playerInBase || p.IsInvulnerable || (!thief && playerFromHome > leash)))
                     state = State.Return;
 
                 if (state == State.Chase)

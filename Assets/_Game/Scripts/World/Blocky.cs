@@ -404,136 +404,281 @@ namespace DragonHeist
             g.model = Pivot(g.root.transform, "Model", Vector3.zero);
             g.model.localScale = Vector3.one * scale;
             var m = g.model;
-            Round = true;
+            Round = true; RoundFactor = 0.22f; RoundSteps = 2;
             var white = Plastic(Color.white); var black = Plastic(new Color(0.07f, 0.07f, 0.07f));
-            var red = Plastic(new Color(0.85f, 0.15f, 0.15f));
+            var red = Plastic(new Color(0.9f, 0.18f, 0.18f));
+            var tooth = Plastic(new Color(1f, 0.98f, 0.9f));
             Transform l1, l2, a1 = null, a2 = null;
 
             switch (kind)
             {
                 case BrainrotKind.TungSahur:
                 {
-                    // деревянное бревно с битой
-                    var wood = Plastic(new Color(0.72f, 0.5f, 0.3f));
-                    Part(m, new Vector3(0, 3.2f, 0), new Vector3(1.6f, 3.4f, 1.6f), wood, false, PrimitiveType.Cylinder).localScale = new Vector3(1.6f, 1.7f, 1.6f);
-                    Eyes(m, new Vector3(0, 4.1f, 0.78f), 0.35f, white, black);
-                    Part(m, new Vector3(0, 3.4f, 0.8f), new Vector3(0.7f, 0.15f, 0.05f), black);
-                    l1 = Leg(m, new Vector3(-0.4f, 1.5f, 0), 1.5f, 0.35f, wood);
-                    l2 = Leg(m, new Vector3(0.4f, 1.5f, 0), 1.5f, 0.35f, wood);
-                    a1 = Leg(m, new Vector3(-0.95f, 3.6f, 0), 1.4f, 0.3f, wood);
-                    a2 = Leg(m, new Vector3(0.95f, 3.6f, 0), 1.4f, 0.3f, wood);
-                    var bat = Part(a2, new Vector3(0, -1.4f, 0.8f), new Vector3(0.3f, 0.3f, 2.2f), Plastic(new Color(0.45f, 0.28f, 0.15f)));
-                    bat.localRotation = Quaternion.Euler(-20, 0, 0);
+                    // Тун Тун Тун Сахур: деревянное полено-человечек с круглыми глазами, жуткой улыбкой и битой
+                    var wood = Plastic(new Color(0.8f, 0.58f, 0.36f)); var bark = Plastic(new Color(0.55f, 0.36f, 0.2f));
+                    var ring = Plastic(new Color(0.93f, 0.76f, 0.52f));
+                    Part(m, new Vector3(0, 3.5f, 0), new Vector3(1.7f, 1.55f, 1.7f), wood, false, PrimitiveType.Cylinder);
+                    Part(m, new Vector3(0, 5.06f, 0), new Vector3(1.5f, 0.02f, 1.5f), ring, false, PrimitiveType.Cylinder);
+                    Part(m, new Vector3(0, 5.08f, 0), new Vector3(0.9f, 0.02f, 0.9f), wood, false, PrimitiveType.Cylinder);
+                    Part(m, new Vector3(0, 5.1f, 0), new Vector3(0.35f, 0.02f, 0.35f), ring, false, PrimitiveType.Cylinder);
+                    for (int i = 0; i < 6; i++)
+                    {
+                        float a = i * 60f + 30f; if (a > 60f && a < 120f) continue; // спереди лицо без коры
+                        var st = Part(m, new Vector3(Mathf.Sin(a * Mathf.Deg2Rad) * 0.84f, 3.4f + (i % 2) * 0.3f, Mathf.Cos(a * Mathf.Deg2Rad) * 0.84f),
+                            new Vector3(0.12f, 1.6f + (i % 3) * 0.4f, 0.1f), bark);
+                        st.localRotation = Quaternion.Euler(0, a, 0);
+                    }
+                    Eyes(m, new Vector3(0, 4.25f, 0.84f), 0.36f, white, black, 0f);
+                    Brows(m, new Vector3(0, 4.78f, 0.86f), 0.4f, bark, 12f);
+                    // широкая улыбка
+                    Part(m, new Vector3(0, 3.45f, 0.84f), new Vector3(0.95f, 0.14f, 0.06f), black);
+                    Part(m, new Vector3(-0.52f, 3.56f, 0.83f), new Vector3(0.14f, 0.26f, 0.06f), black);
+                    Part(m, new Vector3(0.52f, 3.56f, 0.83f), new Vector3(0.14f, 0.26f, 0.06f), black);
+                    Part(m, new Vector3(0, 3.8f, 0.9f), new Vector3(0.22f, 0.28f, 0.12f), bark); // нос-сучок
+                    l1 = Leg(m, new Vector3(-0.42f, 1.95f, 0), 1.95f, 0.32f, wood);
+                    l2 = Leg(m, new Vector3(0.42f, 1.95f, 0), 1.95f, 0.32f, wood);
+                    Foot(l1, 1.95f, bark); Foot(l2, 1.95f, bark);
+                    a1 = Leg(m, new Vector3(-0.98f, 4f, 0), 1.7f, 0.26f, wood);
+                    a2 = Leg(m, new Vector3(0.98f, 4f, 0), 1.7f, 0.26f, wood);
+                    // бейсбольная бита: ручка + толстая часть
+                    var batRoot = Pivot(a2, "Bat", new Vector3(0, -1.7f, 0.1f));
+                    batRoot.localRotation = Quaternion.Euler(-35, 0, 0);
+                    var batWood = Plastic(new Color(0.62f, 0.4f, 0.22f));
+                    Part(batRoot, new Vector3(0, 0, 0.5f), new Vector3(0.14f, 0.5f, 0.14f), batWood, false, PrimitiveType.Cylinder).localRotation = Quaternion.Euler(90, 0, 0);
+                    Part(batRoot, new Vector3(0, 0, 1.7f), new Vector3(0.3f, 0.75f, 0.3f), batWood, false, PrimitiveType.Cylinder).localRotation = Quaternion.Euler(90, 0, 0);
+                    Part(batRoot, new Vector3(0, 0, 0.02f), new Vector3(0.2f, 0.04f, 0.2f), black, false, PrimitiveType.Cylinder).localRotation = Quaternion.Euler(90, 0, 0);
                     break;
                 }
                 case BrainrotKind.Lirili:
                 {
-                    // слон-кактус в сандалиях
-                    var cactus = Plastic(new Color(0.3f, 0.65f, 0.25f)); var grey = Plastic(new Color(0.6f, 0.6f, 0.65f));
-                    Part(m, new Vector3(0, 2.6f, 0), new Vector3(1.6f, 2.4f, 1.4f), cactus);
-                    for (int i = 0; i < 6; i++)
-                        Part(m, new Vector3(i % 2 == 0 ? -0.85f : 0.85f, 1.8f + i * 0.3f, 0), new Vector3(0.3f, 0.06f, 0.06f), white);
-                    Part(m, new Vector3(0, 4.3f, 0.1f), new Vector3(1.5f, 1.2f, 1.3f), grey);
-                    Part(m, new Vector3(-0.95f, 4.3f, 0), new Vector3(0.3f, 1.1f, 1f), grey);
-                    Part(m, new Vector3(0.95f, 4.3f, 0), new Vector3(0.3f, 1.1f, 1f), grey);
-                    var trunk = Part(m, new Vector3(0, 3.7f, 0.95f), new Vector3(0.35f, 1.2f, 0.35f), grey);
-                    trunk.localRotation = Quaternion.Euler(20, 0, 0);
-                    Eyes(m, new Vector3(0, 4.55f, 0.66f), 0.25f, white, black);
-                    l1 = Leg(m, new Vector3(-0.45f, 1.4f, 0), 1.3f, 0.45f, grey);
-                    l2 = Leg(m, new Vector3(0.45f, 1.4f, 0), 1.3f, 0.45f, grey);
-                    Part(l1, new Vector3(0, -1.35f, 0.1f), new Vector3(0.6f, 0.12f, 0.8f), Plastic(new Color(0.55f, 0.35f, 0.2f)));
-                    Part(l2, new Vector3(0, -1.35f, 0.1f), new Vector3(0.6f, 0.12f, 0.8f), Plastic(new Color(0.55f, 0.35f, 0.2f)));
+                    // Лирили Ларила: голова слона, тело-кактус, сандалии
+                    var cactus = Plastic(new Color(0.32f, 0.72f, 0.3f)); var dark = Plastic(new Color(0.2f, 0.52f, 0.2f));
+                    var grey = Plastic(new Color(0.66f, 0.66f, 0.72f)); var ear = Plastic(new Color(0.9f, 0.62f, 0.68f));
+                    var sandal = Plastic(new Color(0.58f, 0.36f, 0.2f));
+                    Part(m, new Vector3(0, 2.8f, 0), new Vector3(1.5f, 1.05f, 1.5f), cactus, false, PrimitiveType.Cylinder);
+                    for (int i = 0; i < 8; i++)
+                    {
+                        float a = i * 45f * Mathf.Deg2Rad;
+                        Part(m, new Vector3(Mathf.Sin(a) * 0.74f, 2.8f, Mathf.Cos(a) * 0.74f), new Vector3(0.1f, 1.9f, 0.1f), dark).localRotation = Quaternion.Euler(0, i * 45f, 0);
+                        for (int j = 0; j < 3; j++)
+                            Part(m, new Vector3(Mathf.Sin(a + 0.4f) * 0.8f, 2.1f + j * 0.6f, Mathf.Cos(a + 0.4f) * 0.8f), new Vector3(0.04f, 0.04f, 0.2f), white).localRotation = Quaternion.Euler(0, i * 45f + 23f, 0);
+                    }
+                    // руки-отростки кактуса
+                    Part(m, new Vector3(-1.05f, 2.9f, 0), new Vector3(0.7f, 0.36f, 0.36f), cactus);
+                    Part(m, new Vector3(-1.3f, 3.35f, 0), new Vector3(0.36f, 0.9f, 0.36f), cactus);
+                    Part(m, new Vector3(1.05f, 2.5f, 0), new Vector3(0.7f, 0.36f, 0.36f), cactus);
+                    Part(m, new Vector3(1.3f, 2.9f, 0), new Vector3(0.36f, 0.8f, 0.36f), cactus);
+                    // голова слона
+                    Part(m, new Vector3(0, 4.45f, 0.1f), new Vector3(1.55f, 1.35f, 1.35f), grey);
+                    foreach (float sx in new[] { -1f, 1f })
+                    {
+                        var e = Part(m, new Vector3(sx * 1.05f, 4.45f, -0.05f), new Vector3(0.14f, 1.35f, 1.2f), grey);
+                        e.localRotation = Quaternion.Euler(0, sx * -25f, 0);
+                        var ei = Part(e, new Vector3(sx * -0.04f, 0, 0.02f), new Vector3(0.1f, 1.0f, 0.85f), ear);
+                        ei.localRotation = Quaternion.identity;
+                        Part(m, new Vector3(sx * 0.42f, 3.95f, 0.85f), new Vector3(0.12f, 0.12f, 0.55f), tooth).localRotation = Quaternion.Euler(-35, 0, 0);
+                    }
+                    // хобот из 3 сегментов, загнут
+                    var tr = Pivot(m, "Trunk", new Vector3(0, 4.2f, 0.8f));
+                    var t1 = Part(tr, new Vector3(0, -0.3f, 0.05f), new Vector3(0.42f, 0.65f, 0.42f), grey); t1.localRotation = Quaternion.Euler(15, 0, 0);
+                    var t2 = Part(tr, new Vector3(0, -0.85f, 0.25f), new Vector3(0.34f, 0.55f, 0.34f), grey); t2.localRotation = Quaternion.Euler(35, 0, 0);
+                    var t3 = Part(tr, new Vector3(0, -1.2f, 0.55f), new Vector3(0.28f, 0.4f, 0.28f), grey); t3.localRotation = Quaternion.Euler(70, 0, 0);
+                    Eyes(m, new Vector3(0, 4.7f, 0.79f), 0.24f, white, black, 0f);
+                    // розовый цветок на макушке
+                    Part(m, new Vector3(0.3f, 5.2f, 0), new Vector3(0.36f, 0.14f, 0.36f), Plastic(new Color(1f, 0.45f, 0.7f)));
+                    Part(m, new Vector3(0.3f, 5.3f, 0), new Vector3(0.14f, 0.1f, 0.14f), Plastic(new Color(1f, 0.9f, 0.3f)));
+                    l1 = Leg(m, new Vector3(-0.42f, 1.75f, 0), 1.6f, 0.5f, grey);
+                    l2 = Leg(m, new Vector3(0.42f, 1.75f, 0), 1.6f, 0.5f, grey);
+                    foreach (var l in new[] { l1, l2 })
+                    {
+                        Part(l, new Vector3(0, -1.7f, 0.12f), new Vector3(0.62f, 0.12f, 0.9f), sandal);
+                        Part(l, new Vector3(0, -1.5f, 0.2f), new Vector3(0.56f, 0.1f, 0.12f), sandal);
+                        for (int k = -1; k <= 1; k++) Part(l, new Vector3(k * 0.16f, -1.58f, 0.46f), new Vector3(0.12f, 0.12f, 0.1f), white);
+                    }
                     break;
                 }
                 case BrainrotKind.Bombardiro:
                 {
-                    // крокодил-бомбардировщик
-                    var croc = Plastic(new Color(0.25f, 0.5f, 0.2f)); var metal = Plastic(new Color(0.55f, 0.6f, 0.62f));
-                    Part(m, new Vector3(0, 2.2f, 0), new Vector3(1.4f, 1.2f, 3.2f), croc);
-                    Part(m, new Vector3(0, 2.2f, 2.2f), new Vector3(1.1f, 0.6f, 1.6f), croc);
-                    for (int i = 0; i < 4; i++) Part(m, new Vector3(0, 1.85f, 1.6f + i * 0.4f), new Vector3(1.12f, 0.1f, 0.12f), white);
-                    Eyes(m, new Vector3(0, 2.75f, 1.3f), 0.3f, white, black);
-                    Part(m, new Vector3(0, 2.6f, 0), new Vector3(5.5f, 0.15f, 1.2f), metal);
-                    Part(m, new Vector3(0, 2.4f, -1.9f), new Vector3(2f, 0.12f, 0.7f), metal);
-                    Part(m, new Vector3(0, 1.4f, 0.3f), new Vector3(0.4f, 0.4f, 1.2f), Plastic(new Color(0.2f, 0.2f, 0.2f)), false, PrimitiveType.Capsule);
-                    l1 = Leg(m, new Vector3(-0.5f, 1.6f, 0.6f), 1.5f, 0.35f, croc);
-                    l2 = Leg(m, new Vector3(0.5f, 1.6f, 0.6f), 1.5f, 0.35f, croc);
+                    // Бомбардиро Крокодило: крокодил-бомбардировщик с пропеллерами и бомбами
+                    var croc = Plastic(new Color(0.3f, 0.58f, 0.24f)); var crocDark = Plastic(new Color(0.2f, 0.42f, 0.16f));
+                    var belly = Plastic(new Color(0.86f, 0.84f, 0.55f)); var metal = Plastic(new Color(0.46f, 0.52f, 0.44f));
+                    var steel = Plastic(new Color(0.75f, 0.78f, 0.8f));
+                    Part(m, new Vector3(0, 2.4f, 0), new Vector3(1.5f, 1.3f, 3.4f), croc);
+                    Part(m, new Vector3(0, 2.05f, 0.1f), new Vector3(1.3f, 0.6f, 3.0f), belly);
+                    for (int i = 0; i < 5; i++) Part(m, new Vector3(0, 3.1f, -1.2f + i * 0.55f), new Vector3(0.36f, 0.22f, 0.3f), crocDark); // гребень
+                    // голова: верхняя и нижняя челюсти с зубами
+                    Part(m, new Vector3(0, 2.75f, 2.2f), new Vector3(1.15f, 0.5f, 1.8f), croc);
+                    Part(m, new Vector3(0, 2.2f, 2.1f), new Vector3(1.05f, 0.35f, 1.6f), belly);
+                    for (int i = 0; i < 5; i++)
+                    {
+                        Part(m, new Vector3(-0.5f, 2.43f, 1.6f + i * 0.3f), new Vector3(0.08f, 0.2f, 0.08f), tooth);
+                        Part(m, new Vector3(0.5f, 2.43f, 1.6f + i * 0.3f), new Vector3(0.08f, 0.2f, 0.08f), tooth);
+                    }
+                    Part(m, new Vector3(-0.25f, 3.05f, 3.0f), new Vector3(0.12f, 0.1f, 0.1f), black);
+                    Part(m, new Vector3(0.25f, 3.05f, 3.0f), new Vector3(0.12f, 0.1f, 0.1f), black);
+                    Eyes(m, new Vector3(0, 3.2f, 1.45f), 0.28f, white, black, 0f);
+                    Brows(m, new Vector3(0, 3.55f, 1.46f), 0.3f, crocDark, -18f);
+                    // крылья самолёта с красными звёздами и двигатели
+                    Part(m, new Vector3(0, 2.7f, 0.2f), new Vector3(6.4f, 0.16f, 1.3f), metal);
+                    Part(m, new Vector3(0, 2.62f, -2.1f), new Vector3(2.4f, 0.12f, 0.7f), metal);
+                    Part(m, new Vector3(0, 3.2f, -2.1f), new Vector3(0.12f, 1.0f, 0.7f), metal);
+                    foreach (float sx in new[] { -1f, 1f })
+                    {
+                        Part(m, new Vector3(sx * 2.4f, 2.8f, 0.2f), new Vector3(0.5f, 0.02f, 0.5f), red, false, PrimitiveType.Cylinder);
+                        Part(m, new Vector3(sx * 1.6f, 2.5f, 0.55f), new Vector3(0.5f, 0.55f, 0.5f), steel, false, PrimitiveType.Cylinder).localRotation = Quaternion.Euler(90, 0, 0);
+                        var prop = Pivot(m, "Prop", new Vector3(sx * 1.6f, 2.5f, 1.12f));
+                        Part(prop, Vector3.zero, new Vector3(1.5f, 0.18f, 0.05f), black);
+                        Part(prop, Vector3.zero, new Vector3(0.18f, 1.5f, 0.05f), black);
+                        Part(prop, new Vector3(0, 0, 0.05f), new Vector3(0.2f, 0.2f, 0.2f), red);
+                        prop.gameObject.AddComponent<Spinner>().speed = sx * 900f;
+                    }
+                    // бомбы под брюхом
+                    foreach (float bz in new[] { -0.6f, 0.4f })
+                    {
+                        Part(m, new Vector3(0, 1.45f, bz), new Vector3(0.45f, 0.45f, 0.8f), Plastic(new Color(0.18f, 0.2f, 0.18f)), false, PrimitiveType.Capsule).localRotation = Quaternion.Euler(90, 0, 0);
+                    }
+                    var tail = Part(m, new Vector3(0, 2.3f, -2.3f), new Vector3(0.7f, 0.55f, 1.4f), croc); tail.localRotation = Quaternion.Euler(-10, 0, 0);
+                    l1 = Leg(m, new Vector3(-0.55f, 1.8f, 0.6f), 1.7f, 0.38f, croc);
+                    l2 = Leg(m, new Vector3(0.55f, 1.8f, 0.6f), 1.7f, 0.38f, croc);
+                    Foot(l1, 1.7f, crocDark); Foot(l2, 1.7f, crocDark);
                     break;
                 }
                 case BrainrotKind.Tralalero:
                 {
-                    // акула в кроссовках
-                    var shark = Plastic(new Color(0.35f, 0.55f, 0.85f)); var shoe = Plastic(new Color(0.15f, 0.35f, 0.95f));
-                    Part(m, new Vector3(0, 2.4f, 0), new Vector3(1.3f, 1.3f, 3.4f), shark);
-                    Part(m, new Vector3(0, 2.1f, 0.4f), new Vector3(1.1f, 0.8f, 2.6f), white);
-                    Part(m, new Vector3(0, 3.4f, -0.2f), new Vector3(0.2f, 1.1f, 0.9f), shark);
-                    var tail = Part(m, new Vector3(0, 2.6f, -2f), new Vector3(0.2f, 1.4f, 0.7f), shark);
-                    tail.localRotation = Quaternion.Euler(-25, 0, 0);
-                    Eyes(m, new Vector3(0, 2.75f, 1.5f), 0.28f, white, black);
-                    Part(m, new Vector3(0, 2.05f, 1.72f), new Vector3(0.8f, 0.12f, 0.05f), red);
-                    l1 = Leg(m, new Vector3(-0.45f, 1.6f, 0.3f), 1.4f, 0.28f, shark);
-                    l2 = Leg(m, new Vector3(0.45f, 1.6f, 0.3f), 1.4f, 0.28f, shark);
-                    Part(l1, new Vector3(0, -1.4f, 0.2f), new Vector3(0.5f, 0.35f, 0.8f), shoe);
-                    Part(l2, new Vector3(0, -1.4f, 0.2f), new Vector3(0.5f, 0.35f, 0.8f), shoe);
+                    // Тралалеро Тралала: голубая акула на ногах в синих кроссовках
+                    var shark = Plastic(new Color(0.36f, 0.6f, 0.9f)); var shoe = Plastic(new Color(0.12f, 0.35f, 0.95f));
+                    Part(m, new Vector3(0, 2.6f, 0), new Vector3(1.4f, 1.4f, 3.6f), shark);
+                    Part(m, new Vector3(0, 2.2f, 0.4f), new Vector3(1.2f, 0.75f, 2.9f), white);
+                    Part(m, new Vector3(0, 2.75f, 2.1f), new Vector3(1.15f, 1.0f, 1.0f), shark); // морда
+                    var dorsal = Part(m, new Vector3(0, 3.65f, -0.1f), new Vector3(0.18f, 1.2f, 1.0f), shark); dorsal.localRotation = Quaternion.Euler(-25, 0, 0);
+                    var tailRoot = Pivot(m, "Tail", new Vector3(0, 2.7f, -1.9f));
+                    Part(tailRoot, new Vector3(0, 0.45f, -0.35f), new Vector3(0.16f, 1.1f, 0.6f), shark).localRotation = Quaternion.Euler(-35, 0, 0);
+                    Part(tailRoot, new Vector3(0, -0.3f, -0.3f), new Vector3(0.16f, 0.7f, 0.5f), shark).localRotation = Quaternion.Euler(35, 0, 0);
+                    tailRoot.gameObject.AddComponent<Wiggle>().amount = 18f;
+                    foreach (float sx in new[] { -1f, 1f })
+                    {
+                        var fin = Part(m, new Vector3(sx * 0.85f, 2.2f, 0.7f), new Vector3(0.8f, 0.12f, 0.55f), shark);
+                        fin.localRotation = Quaternion.Euler(0, sx * -20f, sx * -25f);
+                        for (int i = 0; i < 3; i++) Part(m, new Vector3(sx * 0.72f, 2.75f, 0.6f + i * 0.25f), new Vector3(0.04f, 0.3f, 0.06f), Plastic(new Color(0.22f, 0.4f, 0.65f))); // жабры
+                    }
+                    // пасть с зубами
+                    Part(m, new Vector3(0, 2.32f, 2.58f), new Vector3(0.9f, 0.2f, 0.08f), red);
+                    for (int i = -3; i <= 3; i++) Part(m, new Vector3(i * 0.12f, 2.43f, 2.62f), new Vector3(0.08f, 0.12f, 0.05f), tooth);
+                    Eyes(m, new Vector3(0, 3.02f, 2.6f), 0.24f, white, black, 0f);
+                    l1 = Leg(m, new Vector3(-0.45f, 1.9f, 0.3f), 1.6f, 0.3f, shark);
+                    l2 = Leg(m, new Vector3(0.45f, 1.9f, 0.3f), 1.6f, 0.3f, shark);
+                    foreach (var l in new[] { l1, l2 })
+                    {
+                        Part(l, new Vector3(0, -1.7f, 0.18f), new Vector3(0.55f, 0.4f, 0.95f), shoe);
+                        Part(l, new Vector3(0, -1.88f, 0.2f), new Vector3(0.6f, 0.12f, 1.0f), white); // подошва
+                        Part(l, new Vector3(0.28f, -1.7f, 0.15f), new Vector3(0.03f, 0.1f, 0.45f), white).localRotation = Quaternion.Euler(-15, 0, 0); // "галочка"
+                        Part(l, new Vector3(-0.28f, -1.7f, 0.15f), new Vector3(0.03f, 0.1f, 0.45f), white).localRotation = Quaternion.Euler(-15, 0, 0);
+                    }
                     break;
                 }
                 case BrainrotKind.Patapim:
                 {
-                    // лесной носатый патапим
-                    var bark = Plastic(new Color(0.5f, 0.33f, 0.18f)); var leaf = Plastic(new Color(0.2f, 0.6f, 0.2f));
-                    var skin = Plastic(new Color(0.85f, 0.65f, 0.5f));
-                    Part(m, new Vector3(0, 3.0f, 0), new Vector3(1.4f, 2.2f, 1.2f), bark);
-                    Part(m, new Vector3(0, 4.7f, 0), new Vector3(2.4f, 1.6f, 2.2f), leaf);
-                    Part(m, new Vector3(0, 4.3f, 0.7f), new Vector3(1.1f, 1.0f, 0.4f), skin);
-                    Part(m, new Vector3(0, 4.1f, 1.1f), new Vector3(0.45f, 0.7f, 0.7f), skin);
-                    Eyes(m, new Vector3(0, 4.6f, 0.92f), 0.26f, white, black);
-                    l1 = Leg(m, new Vector3(-0.4f, 2f, 0), 2f, 0.3f, bark);
-                    l2 = Leg(m, new Vector3(0.4f, 2f, 0), 2f, 0.3f, bark);
-                    a1 = Leg(m, new Vector3(-0.9f, 3.8f, 0), 1.8f, 0.25f, bark);
-                    a2 = Leg(m, new Vector3(0.9f, 3.8f, 0), 1.8f, 0.25f, bark);
+                    // Брр Брр Патапим: лесное существо с огромным носом, листвой на голове и большими ступнями
+                    var bark = Plastic(new Color(0.5f, 0.33f, 0.18f)); var leaf = Plastic(new Color(0.24f, 0.66f, 0.24f));
+                    var leaf2 = Plastic(new Color(0.36f, 0.78f, 0.3f)); var skin = Plastic(new Color(0.92f, 0.7f, 0.55f));
+                    var nose = Plastic(new Color(0.95f, 0.55f, 0.45f));
+                    Part(m, new Vector3(0, 3.3f, 0), new Vector3(1.3f, 2.0f, 1.1f), bark);
+                    Part(m, new Vector3(0, 3.0f, 0.5f), new Vector3(0.9f, 1.2f, 0.2f), Plastic(new Color(0.62f, 0.44f, 0.26f)));
+                    Part(m, new Vector3(0, 4.9f, 0), new Vector3(1.6f, 1.3f, 1.4f), skin);          // голова
+                    Part(m, new Vector3(0, 4.55f, 1.05f), new Vector3(0.7f, 0.9f, 0.9f), nose);     // огромный нос
+                    Part(m, new Vector3(0, 4.2f, 1.35f), new Vector3(0.5f, 0.3f, 0.35f), nose);
+                    Part(m, new Vector3(0, 4.1f, 0.72f), new Vector3(0.6f, 0.1f, 0.05f), black);    // рот под носом
+                    Eyes(m, new Vector3(0, 5.2f, 0.72f), 0.25f, white, black, 0f);
+                    Part(m, new Vector3(0, 5.8f, 0), new Vector3(2.4f, 0.9f, 2.2f), leaf);
+                    Part(m, new Vector3(0.35f, 6.3f, -0.2f), new Vector3(1.6f, 0.7f, 1.5f), leaf2);
+                    Part(m, new Vector3(-0.5f, 6.1f, 0.4f), new Vector3(1.0f, 0.5f, 1.0f), leaf2);
+                    Part(m, new Vector3(0.6f, 5.6f, 1f), new Vector3(0.3f, 0.3f, 0.3f), red); // ягодка
+                    l1 = Leg(m, new Vector3(-0.38f, 2.3f, 0), 2.2f, 0.26f, bark);
+                    l2 = Leg(m, new Vector3(0.38f, 2.3f, 0), 2.2f, 0.26f, bark);
+                    foreach (var l in new[] { l1, l2 })
+                    {
+                        Part(l, new Vector3(0, -2.25f, 0.35f), new Vector3(0.7f, 0.22f, 1.2f), skin); // большая ступня
+                        for (int k = -1; k <= 1; k++) Part(l, new Vector3(k * 0.22f, -2.25f, 0.98f), new Vector3(0.18f, 0.18f, 0.18f), skin);
+                    }
+                    a1 = Leg(m, new Vector3(-0.85f, 4.1f, 0), 2.0f, 0.22f, bark);
+                    a2 = Leg(m, new Vector3(0.85f, 4.1f, 0), 2.0f, 0.22f, bark);
+                    foreach (var a in new[] { a1, a2 }) Part(a, new Vector3(0, -2.05f, 0), new Vector3(0.4f, 0.35f, 0.3f), skin);
                     break;
                 }
                 case BrainrotKind.Cappuccino:
                 {
-                    // чашка-ассасин
-                    var cup = Plastic(new Color(0.95f, 0.93f, 0.9f)); var coffee = Plastic(new Color(0.45f, 0.28f, 0.15f));
-                    var mask = Plastic(new Color(0.12f, 0.12f, 0.15f));
-                    Part(m, new Vector3(0, 3f, 0), new Vector3(2f, 1.3f, 2f), cup, false, PrimitiveType.Cylinder);
-                    Part(m, new Vector3(0, 4.32f, 0), new Vector3(1.85f, 0.05f, 1.85f), coffee, false, PrimitiveType.Cylinder);
-                    Part(m, new Vector3(1.15f, 3f, 0), new Vector3(0.3f, 1.1f, 0.8f), cup);
-                    Part(m, new Vector3(0, 3.6f, 0.9f), new Vector3(1.6f, 0.5f, 0.3f), mask);
-                    Eyes(m, new Vector3(0, 3.62f, 1.06f), 0.22f, white, black);
-                    l1 = Leg(m, new Vector3(-0.45f, 1.7f, 0), 1.7f, 0.25f, mask);
-                    l2 = Leg(m, new Vector3(0.45f, 1.7f, 0), 1.7f, 0.25f, mask);
-                    a1 = Leg(m, new Vector3(-1.15f, 3.4f, 0), 1.3f, 0.22f, mask);
-                    a2 = Leg(m, new Vector3(-1.15f, 3.4f, 0), 1.3f, 0.22f, mask);
-                    a2.localPosition = new Vector3(1.4f, 3.4f, 0.4f);
-                    var knife = Part(a2, new Vector3(0, -1.5f, 0.5f), new Vector3(0.08f, 0.25f, 1.1f), Plastic(new Color(0.8f, 0.85f, 0.9f)));
-                    knife.localRotation = Quaternion.Euler(10, 0, 0);
+                    // Капучино Ассасино: чашка капучино в маске ниндзя с катанами
+                    var cup = Plastic(new Color(0.97f, 0.95f, 0.92f)); var coffee = Plastic(new Color(0.55f, 0.35f, 0.2f));
+                    var foam = Plastic(new Color(0.95f, 0.85f, 0.7f)); var mask = Plastic(new Color(0.12f, 0.12f, 0.16f));
+                    var blade = Plastic(new Color(0.85f, 0.9f, 0.95f));
+                    Part(m, new Vector3(0, 2.05f, 0), new Vector3(2.4f, 0.08f, 2.4f), cup, false, PrimitiveType.Cylinder); // блюдце
+                    Part(m, new Vector3(0, 3.2f, 0), new Vector3(2f, 1.1f, 2f), cup, false, PrimitiveType.Cylinder);
+                    Part(m, new Vector3(0, 4.32f, 0), new Vector3(1.9f, 0.04f, 1.9f), coffee, false, PrimitiveType.Cylinder);
+                    Part(m, new Vector3(0, 4.36f, 0), new Vector3(1.2f, 0.03f, 1.2f), foam, false, PrimitiveType.Cylinder);
+                    Part(m, new Vector3(0, 4.39f, 0.1f), new Vector3(0.5f, 0.02f, 0.4f), coffee, false, PrimitiveType.Cylinder); // латте-арт сердечко
+                    var handle = Part(m, new Vector3(-1.15f, 3.2f, 0), new Vector3(0.5f, 0.9f, 0.2f), cup);
+                    handle.localRotation = Quaternion.identity;
+                    // маска ниндзя с прорезью и красная повязка с хвостами
+                    Part(m, new Vector3(0, 3.55f, 0), new Vector3(2.08f, 0.35f, 2.08f), mask, false, PrimitiveType.Cylinder);
+                    Part(m, new Vector3(0, 3.95f, 0), new Vector3(2.06f, 0.07f, 2.06f), red, false, PrimitiveType.Cylinder);
+                    var knot1 = Part(m, new Vector3(0.25f, 3.8f, -1.3f), new Vector3(0.18f, 0.7f, 0.08f), red); knot1.localRotation = Quaternion.Euler(30, 0, 20);
+                    var knot2 = Part(m, new Vector3(-0.1f, 3.75f, -1.3f), new Vector3(0.18f, 0.8f, 0.08f), red); knot2.localRotation = Quaternion.Euler(30, 0, -15);
+                    Eyes(m, new Vector3(0, 3.58f, 1.02f), 0.2f, white, black, 0f);
+                    Brows(m, new Vector3(0, 3.78f, 1.06f), 0.24f, black, -22f);
+                    // катаны за спиной крест-накрест
+                    foreach (float sx in new[] { -1f, 1f })
+                    {
+                        var k = Pivot(m, "Katana", new Vector3(0, 3.4f, -1.15f));
+                        k.localRotation = Quaternion.Euler(0, 0, sx * 35f);
+                        Part(k, new Vector3(0, 0.9f, 0), new Vector3(0.1f, 1.8f, 0.05f), blade);
+                        Part(k, new Vector3(0, -0.1f, 0), new Vector3(0.35f, 0.08f, 0.12f), Plastic(new Color(0.85f, 0.7f, 0.2f)));
+                        Part(k, new Vector3(0, -0.45f, 0), new Vector3(0.12f, 0.6f, 0.12f), mask);
+                    }
+                    l1 = Leg(m, new Vector3(-0.45f, 2.0f, 0), 2.0f, 0.26f, mask);
+                    l2 = Leg(m, new Vector3(0.45f, 2.0f, 0), 2.0f, 0.26f, mask);
+                    Foot(l1, 2.0f, mask); Foot(l2, 2.0f, mask);
+                    a1 = Leg(m, new Vector3(-1.2f, 3.4f, 0.2f), 1.4f, 0.22f, mask);
+                    a2 = Leg(m, new Vector3(1.2f, 3.4f, 0.2f), 1.4f, 0.22f, mask);
+                    foreach (var a in new[] { a1, a2 })
+                    {
+                        var kn = Part(a, new Vector3(0, -1.45f, 0.45f), new Vector3(0.06f, 0.2f, 0.9f), blade);
+                        kn.localRotation = Quaternion.Euler(10, 0, 0);
+                    }
                     break;
                 }
                 default:
                 {
-                    // Ла Вака Сатурно — корова с кольцом Сатурна
-                    var cow = Plastic(Color.white); var ring = Plastic(new Color(1f, 0.8f, 0.3f)); var pink = Plastic(new Color(1f, 0.6f, 0.7f));
-                    Part(m, new Vector3(0, 2.6f, 0), new Vector3(1.8f, 1.5f, 2.8f), cow);
-                    Part(m, new Vector3(0.5f, 3.1f, 0.4f), new Vector3(0.9f, 0.6f, 0.9f), black);
-                    Part(m, new Vector3(-0.6f, 2.4f, -0.6f), new Vector3(0.7f, 0.8f, 0.9f), black);
-                    Part(m, new Vector3(0, 3.3f, 1.8f), new Vector3(1.2f, 1.1f, 1.1f), cow);
-                    Part(m, new Vector3(0, 3.0f, 2.35f), new Vector3(0.9f, 0.5f, 0.1f), pink);
-                    Eyes(m, new Vector3(0, 3.55f, 2.36f), 0.25f, white, black);
-                    Part(m, new Vector3(-0.5f, 4f, 1.7f), new Vector3(0.15f, 0.5f, 0.15f), ring);
-                    Part(m, new Vector3(0.5f, 4f, 1.7f), new Vector3(0.15f, 0.5f, 0.15f), ring);
-                    var rr = Part(m, new Vector3(0, 2.6f, 0), new Vector3(5f, 0.04f, 5f), ring, false, PrimitiveType.Cylinder);
-                    rr.localRotation = Quaternion.Euler(12, 0, 8);
-                    l1 = Leg(m, new Vector3(-0.5f, 1.9f, 0.6f), 1.9f, 0.4f, cow);
-                    l2 = Leg(m, new Vector3(0.5f, 1.9f, 0.6f), 1.9f, 0.4f, cow);
-                    a1 = Leg(m, new Vector3(-0.5f, 1.9f, -0.8f), 1.9f, 0.4f, cow);
-                    a2 = Leg(m, new Vector3(0.5f, 1.9f, -0.8f), 1.9f, 0.4f, cow);
+                    // Ла Вака Сатурно Сатурнита: голова коровы на планете Сатурн с кольцом, на человеческих ногах
+                    var cow = Plastic(Color.white); var ringMat = Plastic(new Color(1f, 0.82f, 0.45f));
+                    var planet = Plastic(new Color(0.95f, 0.72f, 0.4f)); var band = Plastic(new Color(0.85f, 0.55f, 0.3f));
+                    var pink = Plastic(new Color(1f, 0.62f, 0.72f)); var horn = Plastic(new Color(0.96f, 0.9f, 0.7f));
+                    Part(m, new Vector3(0, 3.1f, 0), new Vector3(2.6f, 2.6f, 2.6f), planet, false, PrimitiveType.Sphere);
+                    Part(m, new Vector3(0, 3.5f, 0), new Vector3(2.5f, 0.12f, 2.5f), band, false, PrimitiveType.Cylinder);
+                    Part(m, new Vector3(0, 2.7f, 0), new Vector3(2.45f, 0.1f, 2.45f), band, false, PrimitiveType.Cylinder);
+                    var rr = Part(m, new Vector3(0, 3.1f, 0), new Vector3(4.6f, 0.03f, 4.6f), ringMat, false, PrimitiveType.Cylinder);
+                    rr.localRotation = Quaternion.Euler(14, 0, 10);
+                    var rr2 = Part(m, new Vector3(0, 3.1f, 0), new Vector3(3.9f, 0.035f, 3.9f), band, false, PrimitiveType.Cylinder);
+                    rr2.localRotation = Quaternion.Euler(14, 0, 10);
+                    // голова коровы
+                    Part(m, new Vector3(0, 4.85f, 0.3f), new Vector3(1.3f, 1.15f, 1.15f), cow);
+                    Part(m, new Vector3(0.35f, 5.2f, 0.5f), new Vector3(0.55f, 0.45f, 0.8f), black);
+                    Part(m, new Vector3(0, 4.5f, 0.95f), new Vector3(1.0f, 0.55f, 0.35f), pink);
+                    Part(m, new Vector3(-0.2f, 4.5f, 1.13f), new Vector3(0.12f, 0.16f, 0.04f), black);
+                    Part(m, new Vector3(0.2f, 4.5f, 1.13f), new Vector3(0.12f, 0.16f, 0.04f), black);
+                    Eyes(m, new Vector3(0, 5.12f, 0.9f), 0.22f, white, black, 0f);
+                    foreach (float sx in new[] { -1f, 1f })
+                    {
+                        Part(m, new Vector3(sx * 0.5f, 5.6f, 0.2f), new Vector3(0.16f, 0.5f, 0.16f), horn).localRotation = Quaternion.Euler(0, 0, sx * -20f);
+                        Part(m, new Vector3(sx * 0.82f, 5.05f, 0.2f), new Vector3(0.45f, 0.18f, 0.3f), cow).localRotation = Quaternion.Euler(0, 0, sx * -15f);
+                    }
+                    Fx.Sparkles(m, new Vector3(0, 3.1f, 0), new Color(1f, 0.9f, 0.6f), 2.2f, 3f);
+                    l1 = Leg(m, new Vector3(-0.45f, 1.95f, 0), 1.95f, 0.36f, Plastic(new Color(0.95f, 0.8f, 0.65f)));
+                    l2 = Leg(m, new Vector3(0.45f, 1.95f, 0), 1.95f, 0.36f, Plastic(new Color(0.95f, 0.8f, 0.65f)));
+                    Foot(l1, 1.95f, black); Foot(l2, 1.95f, black);
                     break;
                 }
             }
-            Round = false;
+            Round = false; RoundFactor = 0.2f; RoundSteps = 1;
             g.legs = new[] { l1, l2 };
             g.arms = a1 != null ? new[] { a1, a2 } : new Transform[0];
             return g;
@@ -546,13 +691,34 @@ namespace DragonHeist
             return p;
         }
 
-        static void Eyes(Transform m, Vector3 center, float size, Material white, Material black)
+        static void Foot(Transform leg, float len, Material mat)
         {
-            float dx = size * 1.1f;
-            Part(m, center + new Vector3(-dx, 0, 0), new Vector3(size * 1.4f, size * 1.4f, 0.06f), white);
-            Part(m, center + new Vector3(dx, 0, 0), new Vector3(size * 1.4f, size * 1.4f, 0.06f), white);
-            Part(m, center + new Vector3(-dx, 0, 0.04f), new Vector3(size * 0.6f, size * 0.7f, 0.04f), black);
-            Part(m, center + new Vector3(dx, 0, 0.04f), new Vector3(size * 0.6f, size * 0.7f, 0.04f), black);
+            Part(leg, new Vector3(0, -len + 0.1f, 0.15f), new Vector3(0.5f, 0.22f, 0.7f), mat);
+        }
+
+        /// <summary>Большие мультяшные глаза: белок, зрачок и блик.</summary>
+        static void Eyes(Transform m, Vector3 center, float size, Material white, Material black, float squint)
+        {
+            float dx = size * 1.15f;
+            var shine = Plastic(Color.white);
+            foreach (float sx in new[] { -1f, 1f })
+            {
+                Vector3 c = center + new Vector3(sx * dx, 0, 0);
+                Part(m, c, new Vector3(size * 1.6f, size * 1.6f * (1f - squint), 0.08f), white);
+                Part(m, c + new Vector3(sx * -size * 0.12f, -size * 0.08f, 0.05f), new Vector3(size * 0.75f, size * 0.85f, 0.05f), black);
+                Part(m, c + new Vector3(sx * -size * 0.12f + size * 0.18f, size * 0.18f, 0.08f), new Vector3(size * 0.25f, size * 0.25f, 0.03f), shine);
+            }
+        }
+
+        /// <summary>Брови (угол &gt; 0 — удивлённые, &lt; 0 — злые).</summary>
+        static void Brows(Transform m, Vector3 center, float size, Material mat, float angle)
+        {
+            float dx = size * 1.15f;
+            foreach (float sx in new[] { -1f, 1f })
+            {
+                var b = Part(m, center + new Vector3(sx * dx, 0, 0), new Vector3(size * 1.5f, size * 0.3f, 0.08f), mat);
+                b.localRotation = Quaternion.Euler(0, 0, sx * angle);
+            }
         }
 
         // ================= ДЕКОР =================
@@ -600,6 +766,20 @@ namespace DragonHeist
             mpb.SetColor(BaseColorId, c);
             target.SetPropertyBlock(mpb);
         }
+    }
+
+    /// <summary>Вращение вокруг локальной оси Z (пропеллеры).</summary>
+    public class Spinner : MonoBehaviour
+    {
+        public float speed = 600f;
+        void Update() { transform.Rotate(0, 0, speed * Time.deltaTime, Space.Self); }
+    }
+
+    /// <summary>Покачивание влево-вправо (хвост акулы).</summary>
+    public class Wiggle : MonoBehaviour
+    {
+        public float amount = 15f, freq = 6f;
+        void Update() { transform.localRotation = Quaternion.Euler(0, Mathf.Sin(Time.time * freq) * amount, 0); }
     }
 
     public class DragonIdle : MonoBehaviour

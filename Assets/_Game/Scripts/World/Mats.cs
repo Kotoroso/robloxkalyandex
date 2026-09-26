@@ -192,6 +192,43 @@ namespace DragonHeist
             return m;
         }
 
+        static Texture2D trailSoft, trailCore;
+
+        /// <summary>Поперечный профиль следа (v — поперёк ленты): мягкое свечение или яркая сердцевина.</summary>
+        public static Texture2D TrailTexture(bool core)
+        {
+            var t = core ? trailCore : trailSoft;
+            if (t != null) return t;
+            const int W = 4, H = 64;
+            t = NewTex(W, H, true, false, core ? "trailCore" : "trailSoft");
+            t.wrapMode = TextureWrapMode.Clamp;
+            var px = new Color[W * H];
+            for (int y = 0; y < H; y++)
+            {
+                float v = Mathf.Abs((y + 0.5f) / H * 2f - 1f); // 0 в центре, 1 по краям
+                float a = core ? Mathf.Clamp01(1f - v * v * 1.6f) : Mathf.Exp(-v * v * 4.5f) * (1f - v);
+                for (int x = 0; x < W; x++) px[y * W + x] = new Color(1, 1, 1, a);
+            }
+            t.SetPixels(px);
+            t.Apply();
+            if (core) trailCore = t; else trailSoft = t;
+            return t;
+        }
+
+        /// <summary>Материал светящегося следа (альфа-смешивание: хорошо виден и на светлом полу).</summary>
+        public static Material TrailMat(bool core)
+        {
+            string key = core ? "trailCoreMat" : "trailSoftMat";
+            Material m;
+            if (cache.TryGetValue(key, out m)) return m;
+            var sh = Find("Legacy Shaders/Particles/Alpha Blended", "Sprites/Default", "Particles/Standard Unlit", "Unlit/Transparent");
+            if (sh != null) { m = new Material(sh); m.mainTexture = TrailTexture(core); }
+            else m = Glow(Color.white);
+            if (m.HasProperty("_TintColor")) m.SetColor("_TintColor", new Color(0.5f, 0.5f, 0.5f, 0.5f));
+            cache[key] = m;
+            return m;
+        }
+
         public static Texture2D SquareTexture
         {
             get

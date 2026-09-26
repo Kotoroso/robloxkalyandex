@@ -115,17 +115,17 @@ namespace DragonHeist
         public static readonly TierInfo[] Tiers =
         {
             T(Tier.Common,    "Обычное",      "Common",    0.78f,0.78f,0.78f, 20,   9f,   1, 9f,  BrainrotKind.TungSahur,   1.0f, 0),
-            T(Tier.Uncommon,  "Необычное",    "Uncommon",  0.35f,0.85f,0.35f, 45,   15.5f,2, 10f, BrainrotKind.Lirili,      1.1f, 50),
-            T(Tier.Rare,      "Редкое",       "Rare",      0.25f,0.55f,1f,    90,   20.5f,2, 11f, BrainrotKind.Bombardiro,  1.2f, 1000),
-            T(Tier.Epic,      "Эпическое",    "Epic",      0.7f,0.3f,1f,      180,  26f,  3, 12f, BrainrotKind.Tralalero,   1.3f, 2.5e4),
-            T(Tier.Legendary, "Легендарное",  "Legendary", 1f,0.78f,0.1f,     300,  32f,  3, 13f, BrainrotKind.Patapim,     1.45f, 6e5),
-            T(Tier.Mythic,    "Мифическое",   "Mythic",    1f,0.25f,0.3f,     480,  40f,  4, 14f, BrainrotKind.Cappuccino,  1.6f, 1.5e7),
-            T(Tier.Divine,    "Божественное", "Divine",    1f,0.95f,0.6f,     720,  47f,  4, 15f, BrainrotKind.VacaSaturno, 1.7f, 5e8),
-            T(Tier.Secret,    "Секретное",    "Secret",    0.1f,1f,0.95f,     1080, 55f,  4, 16f, BrainrotKind.Bombardiro,  2.0f, 1.5e10),
+            T(Tier.Uncommon,  "Необычное",    "Uncommon",  0.35f,0.85f,0.35f, 45,   15.5f,2, 10f, BrainrotKind.Lirili,      1.1f, 60),
+            T(Tier.Rare,      "Редкое",       "Rare",      0.25f,0.55f,1f,    90,   20.5f,2, 11f, BrainrotKind.Bombardiro,  1.2f, 1500),
+            T(Tier.Epic,      "Эпическое",    "Epic",      0.7f,0.3f,1f,      180,  29f,  3, 12f, BrainrotKind.Tralalero,   1.3f, 1.6e5),
+            T(Tier.Legendary, "Легендарное",  "Legendary", 1f,0.78f,0.1f,     300,  35f,  3, 13f, BrainrotKind.Patapim,     1.45f, 1.5e6),
+            T(Tier.Mythic,    "Мифическое",   "Mythic",    1f,0.25f,0.3f,     480,  41.5f,  4, 14f, BrainrotKind.Cappuccino,  1.6f, 2.5e7),
+            T(Tier.Divine,    "Божественное", "Divine",    1f,0.95f,0.6f,     720,  47f,  4, 15f, BrainrotKind.VacaSaturno, 1.7f, 7e8),
+            T(Tier.Secret,    "Секретное",    "Secret",    0.1f,1f,0.95f,     1080, 55f,  4, 16f, BrainrotKind.Bombardiro,  2.0f, 2e10),
             T(Tier.Celestial, "Небесное",     "Celestial", 0.55f,0.45f,1f,    1500, 63f,  5, 17f, BrainrotKind.TungSahur,   2.3f, 4e11),
-            T(Tier.Ancient,   "Древнее",      "Ancient",   0.85f,0.52f,0.25f, 1800, 72f,  5, 18f, BrainrotKind.Tralalero,   2.5f, 1e13),
-            T(Tier.Galactic,  "Галактическое","Galactic",  0.25f,0.35f,0.95f, 2400, 78f,  5, 19f, BrainrotKind.Patapim,     2.7f, 2e14),
-            T(Tier.Omega,     "Омега",        "Omega",     1f,0.15f,0.6f,     3000, 88f,  6, 20f, BrainrotKind.VacaSaturno, 3.0f, 2e16),
+            T(Tier.Ancient,   "Древнее",      "Ancient",   0.85f,0.52f,0.25f, 1800, 72f,  5, 18f, BrainrotKind.Tralalero,   2.5f, 3e13),
+            T(Tier.Galactic,  "Галактическое","Galactic",  0.25f,0.35f,0.95f, 2400, 78f,  5, 19f, BrainrotKind.Patapim,     2.7f, 1e15),
+            T(Tier.Omega,     "Омега",        "Omega",     1f,0.15f,0.6f,     3000, 88f,  6, 20f, BrainrotKind.VacaSaturno, 3.0f, 5e16),
         };
 
         public static readonly DragonDef[] Dragons =
@@ -180,11 +180,11 @@ namespace DragonHeist
         {
             new TreadmillDef{ nameRu="Дорожка",          nameEn="Treadmill",        gainPerSec=2,     price=0,    rebirthsRequired=0, color=new Color(0.2f,0.8f,0.3f) },
             new TreadmillDef{ nameRu="Быстрая дорожка",  nameEn="Fast Treadmill",   gainPerSec=8,     price=0,    rebirthsRequired=0, adsRequired=2, color=new Color(0.2f,0.5f,1f) },
-            new TreadmillDef{ nameRu="Турбо дорожка",    nameEn="Turbo Treadmill",  gainPerSec=120,   price=2.5e4, rebirthsRequired=0, color=new Color(0.8f,0.3f,1f) },
-            new TreadmillDef{ nameRu="Ракетная дорожка", nameEn="Rocket Treadmill", gainPerSec=6e3,   price=2e6,  rebirthsRequired=0, color=new Color(1f,0.5f,0.1f) },
-            new TreadmillDef{ nameRu="Космо дорожка",    nameEn="Cosmic Treadmill", gainPerSec=1.5e5, price=1e9,  rebirthsRequired=0, color=new Color(0.1f,1f,0.95f) },
-            new TreadmillDef{ nameRu="Гипер дорожка",    nameEn="Hyper Treadmill",  gainPerSec=5e6,   price=3e10, rebirthsRequired=0, color=new Color(1f,0.85f,0.2f) },
-            new TreadmillDef{ nameRu="Омега дорожка",    nameEn="Omega Treadmill",  gainPerSec=2e8,   price=2e13, rebirthsRequired=0, color=new Color(1f,0.15f,0.6f) },
+            new TreadmillDef{ nameRu="Турбо дорожка",    nameEn="Turbo Treadmill",  gainPerSec=120,   price=6e4, rebirthsRequired=0, color=new Color(0.8f,0.3f,1f) },
+            new TreadmillDef{ nameRu="Ракетная дорожка", nameEn="Rocket Treadmill", gainPerSec=6e3,   price=8e6,  rebirthsRequired=0, color=new Color(1f,0.5f,0.1f) },
+            new TreadmillDef{ nameRu="Космо дорожка",    nameEn="Cosmic Treadmill", gainPerSec=1.5e5, price=5e9,  rebirthsRequired=0, color=new Color(0.1f,1f,0.95f) },
+            new TreadmillDef{ nameRu="Гипер дорожка",    nameEn="Hyper Treadmill",  gainPerSec=5e6,   price=3e11, rebirthsRequired=0, color=new Color(1f,0.85f,0.2f) },
+            new TreadmillDef{ nameRu="Омега дорожка",    nameEn="Omega Treadmill",  gainPerSec=2e8,   price=2e14, rebirthsRequired=0, color=new Color(1f,0.15f,0.6f) },
         };
 
         public static readonly UpgradeDef[] Upgrades =

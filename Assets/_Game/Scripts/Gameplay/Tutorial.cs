@@ -122,7 +122,7 @@ namespace DragonHeist
                     if (p.Carrying != null) Advance();
                     break;
                 case 2:
-                    target = new Vector3(0, 0, GameConfig.BaseMaxZ - 6f);
+                    target = new Vector3(2f, 0, GameConfig.BaseMaxZ - 5f);
                     if (d.totalStolen > stolenAtStep) Advance();
                     else if (p.Carrying == null) { SaveManager.Data.tutorialStep = 1; }
                     break;

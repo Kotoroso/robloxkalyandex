@@ -103,18 +103,14 @@ namespace DragonHeist
 
             Blocky.Label(signs, Loc.T("base"), new Vector3(0, 15f, maxZ), 2.6f, new Color(1f, 0.93f, 0.55f)).text = Loc.Ru ? "К ЯЙЦАМ" : "TO THE EGGS";
             Arch(new Vector3(0, 0, maxZ), gap - 0.5f, BaseTrim);
-            // площадка сдачи яиц у ворот: деревянный настил со светящейся рамкой
-            WoodDeck(new Rect(-6f, maxZ - 8.5f, 12f, 7f));
-            var gold = Mats.Glow(new Color(1f, 0.85f, 0.3f));
-            Blocky.Part(staticRoot, new Vector3(0, DeckTop + 0.05f, maxZ - 8.5f), new Vector3(12.4f, 0.12f, 0.4f), gold);
-            Blocky.Part(staticRoot, new Vector3(0, DeckTop + 0.05f, maxZ - 1.5f), new Vector3(12.4f, 0.12f, 0.4f), gold);
-            Blocky.Part(staticRoot, new Vector3(-6.2f, DeckTop + 0.05f, maxZ - 5f), new Vector3(0.4f, 0.12f, 7f), gold);
-            Blocky.Part(staticRoot, new Vector3(6.2f, DeckTop + 0.05f, maxZ - 5f), new Vector3(0.4f, 0.12f, 7f), gold);
-            Blocky.Label(signs, Loc.Ru ? "СДАЙ ЯЙЦО СЮДА" : "BRING EGGS HERE", new Vector3(0, 3.6f, maxZ - 5f), 1.3f, new Color(1f, 0.9f, 0.55f));
-            SkipRects.Add(new Rect(-7f, maxZ - 9f, 14f, 8f));
+            // площадка сдачи яиц у ворот: светящаяся зелёная плита, яйцо, стрелка и столб света
+            Vector3 dropC = new Vector3(2f, 0, maxZ - 5f);
+            DropZone.Build(dynamicRoot, dropC, new Vector2(8f, 7f), DeckTop - 0.1f);
+            Blocky.Label(signs, Loc.Ru ? "СДАЙ ЯЙЦО СЮДА" : "BRING EGGS HERE", new Vector3(dropC.x, 3.4f, dropC.z), 1.4f, new Color(0.7f, 1f, 0.6f));
+            SkipRects.Add(new Rect(dropC.x - 4.5f, dropC.z - 4f, 9f, 8f));
 
             // зона тренажёров слева спереди
-            WoodDeck(new Rect(-46.5f, -12.5f, 45.5f, 13f));
+            WoodDeck(new Rect(-46.5f, -12.5f, 41.5f, 13f)); // до x=-5: не заходит на площадку сдачи
             for (int i = 0; i < GameConfig.Treadmills.Length; i++)
                 Treadmill.Build(dynamicRoot, i, new Vector3(-43f + i * 5.8f, DeckTop, -6f), 0f);
             Blocky.Label(signs, Loc.Ru ? "ТРЕНАЖЁРЫ" : "TREADMILLS", new Vector3(-25.6f, 8f, -1f), 1.6f, new Color(0.6f, 0.95f, 1f));
