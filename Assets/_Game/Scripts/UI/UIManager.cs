@@ -607,11 +607,16 @@ namespace DragonHeist
             var title = UIKit.Label(UIKit.Rect(bg, "Title", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 170), new Vector2(1100, 140)), Loc.T("title"), 96, Gold);
             foreach (var o in title.GetComponents<Outline>()) o.effectDistance *= 2.2f;
             title.gameObject.AddComponent<TitleWobble>();
-            UIKit.Label(UIKit.Rect(bg, "Sub", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 80), new Vector2(1000, 50)), Loc.T("subtitle"), 28, Color.white);
+            var subBg = UIKit.Panel(bg, "SubBg", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 80), new Vector2(760, 52), new Color(0.05f, 0.05f, 0.12f, 0.55f));
+            subBg.raycastTarget = false;
+            UIKit.Label(subBg.transform, Loc.T("subtitle"), 26, Color.white);
             var eggIcon = UIKit.Icon(bg, Icons.Egg, new Vector2(0.5f, 0.5f), new Vector2(-420, 170), 110);
             eggIcon.gameObject.AddComponent<TitleWobble>();
             var dragIcon = UIKit.Icon(bg, Icons.Dragon, new Vector2(0.5f, 0.5f), new Vector2(420, 170), 120);
             dragIcon.gameObject.AddComponent<TitleWobble>();
+            // иконки встают по краям заголовка, шрифт уменьшается, если заголовок не влезает
+            var fit = title.gameObject.AddComponent<TitleFit>();
+            fit.title = title; fit.left = eggIcon.rectTransform; fit.right = dragIcon.rectTransform; fit.root = root;
 
             var play = UIKit.Button(bg, "Play", Loc.T("play"), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -40), new Vector2(380, 110),
                 new Color(0.3f, 0.85f, 0.35f), OnPlay, 52);
@@ -942,6 +947,36 @@ namespace DragonHeist
             float t = Time.unscaledTime + seed;
             transform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(t * 1.6f) * 3f);
             transform.localScale = Vector3.one * (1f + Mathf.Sin(t * 2.2f) * 0.03f);
+        }
+    }
+
+    /// <summary>Подгоняет размер заголовка меню под ширину экрана и ставит иконки по его краям.</summary>
+    public class TitleFit : MonoBehaviour
+    {
+        public Text title;
+        public RectTransform left, right, root;
+        float lastW = -1;
+
+        void LateUpdate()
+        {
+            if (title == null || root == null) return;
+            float screenW = root.rect.width;
+            if (Mathf.Abs(screenW - lastW) < 1f) return;
+            lastW = screenW;
+            float iconSpace = 150f;
+            title.fontSize = 96;
+            float w = title.preferredWidth;
+            float maxW = screenW - iconSpace * 2 - 40;
+            if (w > maxW && w > 0)
+            {
+                title.fontSize = Mathf.Max(40, Mathf.FloorToInt(96 * maxW / w));
+                w = title.preferredWidth;
+            }
+            var box = (RectTransform)title.rectTransform.parent;
+            box.sizeDelta = new Vector2(w + 60, box.sizeDelta.y);
+            float x = w / 2f + 85f;
+            left.anchoredPosition = new Vector2(-x, left.anchoredPosition.y);
+            right.anchoredPosition = new Vector2(x, right.anchoredPosition.y);
         }
     }
 
