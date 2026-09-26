@@ -37,7 +37,7 @@ namespace DragonHeist
         readonly Dictionary<string, Text> yanPriceById = new Dictionary<string, Text>();
         readonly Dictionary<string, Button> yanBtnById = new Dictionary<string, Button>();
         readonly List<GameObject> panels = new List<GameObject>();
-        Text rebirthBody, dragonsBody, plotBtnText;
+        Text rebirthBody, dragonsBody;
         Text[] upgLevel, upgCost;
         Text soundText, musicText;
         Image[] switchBtns;
@@ -102,7 +102,8 @@ namespace DragonHeist
             // круглые кнопки слева сверху: улучшения (сумка), перерождение (книга)
             UIKit.CircleButton(h, "BtnShop", Icons.Bag, new Vector2(0, 1), new Vector2(0, 1), new Vector2(16, -12), cb, brown, () => OnMenuButton(0));
             var rb = UIKit.CircleButton(h, "BtnTrails", Icons.Shoe, new Vector2(0, 1), new Vector2(0, 1), new Vector2(26 + cb, -12), cb, brown, () => OpenTrails());
-            rebirthText = UIKit.Label(UIKit.Rect(rb.transform, "R", new Vector2(0.5f, 0), new Vector2(0.5f, 1), new Vector2(0, 8), new Vector2(cb + 40, 26)), Loc.Ru ? "Трейлы" : "Trails", 17, Color.white);
+            rebirthText = UIKit.Label(UIKit.Rect(rb.transform, "R", new Vector2(0.5f, 0), new Vector2(0.5f, 1), new Vector2(0, 8), new Vector2(cb + 20, 26)), Loc.Ru ? "Трейлы" : "Trails", 17, Color.white);
+            UIKit.Fit(rebirthText, 12);
             // зелёная "Магазин NEW!" (донат за Яны)
             float shopW = mobile ? 170 : 216, shopH = mobile ? 70 : 92;
             Vector2 shopPos = mobile ? new Vector2(36 + cb * 2, -12) : new Vector2(12, -12 - cb - 44);
@@ -126,49 +127,63 @@ namespace DragonHeist
             UIKit.Button(h, "BtnDragons", "", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-16, (mobile ? 120 : 60) - sq - 10), new Vector2(sq, sq), red, () => OnMenuButton(2), 14, Icons.Paw);
 
             // скорость (кроссовок) и деньги: на ПК — слева снизу, на телефоне — под верхними кнопками (снизу джойстик)
+            // Телефон (от верха экрана): кнопки 12..88, подпись "Трейлы" до ~106, скорость 114..158, деньги 162..218, доход 218..266;
+            //   ширина колонки <= 374, чтобы не заезжать на обучение/тост (они начинаются правее, x >= ~390).
+            // ПК (от низа экрана): деньги 14..110 (x 90..440, левее слотов), скорость 134..204, кроссовок 124..212.
             Vector2 statAnchor = mobile ? new Vector2(0, 1) : new Vector2(0, 0);
-            Vector2 speedPos = mobile ? new Vector2(12, -100) : new Vector2(14, 118);
-            Vector2 moneyPos = mobile ? new Vector2(12, -150) : new Vector2(90, 14);
+            Vector2 speedPos = mobile ? new Vector2(12, -114) : new Vector2(14, 134);
+            Vector2 moneyPos = mobile ? new Vector2(12, -162) : new Vector2(90, 14);
             var shoe = UIKit.Icon(h, Icons.Shoe, statAnchor, speedPos + new Vector2(mobile ? 28 : 44, mobile ? -22 : 34), mobile ? 56 : 88);
-            speedText = UIKit.Label(UIKit.Rect(h, "Speed", statAnchor, new Vector2(0, mobile ? 1 : 0), speedPos + new Vector2(mobile ? 60 : 100, 0), new Vector2(360, mobile ? 44 : 70)),
+            speedText = UIKit.Label(UIKit.Rect(h, "Speed", statAnchor, new Vector2(0, mobile ? 1 : 0), speedPos + new Vector2(mobile ? 60 : 100, 0), new Vector2(300, mobile ? 44 : 70)),
                 "", mobile ? 30 : 48, Cyan, TextAnchor.MiddleLeft);
-            coinsText = UIKit.Label(UIKit.Rect(h, "Money", statAnchor, new Vector2(0, mobile ? 1 : 0), moneyPos, new Vector2(520, mobile ? 56 : 96)),
+            coinsText = UIKit.Label(UIKit.Rect(h, "Money", statAnchor, new Vector2(0, mobile ? 1 : 0), moneyPos, new Vector2(mobile ? 360 : 350, mobile ? 56 : 96)),
                 "", mobile ? 40 : 72, new Color(0.55f, 0.95f, 0.5f), TextAnchor.MiddleLeft);
+            UIKit.Fit(speedText, mobile ? 20 : 28);
+            UIKit.Fit(coinsText, mobile ? 24 : 36);
             foreach (var o in coinsText.GetComponents<Outline>()) o.effectDistance *= 2f;
             foreach (var o in speedText.GetComponents<Outline>()) o.effectDistance *= 1.5f;
             // доход в секунду — справа снизу (на ПК)
             cpsText = UIKit.Label(UIKit.Rect(h, "Cps", mobile ? new Vector2(0, 1) : new Vector2(1, 0), mobile ? new Vector2(0, 1) : new Vector2(1, 0),
-                mobile ? new Vector2(14, -202) : new Vector2(-16, 14), new Vector2(360, 48)), "", mobile ? 20 : 30, new Color(1f, 0.95f, 0.6f), mobile ? TextAnchor.MiddleLeft : TextAnchor.MiddleRight);
-            invText = UIKit.Label(UIKit.Rect(h, "Inv", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, mobile ? 136 : 128), new Vector2(500, 26)), "", 17, new Color(1f, 0.85f, 0.4f));
+                mobile ? new Vector2(14, -218) : new Vector2(-16, 14), new Vector2(360, 48)), "", mobile ? 20 : 30, new Color(1f, 0.95f, 0.6f), mobile ? TextAnchor.MiddleLeft : TextAnchor.MiddleRight);
+            UIKit.Fit(cpsText, 14);
+            // над слотами (слоты 16..~103 с учётом увеличения выбранного): "выбран дракон" и под ним "яиц в инвентаре"
+            invText = UIKit.Fit(UIKit.Label(UIKit.Rect(h, "Inv", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, mobile ? 134 : 130), new Vector2(380, 26)), "", 17, new Color(1f, 0.85f, 0.4f)), 12);
 
             // ===== Слоты драконов снизу =====
             BuildHotbar(h);
-            heldText = UIKit.Label(UIKit.Rect(h, "Held", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, mobile ? 112 : 104), new Vector2(700, 30)), "", 18, new Color(0.7f, 1f, 0.85f));
+            heldText = UIKit.Fit(UIKit.Label(UIKit.Rect(h, "Held", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, mobile ? 106 : 102), new Vector2(mobile ? 540 : 620, 26)), "", 18, new Color(0.7f, 1f, 0.85f)), 12);
+            UIKit.Inset(heldText, 6, 0);
+            UIKit.Inset(invText, 6, 0);
 
             // ===== Обучение (сверху по центру) =====
-            float tw = mobile ? 470 : 720, tx = mobile ? -70 : 0;
+            // На телефоне слева сверху кнопки до x=358 ("Магазин"), справа — шестерёнка/награда от W-102:
+            // сдвигаем обучение/тост/баннер на +80 от центра, чтобы при самой узкой ширине холста (~1090) они шли по x 390..860.
+            float tw = mobile ? 470 : 720, tx = mobile ? 80 : 0;
             var tp = UIKit.Panel(h, "Tutorial", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(tx, -12), new Vector2(tw, 104), new Color(0.12f, 0.1f, 0.25f, 0.88f), 3f);
             tutPanel = tp.gameObject;
-            var tTitle = UIKit.Label(UIKit.Rect(tp.transform, "T", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -2), new Vector2(700, 26)), Loc.T("tut_title"), 17, Gold);
+            var tTitle = UIKit.Label(UIKit.Rect(tp.transform, "T", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -2), new Vector2(tw - 20, 28)), Loc.T("tut_title"), 17, Gold);
             tTitle.alignment = TextAnchor.MiddleCenter;
-            tutText = UIKit.Label(UIKit.Rect(tp.transform, "B", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-50, 6), new Vector2(tw - 130, 72)), "", mobile ? 17 : 21, Color.white);
-            UIKit.Button(tp.transform, "Skip", Loc.T("skip"), new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-10, -8), new Vector2(100, 38),
-                new Color(0.5f, 0.5f, 0.6f), () => { if (Tutorial.Instance != null) Tutorial.Instance.Skip(); }, 16);
+            // текст x 14..tw-146, кнопка "Пропустить" 130x48 справа (x tw-142..tw-12), по высоте 36..84
+            tutText = UIKit.Fit(UIKit.Label(UIKit.Rect(tp.transform, "B", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-66, 6), new Vector2(tw - 160, 72)), "", mobile ? 17 : 21, Color.white), 12);
+            UIKit.Inset(tutText, 4, 2);
+            UIKit.Button(tp.transform, "Skip", Loc.T("skip"), new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-12, -8), new Vector2(130, 48),
+                new Color(0.5f, 0.5f, 0.6f), () => { if (Tutorial.Instance != null) Tutorial.Instance.Skip(); }, 17);
             tutPanel.SetActive(false);
 
             // ===== Тост и баннер переноски =====
             toastBg = UIKit.Panel(h, "Toast", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(tx, -126), new Vector2(mobile ? 470 : 680, 54), new Color(0.05f, 0.05f, 0.1f, 0.75f), 2f);
-            toastText = UIKit.Label(toastBg.transform, "", mobile ? 19 : 23, Color.white);
+            toastText = UIKit.Fit(UIKit.Inset(UIKit.Label(toastBg.transform, "", mobile ? 19 : 23, Color.white), 12, 3), 13);
             toastBg.raycastTarget = false;
             UIKit.ApplySkin(toastBg, "toast", true);
             toastBg.gameObject.SetActive(false);
 
             carryBg = UIKit.Panel(h, "Carry", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(tx, -186), new Vector2(mobile ? 470 : 560, 48), new Color(0.9f, 0.2f, 0.2f, 0.85f), 3f);
-            carryText = UIKit.Label(carryBg.transform, "", 21, Color.white);
+            carryText = UIKit.Fit(UIKit.Inset(UIKit.Label(carryBg.transform, "", 21, Color.white), 12, 3), 13);
             carryBg.raycastTarget = false;
             carryBg.gameObject.SetActive(false);
 
-            hintText = UIKit.Label(UIKit.Rect(h, "Hint", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, mobile ? 250 : 190), new Vector2(760, 40)), "", 22, new Color(1f, 1f, 0.7f));
+            // ПК: над скоростью (она до 204 от низа); телефон: над джойстиком (до 270) и кнопкой действия (до 264)
+            hintText = UIKit.Fit(UIKit.Label(UIKit.Rect(h, "Hint", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, mobile ? 276 : 212), new Vector2(mobile ? 520 : 760, 40)), "", 22, new Color(1f, 1f, 0.7f)), 14);
 
             BuildPrompt(h);
 
@@ -227,7 +242,11 @@ namespace DragonHeist
                     so2.effectColor = UIKit.Stroke; so2.effectDistance = new Vector2(-3f, 3f);
                 }
                 slotIcon[i] = UIKit.Icon(b.transform, Icons.Dragon, new Vector2(0.5f, 0.5f), new Vector2(0, 8), s * 0.95f);
+                // имя дракона — одной строкой в нижней полоске слота, не вылезает за его края
                 slotName[i] = UIKit.Label(b.transform, "", 12, Color.white, TextAnchor.LowerCenter);
+                slotName[i].rectTransform.anchorMin = Vector2.zero; slotName[i].rectTransform.anchorMax = new Vector2(1, 0);
+                slotName[i].rectTransform.offsetMin = new Vector2(3, 2); slotName[i].rectTransform.offsetMax = new Vector2(-3, 22);
+                UIKit.Fit(slotName[i], 8);
                 var num = UIKit.Label(UIKit.Rect(b.transform, "N", new Vector2(0, 1), new Vector2(0, 1), new Vector2(4, -2), new Vector2(24, 24)), (i + 1).ToString(), 16, Gold, TextAnchor.UpperLeft);
                 num.raycastTarget = false;
             }
@@ -252,6 +271,7 @@ namespace DragonHeist
             var po = promptKey.GetComponents<Outline>();
             foreach (var o in po) o.enabled = false;
             promptText = UIKit.Label(UIKit.Rect(promptBg.transform, "T", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(66, 0), new Vector2(mobile ? 228 : 258, 64)), "", mobile ? 21 : 20, Color.white, TextAnchor.MiddleLeft);
+            UIKit.Fit(promptText, 13);
             if (mobile)
                 UIKit.AddPointer(promptBg.gameObject, e => InputState.TouchAction = true, e => InputState.TouchAction = false);
             else promptBg.raycastTarget = false;
@@ -281,10 +301,20 @@ namespace DragonHeist
             if (UIKit.ApplySkin(header, "header", true)) hg.gameObject.SetActive(false);
             var tl = UIKit.Label(header.transform, title.ToUpper(), 42, Color.white);
             foreach (var o in tl.GetComponents<Outline>()) o.effectDistance *= 1.4f;
+            // заголовок не заезжает под кнопку закрытия (66 + отступ 14 справа), симметрично слева
+            UIKit.Inset(tl, 92, 8);
+            UIKit.Fit(tl, 24);
             var go = bg.gameObject;
             var close = UIKit.Button(header.transform, "Close", "X", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-14, 0), new Vector2(66, 62),
-                new Color(0.93f, 0.22f, 0.28f), () => go.SetActive(false), 34);
-            if (UIKit.ApplySkin(close.GetComponent<Image>(), "close", false)) UIKit.HideLabels(close.transform);
+                new Color(0.93f, 0.22f, 0.28f), () => go.SetActive(false), 36);
+            UIKit.ApplySkin(close.GetComponent<Image>(), "close", false);
+            // на картинке ui_close крестика нет — белая "X" с обводкой остаётся видимой, чуть выше центра (у кнопки нижний бортик)
+            var cx = close.GetComponentInChildren<Text>();
+            if (cx != null)
+            {
+                cx.rectTransform.offsetMin = new Vector2(4, 7);
+                cx.rectTransform.offsetMax = new Vector2(-4, -1);
+            }
             body = UIKit.Rect(bg.transform, "Body", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -44), new Vector2(sz.x - 40, sz.y - 120));
             go.AddComponent<PopIn>();
             go.SetActive(false);
@@ -294,28 +324,38 @@ namespace DragonHeist
 
         GameObject BuildShop()
         {
-            RectTransform body;
-            var go = Modal(Loc.T("shop"), new Color(0.25f, 0.75f, 0.35f), new Vector2(760, 560), out body);
+            // Покупка грядок убрана — все грядки доступны сразу. Окно — только список улучшений:
+            // строки 72 + зазор 8; тело окна = высота - 120. При 5 строках список 392 <= тела 410.
             int n = GameConfig.Upgrades.Length;
+            float rowH = 72, gap = 8;
+            float listH = n * rowH + (n - 1) * gap;
+            float winH = Mathf.Clamp(listH + 138, 300, 600);
+            RectTransform body;
+            var go = Modal(Loc.T("shop"), new Color(0.25f, 0.75f, 0.35f), new Vector2(760, winH), out body);
+            Transform list = body;
+            if (listH + 6 > body.sizeDelta.y)
+            {
+                // улучшений больше, чем влезает, — список прокручивается, а не вылезает за окно
+                var content = UIKit.Scroll(body, new Vector2(0.5f, 0.5f), Vector2.zero, body.sizeDelta, false);
+                content.sizeDelta = new Vector2(body.sizeDelta.x, listH + 8);
+                list = content;
+            }
             upgLevel = new Text[n]; upgCost = new Text[n];
-            float rowH = 72;
             for (int i = 0; i < n; i++)
             {
                 int k = i;
                 var u = GameConfig.Upgrades[i];
-                var row = UIKit.Panel(body, "Upg" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -i * (rowH + 8)), new Vector2(700, rowH), new Color(0.2f, 0.19f, 0.3f, 1f), 2f);
+                var row = UIKit.Panel(list, "Upg" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -3 - i * (rowH + gap)), new Vector2(700, rowH), new Color(0.2f, 0.19f, 0.3f, 1f), 2f);
                 var dot = UIKit.Panel(row.transform, "C", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(10, 0), new Vector2(12, rowH - 16), u.color);
                 dot.raycastTarget = false;
-                UIKit.Label(UIKit.Rect(row.transform, "N", new Vector2(0, 1), new Vector2(0, 1), new Vector2(30, -4), new Vector2(360, 34)), Loc.Ru ? u.nameRu : u.nameEn, 24, Color.white, TextAnchor.MiddleLeft);
-                UIKit.Label(UIKit.Rect(row.transform, "D", new Vector2(0, 0), new Vector2(0, 0), new Vector2(30, 4), new Vector2(360, 30)), Loc.Ru ? u.descRu : u.descEn, 16, new Color(0.8f, 0.85f, 1f), TextAnchor.MiddleLeft);
-                upgLevel[i] = UIKit.Label(UIKit.Rect(row.transform, "L", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(390, 0), new Vector2(110, 40)), "", 20, Gold);
+                // имя: 30..380 по X, верх строки; описание: низ строки; уровень: 384..500; кнопка: 510..690
+                UIKit.Fit(UIKit.Label(UIKit.Rect(row.transform, "N", new Vector2(0, 1), new Vector2(0, 1), new Vector2(30, -3), new Vector2(350, 36)), Loc.Ru ? u.nameRu : u.nameEn, 24, Color.white, TextAnchor.MiddleLeft), 16);
+                UIKit.Fit(UIKit.Label(UIKit.Rect(row.transform, "D", new Vector2(0, 0), new Vector2(0, 0), new Vector2(30, 3), new Vector2(350, 32)), Loc.Ru ? u.descRu : u.descEn, 16, new Color(0.8f, 0.85f, 1f), TextAnchor.MiddleLeft), 11);
+                upgLevel[i] = UIKit.Fit(UIKit.Label(UIKit.Rect(row.transform, "L", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(384, 0), new Vector2(118, 44)), "", 20, Gold), 13);
                 var b = UIKit.Button(row.transform, "Buy", "", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-10, 0), new Vector2(180, 54),
                     new Color(0.25f, 0.78f, 0.35f), () => { if (GameManager.Instance.TryBuyUpgrade(k)) RefreshPanels(); }, 20);
                 upgCost[i] = b.GetComponentInChildren<Text>();
             }
-            var pb = UIKit.Button(body, "BuyPlot", "", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 0), new Vector2(420, 60),
-                new Color(1f, 0.6f, 0.15f), () => { GameManager.Instance.TryBuyPlot(); RefreshPanels(); }, 22);
-            plotBtnText = pb.GetComponentInChildren<Text>();
             return go;
         }
 
@@ -324,7 +364,8 @@ namespace DragonHeist
             RectTransform body;
             var go = Modal(Loc.T("rebirth"), new Color(0.78f, 0.32f, 0.95f), new Vector2(620, 480), out body);
             UIKit.Icon(body, Icons.Star, new Vector2(0.5f, 1), new Vector2(0, -44), 84);
-            rebirthBody = UIKit.Label(UIKit.Rect(body, "T", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -6), new Vector2(560, 220)), "", 22, Color.white);
+            // между звездой (низ на 86 от верха тела) и кнопкой (верх на 66 от низа)
+            rebirthBody = UIKit.Fit(UIKit.Label(UIKit.Rect(body, "T", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -4), new Vector2(560, 188)), "", 22, Color.white), 15);
             UIKit.Button(body, "Do", Loc.T("rebirth"), new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 0), new Vector2(300, 66),
                 new Color(0.78f, 0.32f, 0.95f), () => { if (GameManager.Instance.TryRebirth()) rebirthPanel.SetActive(false); }, 28);
             return go;
@@ -337,7 +378,7 @@ namespace DragonHeist
         {
             var chip = UIKit.Panel(parent, "Chip", new Vector2(0.5f, 1), new Vector2(0.5f, 1), pos, new Vector2(205, 46), new Color(0.12f, 0.12f, 0.2f, 1f), 2f);
             UIKit.Icon(chip.transform, icon, new Vector2(0, 0.5f), new Vector2(26, 0), 40);
-            return UIKit.Label(UIKit.Rect(chip.transform, "V", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(50, 0), new Vector2(150, 40)), "", 21, color, TextAnchor.MiddleLeft);
+            return UIKit.Fit(UIKit.Label(UIKit.Rect(chip.transform, "V", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(50, 0), new Vector2(150, 40)), "", 21, color, TextAnchor.MiddleLeft), 13);
         }
 
         /// <summary>
@@ -346,44 +387,58 @@ namespace DragonHeist
         /// </summary>
         GameObject BuildDragons()
         {
+            // Содержимое (сверху вниз, от верха области): бонусы 6..52, подсказка 56..80, 5 надетых 84..260,
+            // заголовок грядок 268..296, 2 ряда грядок 302..452 и 464..614 — всего 618.
+            // ПК (холст 790 в высоту): окно 740, тело 620 — всё видно без прокрутки.
+            // Телефон (холст 650): окно 610, тело 490 — содержимое прокручивается, окно не вылезает за экран.
+            const float contentH = 618f;
             RectTransform body;
-            var go = Modal(Loc.T("dragons"), new Color(1f, 0.55f, 0.15f), new Vector2(960, 680), out body);
+            var go = Modal(Loc.T("dragons"), new Color(1f, 0.55f, 0.15f), new Vector2(960, mobile ? 610 : 740), out body);
+            var content = UIKit.Scroll(body, new Vector2(0.5f, 0.5f), Vector2.zero, body.sizeDelta, false);
+            content.sizeDelta = new Vector2(body.sizeDelta.x, Mathf.Max(contentH, body.sizeDelta.y));
+            Transform c0 = content;
             statChips = new[]
             {
-                StatChip(body, Icons.Bolt, Cyan, new Vector2(-330, 0)),
-                StatChip(body, Icons.Coin, Gold, new Vector2(-110, 0)),
-                StatChip(body, Icons.Star, Pink, new Vector2(110, 0)),
-                StatChip(body, Icons.Shoe, new Color(0.6f, 0.8f, 1f), new Vector2(330, 0)),
+                StatChip(c0, Icons.Bolt, Cyan, new Vector2(-330, -6)),
+                StatChip(c0, Icons.Coin, Gold, new Vector2(-110, -6)),
+                StatChip(c0, Icons.Star, Pink, new Vector2(110, -6)),
+                StatChip(c0, Icons.Shoe, new Color(0.6f, 0.8f, 1f), new Vector2(330, -6)),
             };
-            dragTotals = UIKit.Label(UIKit.Rect(body, "Hint", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -52), new Vector2(900, 26)), "", 18, new Color(0.75f, 0.8f, 0.95f));
+            dragTotals = UIKit.Fit(UIKit.Label(UIKit.Rect(c0, "Hint", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -56), new Vector2(900, 26)), "", 18, new Color(0.75f, 0.8f, 0.95f)), 12);
             int ns = GameConfig.InventorySlots;
             equipTexts = new Text[ns]; unequipBtns = new Button[ns]; unequipTexts = new Text[ns]; equipIcons = new Image[ns];
+            float eqStep = Mathf.Min(180f, (body.sizeDelta.x - 10f) / ns), eqW = eqStep - 10f;
             for (int i = 0; i < ns; i++)
             {
                 int k = i;
-                var c = UIKit.Panel(body, "Eq" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((i - 2) * 180, -84), new Vector2(170, 176), new Color(0.2f, 0.34f, 0.3f), 3f);
-                equipIcons[i] = UIKit.Icon(c.transform, Icons.Dragon, new Vector2(0.5f, 1), new Vector2(0, -52), 104);
-                equipTexts[i] = UIKit.Label(UIKit.Rect(c.transform, "T", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 50), new Vector2(164, 44)), "", 15, Color.white);
-                unequipBtns[i] = UIKit.Button(c.transform, "Un", Loc.Ru ? "Снять" : "Unequip", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 8), new Vector2(146, 38),
+                // карточка 170x176: иконка 4..84, текст 82..120, кнопка "Снять" 124..168 (от верха карточки)
+                var c = UIKit.Panel(c0, "Eq" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((i - (ns - 1) / 2f) * eqStep, -84), new Vector2(eqW, 176), new Color(0.2f, 0.34f, 0.3f), 3f);
+                equipIcons[i] = UIKit.Icon(c.transform, Icons.Dragon, new Vector2(0.5f, 1), new Vector2(0, -44), 80);
+                equipTexts[i] = UIKit.Fit(UIKit.Inset(UIKit.Label(UIKit.Rect(c.transform, "T", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 54), new Vector2(eqW - 6, 42)), "", 15, Color.white), 2, 2), 10);
+                unequipBtns[i] = UIKit.Button(c.transform, "Un", Loc.Ru ? "Снять" : "Unequip", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 8), new Vector2(eqW - 24, 44),
                     new Color(0.95f, 0.45f, 0.25f), () => { GameManager.Instance.UnequipToPlot(k); RefreshPanels(); }, 17);
             }
-            UIKit.Label(UIKit.Rect(body, "PlT", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -268), new Vector2(900, 28)),
-                Loc.Ru ? "На грядках — приносят монеты" : "On plots — earn coins", 20, new Color(1f, 0.9f, 0.6f));
+            UIKit.Fit(UIKit.Label(UIKit.Rect(c0, "PlT", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -268), new Vector2(900, 28)),
+                Loc.Ru ? "На грядках — приносят монеты" : "On plots — earn coins", 20, new Color(1f, 0.9f, 0.6f)), 13);
             int n = GameConfig.MaxPlots;
             dragCards = new Image[n]; dragTexts = new Text[n]; dragBtnTexts = new Text[n]; dragBtns = new Button[n]; equipBtns = new Button[n]; dragIcons = new Image[n];
             float cw = 296, ch = 150;
+            int rows = (n + 2) / 3;
+            float needH = 302 + rows * (ch + 12);
+            if (needH > content.sizeDelta.y) content.sizeDelta = new Vector2(content.sizeDelta.x, needH);
             for (int i = 0; i < n; i++)
             {
                 int k = i;
                 int col = i % 3, row = i / 3;
-                var card = UIKit.Panel(body, "D" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((col - 1) * (cw + 12), -302 - row * (ch + 12)), new Vector2(cw, ch), new Color(0.22f, 0.22f, 0.34f), 3f);
+                // карточка 296x150: иконка x10..106 y4..100, текст x112..290 y6..94, кнопки y98..142
+                var card = UIKit.Panel(c0, "D" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((col - 1) * (cw + 12), -302 - row * (ch + 12)), new Vector2(cw, ch), new Color(0.22f, 0.22f, 0.34f), 3f);
                 dragCards[i] = card;
-                dragIcons[i] = UIKit.Icon(card.transform, Icons.Dragon, new Vector2(0, 1), new Vector2(62, -54), 112);
-                dragTexts[i] = UIKit.Label(UIKit.Rect(card.transform, "T", new Vector2(0, 1), new Vector2(0, 1), new Vector2(118, -6), new Vector2(cw - 124, 92)), "", 15, Color.white, TextAnchor.UpperLeft);
-                dragBtns[i] = UIKit.Button(card.transform, "Up", "", new Vector2(0, 0), new Vector2(0, 0), new Vector2(8, 8), new Vector2(170, 42),
+                dragIcons[i] = UIKit.Icon(card.transform, Icons.Dragon, new Vector2(0, 1), new Vector2(58, -52), 96);
+                dragTexts[i] = UIKit.Fit(UIKit.Label(UIKit.Rect(card.transform, "T", new Vector2(0, 1), new Vector2(0, 1), new Vector2(112, -6), new Vector2(cw - 118, 88)), "", 15, Color.white, TextAnchor.UpperLeft), 10);
+                dragBtns[i] = UIKit.Button(card.transform, "Up", "", new Vector2(0, 0), new Vector2(0, 0), new Vector2(8, 8), new Vector2(170, 44),
                     new Color(0.28f, 0.8f, 0.38f), () => { if (GameManager.Instance.TryUpgradeDragon(k)) RefreshPanels(); }, 16);
                 dragBtnTexts[i] = dragBtns[i].GetComponentInChildren<Text>();
-                equipBtns[i] = UIKit.Button(card.transform, "Eq", Loc.Ru ? "Надеть" : "Equip", new Vector2(1, 0), new Vector2(1, 0), new Vector2(-8, 8), new Vector2(104, 42),
+                equipBtns[i] = UIKit.Button(card.transform, "Eq", Loc.Ru ? "Надеть" : "Equip", new Vector2(1, 0), new Vector2(1, 0), new Vector2(-8, 8), new Vector2(104, 44),
                     new Color(0.3f, 0.55f, 1f), () => { GameManager.Instance.EquipFromPlot(k); RefreshPanels(); }, 16);
             }
             return go;
@@ -401,7 +456,7 @@ namespace DragonHeist
         GameObject BuildYanShop()
         {
             RectTransform body;
-            var go = Modal(Loc.Ru ? "МАГАЗИН" : "STORE", new Color(0.2f, 0.45f, 1f), new Vector2(900, 620), out body);
+            var go = Modal(Loc.Ru ? "МАГАЗИН" : "STORE", new Color(0.2f, 0.45f, 1f), new Vector2(900, mobile ? 600 : 620), out body);
             var content = UIKit.Scroll(body, new Vector2(0.5f, 0.5f), Vector2.zero, body.sizeDelta, false);
             content.sizeDelta = new Vector2(body.sizeDelta.x, 1100);
             float w = body.sizeDelta.x - 20;
@@ -417,7 +472,7 @@ namespace DragonHeist
             if (UIKit.ApplySkin(nw, "badge_new", false)) { nw.type = Image.Type.Simple; nw.preserveAspect = true; UIKit.HideLabels(nw.transform); }
             // правая часть карточки (справа от яйца)
             float left = -w / 2f + 240f, right = w / 2f - 16f, avail = right - left;
-            UIKit.Label(UIKit.Rect(egg.transform, "T", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((left + right) / 2f, -8), new Vector2(avail, 44)), Loc.Ru ? "ДРАКОНЬЕ ЯЙЦО" : "DRAGON EGG", 34, new Color(1f, 0.97f, 0.85f));
+            UIKit.Fit(UIKit.Label(UIKit.Rect(egg.transform, "T", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((left + right) / 2f, -8), new Vector2(avail, 44)), Loc.Ru ? "ДРАКОНЬЕ ЯЙЦО" : "DRAGON EGG", 34, new Color(1f, 0.97f, 0.85f)), 22);
             var ex = new List<DragonDef>();
             foreach (var d in GameConfig.Dragons) if (d.exclusive) ex.Add(d);
             float cwx = avail / ex.Count;
@@ -433,7 +488,7 @@ namespace DragonHeist
                 store3D.Add(new KeyValuePair<Image, DragonDef>(xi, d));
                 var chip = UIKit.Panel(c.transform, "P", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 4), new Vector2(cwx - 22, 26), k == ex.Count - 1 ? new Color(0.95f, 0.25f, 0.35f) : new Color(0.1f, 0.08f, 0.2f, 0.9f), 2f);
                 chip.raycastTarget = false;
-                UIKit.Label(chip.transform, d.premiumChance + "%", 17, Color.white);
+                UIKit.Fit(UIKit.Inset(UIKit.Label(chip.transform, d.premiumChance + "%", 17, Color.white), 3, 2), 11);
             }
             string[] ids = { "dragon_egg_1", "dragon_egg_3", "dragon_egg_10" };
             string[] labels = Loc.Ru ? new[] { "1 ЯЙЦО", "3 ЯЙЦА", "10 ЯИЦ" } : new[] { "1 EGG", "3 EGGS", "10 EGGS" };
@@ -442,7 +497,7 @@ namespace DragonHeist
             for (int i = 0; i < 3; i++)
             {
                 float x = left + bw * (i + 0.5f);
-                UIKit.Label(UIKit.Rect(egg.transform, "L" + i, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(x, 100), new Vector2(bw, 28)), labels[i], 20, Color.white);
+                UIKit.Fit(UIKit.Label(UIKit.Rect(egg.transform, "L" + i, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(x, 100), new Vector2(bw, 30)), labels[i], 20, Color.white), 13);
                 YanBuy(egg.transform, ids[i], new Vector2(0.5f, 0), new Vector2(x, 54), new Vector2(bw - 18, 60), bc[i], 24);
             }
 
@@ -453,13 +508,13 @@ namespace DragonHeist
             UIKit.Icon(inc.transform, Icons.Coin, new Vector2(0, 0.5f), new Vector2(100, -10), 110);
             X2Badge(inc.transform, new Vector2(150, -40));
             ArtOverlay(inc.transform, "store_x2_income", new Vector2(100, 0), 170);
-            UIKit.Label(UIKit.Rect(inc.transform, "T", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -12), new Vector2(250, 50)), Loc.Ru ? "x2 Доход" : "x2 Income", 32, Color.white, TextAnchor.MiddleRight);
+            UIKit.Fit(UIKit.Label(UIKit.Rect(inc.transform, "T", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -12), new Vector2(210, 56)), Loc.Ru ? "x2 Доход" : "x2 Income", 32, Color.white, TextAnchor.MiddleRight), 20);
             YanBuy(inc.transform, "x2_income", new Vector2(1, 0), new Vector2(-110, 50), new Vector2(190, 62), new Color(0.25f, 0.8f, 0.3f), 24);
             var gr = UIKit.Panel(content, "X2Grow", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(half / 2f + 6, -350), new Vector2(half, 200), new Color(0.4f, 0.85f, 0.95f), 3f);
             UIKit.Icon(gr.transform, IconArt.Egg(Tier.Rare), new Vector2(0, 0.5f), new Vector2(84, 6), 150);
             X2Badge(gr.transform, new Vector2(150, -40));
             ArtOverlay(gr.transform, "store_x2_grow", new Vector2(100, 0), 170);
-            UIKit.Label(UIKit.Rect(gr.transform, "T", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -8), new Vector2(260, 70)), Loc.Ru ? "x2 Скорость\nроста яиц" : "x2 Egg\nGrowth", 26, Color.white, TextAnchor.MiddleRight);
+            UIKit.Fit(UIKit.Label(UIKit.Rect(gr.transform, "T", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -8), new Vector2(230, 78)), Loc.Ru ? "x2 Скорость\nроста яиц" : "x2 Egg\nGrowth", 26, Color.white, TextAnchor.MiddleRight), 16);
             YanBuy(gr.transform, "x2_grow", new Vector2(1, 0), new Vector2(-110, 50), new Vector2(190, 62), new Color(0.25f, 0.8f, 0.3f), 24);
 
             // --- остальные товары: сетка ---
@@ -473,11 +528,15 @@ namespace DragonHeist
                     new Color(pd.color.r * 0.5f, pd.color.g * 0.5f, pd.color.b * 0.5f, 1f), 3f);
                 var icon = pd.kind == ProductKind.Coins ? Icons.Coin : pd.kind == ProductKind.Speed ? Icons.Bolt : pd.kind == ProductKind.Egg ? Icons.Egg : Icons.Star;
                 UIKit.Icon(card.transform, icon, new Vector2(0.5f, 1), new Vector2(0, -52), 78);
-                UIKit.Label(UIKit.Rect(card.transform, "N", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -102), new Vector2(cw - 10, 30)), Loc.Ru ? pd.nameRu : pd.nameEn, 18, Color.white);
-                UIKit.Label(UIKit.Rect(card.transform, "D", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -142), new Vector2(cw - 12, 44)), Loc.Ru ? pd.descRu : pd.descEn, 14, new Color(0.92f, 0.92f, 1f));
+                // иконка 13..91, имя 96..132, описание 134..186, кнопка 191..241 (от верха карточки 250)
+                UIKit.Fit(UIKit.Label(UIKit.Rect(card.transform, "N", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -96), new Vector2(cw - 10, 36)), Loc.Ru ? pd.nameRu : pd.nameEn, 18, Color.white), 12);
+                UIKit.Fit(UIKit.Label(UIKit.Rect(card.transform, "D", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -134), new Vector2(cw - 12, 52)), Loc.Ru ? pd.descRu : pd.descEn, 14, new Color(0.92f, 0.92f, 1f)), 10);
                 YanBuy(card.transform, pd.id, new Vector2(0.5f, 0), new Vector2(0, 34), new Vector2(cw - 24, 50), new Color(0.3f, 0.8f, 0.35f), 19);
                 idx++;
             }
+            // высота прокрутки — по фактическому числу рядов, чтобы последний ряд не обрезался
+            int gridRows = (idx + 3) / 4;
+            content.sizeDelta = new Vector2(body.sizeDelta.x, Mathf.Max(body.sizeDelta.y, 566 + gridRows * (ch + 12) + 8));
             return go;
         }
 
@@ -517,20 +576,21 @@ namespace DragonHeist
                     t.rainbow ? new Color(0.6f, 0.4f, 0.9f) : new Color(t.a.r * 0.75f, t.a.g * 0.75f, t.a.b * 0.75f, 1f), 3f);
                 trailCards[i] = card;
                 if (t.rainbow) card.gameObject.AddComponent<RainbowImage>();
-                UIKit.Label(UIKit.Rect(card.transform, "N", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -8), new Vector2(cw - 10, 38)), Loc.Ru ? t.nameRu : t.nameEn, 26, Color.white);
-                UIKit.Label(UIKit.Rect(card.transform, "R", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -42), new Vector2(cw - 10, 24)), Loc.Ru ? t.rarityRu : t.rarityEn, 17, Color.white);
+                // от верха карточки (380): имя 8..46, редкость 46..70, превью 72..232, полоса скорости 238..288, кнопки 302..368
+                UIKit.Fit(UIKit.Label(UIKit.Rect(card.transform, "N", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -8), new Vector2(cw - 16, 38)), Loc.Ru ? t.nameRu : t.nameEn, 26, Color.white), 16);
+                UIKit.Fit(UIKit.Label(UIKit.Rect(card.transform, "R", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -46), new Vector2(cw - 16, 26)), Loc.Ru ? t.rarityRu : t.rarityEn, 17, Color.white), 12);
                 // превью: кроссовок и "шлейф"
                 for (int j = 0; j < 3; j++)
                 {
-                    var streak = UIKit.Panel(card.transform, "S" + j, new Vector2(0.5f, 1), new Vector2(1, 0.5f), new Vector2(-10, -120 - j * 24), new Vector2(170 - j * 40, 16), Color.Lerp(t.b, t.a, j / 2f));
+                    var streak = UIKit.Panel(card.transform, "S" + j, new Vector2(0.5f, 1), new Vector2(1, 0.5f), new Vector2(24, -120 - j * 24), new Vector2(150 - j * 36, 16), Color.Lerp(t.b, t.a, j / 2f));
                     streak.raycastTarget = false;
                 }
                 var trailArt = Icons.Art("trail_" + i);
-                var shoe = UIKit.Icon(card.transform, trailArt != null ? trailArt : Icons.Shoe, new Vector2(0.5f, 1), trailArt != null ? new Vector2(0, -150) : new Vector2(40, -140), trailArt != null ? 190 : 110);
+                var shoe = UIKit.Icon(card.transform, trailArt != null ? trailArt : Icons.Shoe, new Vector2(0.5f, 1), trailArt != null ? new Vector2(0, -152) : new Vector2(40, -140), trailArt != null ? 160 : 110);
                 if (trailArt == null) shoe.color = Color.Lerp(t.a, Color.white, 0.4f);
                 var band = UIKit.Panel(card.transform, "Band", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 92), new Vector2(cw - 20, 50), new Color(0, 0, 0, 0.25f));
                 band.raycastTarget = false;
-                UIKit.Label(band.transform, (Loc.Ru ? "Скорость x" : "Speed x") + t.mult.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture), 24, Color.white);
+                UIKit.Fit(UIKit.Label(band.transform, (Loc.Ru ? "Скорость x" : "Speed x") + t.mult.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture), 24, Color.white), 15);
                 var cb = UIKit.Button(card.transform, "Coin", "", new Vector2(0, 0), new Vector2(0, 0), new Vector2(10, 12), new Vector2(160, 66), new Color(0.25f, 0.85f, 0.3f), () => { GameManager.Instance.BuyTrailForCoins(k); RefreshPanels(); }, 24);
                 trailCoinBtn[i] = cb.GetComponentInChildren<Text>();
                 var yb = UIKit.Button(card.transform, "Yan", "", new Vector2(1, 0), new Vector2(1, 0), new Vector2(-10, 12), new Vector2(92, 66), new Color(0.85f, 0.25f, 0.9f), () => YandexSDK.Purchase(GameConfig.Trails[k].productId), 17);
@@ -547,8 +607,9 @@ namespace DragonHeist
         {
             RectTransform body;
             var go = Modal(Loc.Ru ? "Яйца" : "Eggs", new Color(0.9f, 0.2f, 0.2f), new Vector2(620, 460), out body);
-            UIKit.Icon(body, IconArt.Egg(Tier.Epic), new Vector2(0.5f, 1), new Vector2(0, -60), 120);
-            eggsBody = UIKit.Label(UIKit.Rect(body, "T", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -40), new Vector2(560, 230)), "", 21, Color.white);
+            // тело 580x340: яйцо 2..102 от верха, текст 108..340 (ниже яйца, до низа тела)
+            UIKit.Icon(body, IconArt.Egg(Tier.Epic), new Vector2(0.5f, 1), new Vector2(0, -52), 100);
+            eggsBody = UIKit.Fit(UIKit.Label(UIKit.Rect(body, "T", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -54), new Vector2(560, 232)), "", 21, Color.white), 13);
             return go;
         }
 
@@ -561,11 +622,11 @@ namespace DragonHeist
             float cw = 116;
             for (int i = 0; i < n; i++)
             {
-                var card = UIKit.Panel(body, "Day" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((i - 3) * (cw + 6), -6), new Vector2(cw, 220), new Color(0.2f, 0.19f, 0.3f), 2f);
+                var card = UIKit.Panel(body, "Day" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((i - (n - 1) / 2f) * (cw + 6), -6), new Vector2(cw, 220), new Color(0.2f, 0.19f, 0.3f), 2f);
                 dayCards[i] = card;
-                UIKit.Label(UIKit.Rect(card.transform, "H", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -4), new Vector2(cw, 30)), (Loc.Ru ? "День " : "Day ") + (i + 1), 17, Gold);
+                UIKit.Fit(UIKit.Label(UIKit.Rect(card.transform, "H", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -4), new Vector2(cw - 4, 32)), (Loc.Ru ? "День " : "Day ") + (i + 1), 17, Gold), 12);
                 UIKit.Icon(card.transform, i == 3 || i == 6 ? Icons.Egg : (i == 1 || i == 5 ? Icons.Bolt : Icons.Coin), new Vector2(0.5f, 1), new Vector2(0, -68), 56);
-                dayTexts[i] = UIKit.Label(UIKit.Rect(card.transform, "T", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 6), new Vector2(cw - 6, 110)), "", 13, Color.white);
+                dayTexts[i] = UIKit.Fit(UIKit.Inset(UIKit.Label(UIKit.Rect(card.transform, "T", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 6), new Vector2(cw - 6, 110)), "", 13, Color.white), 4, 4), 10);
             }
             dailyClaim = UIKit.Button(body, "Claim", Loc.Ru ? "Забрать" : "Claim", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-150, 0), new Vector2(260, 64),
                 new Color(0.3f, 0.8f, 0.35f), () => { GameManager.Instance.ClaimDaily(false); RefreshPanels(); }, 26);
@@ -611,7 +672,7 @@ namespace DragonHeist
             soundText = sb.GetComponentInChildren<Text>();
             var mb = UIKit.Button(body, "Music", "", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(135, -10), new Vector2(250, 60), new Color(0.3f, 0.55f, 0.95f), ToggleMusic, 22);
             musicText = mb.GetComponentInChildren<Text>();
-            UIKit.Label(UIKit.Rect(body, "SwT", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -100), new Vector2(540, 36)), Loc.T("switch_sound"), 22, Gold);
+            UIKit.Fit(UIKit.Label(UIKit.Rect(body, "SwT", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -98), new Vector2(540, 40)), Loc.T("switch_sound"), 22, Gold), 14);
             switchBtns = new Image[3];
             Color[] swc = { new Color(0.25f, 0.45f, 1f), new Color(0.6f, 0.4f, 0.22f), new Color(0.9f, 0.25f, 0.25f) };
             for (int i = 0; i < 3; i++)
@@ -638,7 +699,7 @@ namespace DragonHeist
             {
                 int k = i;
                 var row = UIKit.Panel(body, "Row" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -i * 70), new Vector2(620, 62), new Color(0.2f, 0.19f, 0.3f), 2f);
-                sellRows[i] = UIKit.Label(UIKit.Rect(row.transform, "T", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(14, 0), new Vector2(390, 56)), "", 20, Color.white, TextAnchor.MiddleLeft);
+                sellRows[i] = UIKit.Fit(UIKit.Inset(UIKit.Label(UIKit.Rect(row.transform, "T", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(14, 0), new Vector2(390, 58)), "", 20, Color.white, TextAnchor.MiddleLeft), 4, 2), 12);
                 sellBtns[i] = UIKit.Button(row.transform, "S", "", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-8, 0), new Vector2(200, 50),
                     new Color(1f, 0.7f, 0.15f), () => { GameManager.Instance.SellSlot(k); RefreshPanels(); }, 19);
             }
@@ -863,7 +924,8 @@ namespace DragonHeist
             if (mobile)
             {
                 promptRt.anchorMin = promptRt.anchorMax = new Vector2(1, 0);
-                promptRt.anchoredPosition = new Vector2(-190, 210);
+                // над кнопкой прыжка (она 40..170 от низа): кнопка действия 180..264
+                promptRt.anchoredPosition = new Vector2(-190, 222);
             }
             else
             {
@@ -895,7 +957,6 @@ namespace DragonHeist
                     upgLevel[i].text = (Loc.Ru ? "Ур. " : "Lv. ") + lvl + "/" + u.maxLevel;
                     upgCost[i].text = lvl >= u.maxLevel ? "MAX" : Loc.Num(GameConfig.UpgradeCost(i, lvl));
                 }
-                plotBtnText.text = d.plotsOwned >= GameConfig.MaxPlots ? Loc.T("plots_max") : Loc.F("buy_plot", Loc.Num(GameConfig.PlotCost(d.plotsOwned)));
             }
             if (rebirthPanel.activeSelf)
             {
@@ -987,7 +1048,7 @@ namespace DragonHeist
                     }
                     foreach (var kv in counts) sb.AppendLine(kv.Key + "  x" + kv.Value);
                     sb.AppendLine();
-                    sb.Append(Loc.Ru ? "Яйца сами посадятся на свободные грядки.\nОсвободи или купи грядку!" : "Eggs are planted automatically on free plots.\nFree up or buy a plot!");
+                    sb.Append(Loc.Ru ? "Яйца сами посадятся на свободные грядки.\nОсвободи грядку, чтобы посадить яйцо!" : "Eggs are planted automatically on free plots.\nFree up a plot to plant them!");
                 }
                 eggsBody.text = sb.ToString();
             }

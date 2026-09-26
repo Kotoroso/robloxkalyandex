@@ -74,10 +74,11 @@ namespace DragonHeist
             panel.gameObject.AddComponent<PopIn>();
             var head = UIKit.Panel(panel, "Head", new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -2), new Vector2(360, 54), new Color(0.3f, 0.6f, 1f), 3f);
             UIKit.Label(head.transform, Loc.Ru ? "УПРАВЛЕНИЕ" : "CONTROLS", 28, Color.white);
-            art = UIKit.Rect(panel, "Art", new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -110), new Vector2(560, 130));
-            text = UIKit.Label(UIKit.Rect(panel, "Text", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 76), new Vector2(580, 80)), "", 22, Color.white);
+            // от верха панели (330): вкладка-заголовок до 29, рисунок 48..172, текст 172..256, снизу счётчик и "Дальше" (до 66 от низа)
+            art = UIKit.Rect(panel, "Art", new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -110), new Vector2(560, 124));
+            text = UIKit.Fit(UIKit.Label(UIKit.Rect(panel, "Text", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 74), new Vector2(580, 84)), "", 22, Color.white), 14);
             counter = UIKit.Label(UIKit.Rect(panel, "Cnt", new Vector2(0, 0), new Vector2(0, 0), new Vector2(20, 18), new Vector2(120, 40)), "", 18, new Color(0.7f, 0.75f, 0.9f), TextAnchor.MiddleLeft);
-            UIKit.Button(panel, "Next", Loc.Ru ? "Дальше" : "Next", new Vector2(1, 0), new Vector2(1, 0), new Vector2(-16, 14), new Vector2(170, 52),
+            UIKit.Button(panel, "Next", Loc.Ru ? "Дальше" : "Next", new Vector2(1, 0), new Vector2(1, 0), new Vector2(-16, 14), new Vector2(170, 54),
                 new Color(0.3f, 0.8f, 0.35f), Next, 22);
             check = UIKit.Icon(panel, Icons.Star, new Vector2(1, 1), new Vector2(-40, -40), 60);
             check.color = new Color(0.4f, 1f, 0.5f);

@@ -221,6 +221,28 @@ namespace DragonHeist
             return t;
         }
 
+        /// <summary>
+        /// Текст ужимается (Best Fit), чтобы не вылезать за свой прямоугольник: от fontSize вниз до minSize.
+        /// Лишние строки обрезаются, а не наезжают на соседние элементы.
+        /// </summary>
+        public static Text Fit(Text t, int minSize)
+        {
+            if (t == null) return t;
+            t.resizeTextForBestFit = true;
+            t.resizeTextMaxSize = t.fontSize;
+            t.resizeTextMinSize = Mathf.Min(minSize, t.fontSize);
+            t.verticalOverflow = VerticalWrapMode.Truncate;
+            return t;
+        }
+
+        /// <summary>Меняет внутренний отступ подписи от краёв её прямоугольника (по умолчанию 6).</summary>
+        public static Text Inset(Text t, float x, float y)
+        {
+            t.rectTransform.offsetMin = new Vector2(x, y);
+            t.rectTransform.offsetMax = new Vector2(-x, -y);
+            return t;
+        }
+
         public static Image Icon(Transform parent, Sprite sprite, Vector2 anchor, Vector2 pos, float size)
         {
             var rt = Rect(parent, "Icon", anchor, new Vector2(0.5f, 0.5f), pos, new Vector2(size, size));
@@ -265,7 +287,13 @@ namespace DragonHeist
                     t.rectTransform.offsetMin = new Vector2(0, 2);
                 }
             }
-            else Label(img.transform, text, fontSize, Color.white);
+            else
+            {
+                // подпись не выходит за рамку кнопки: длинные цены/надписи ужимаются
+                var t = Label(img.transform, text, fontSize, Color.white);
+                Inset(t, Mathf.Min(12f, size.x * 0.08f), 4f);
+                Fit(t, Mathf.Max(10, Mathf.RoundToInt(fontSize * 0.6f)));
+            }
 
             b.onClick.AddListener(() => { GameAudio.Play(Sfx.Click); b.transform.localScale = Vector3.one * 0.92f; });
             img.gameObject.AddComponent<ButtonBounce>();

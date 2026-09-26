@@ -39,9 +39,12 @@ namespace DragonHeist
             btn.transition = Selectable.Transition.None;
             btn.onClick.AddListener(Skip);
 
-            var title = UIKit.Label(UIKit.Rect(rt, "Title", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 190), new Vector2(900, 70)),
+            float scrW = rt.rect.width > 0 ? rt.rect.width : 1150f;
+            // по вертикали от центра: заголовок 164..228, звезда-указатель 119..163, лента -87..127, результат -195..-105
+            var title = UIKit.Label(UIKit.Rect(rt, "Title", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 196), new Vector2(Mathf.Min(900f, scrW - 40f), 64)),
                 premium ? (Loc.Ru ? "ДРАКОНЬЕ ЯЙЦО!" : "DRAGON EGG!") : (Loc.Ru ? "ОТКРЫВАЕМ ЯЙЦО: " : "OPENING EGG: ") + Loc.TierName(eggTier).ToUpper(), 44,
                 premium ? new Color(1f, 0.8f, 0.2f) : GameConfig.GetTier(eggTier).color);
+            UIKit.Fit(title, 24);
             title.gameObject.AddComponent<TitleWobble>();
 
             // окно ленты
@@ -71,7 +74,8 @@ namespace DragonHeist
             var tri = UIKit.Icon(frame.transform, Icons.Star, new Vector2(0.5f, 1), new Vector2(0, 14), 44);
             tri.color = new Color(1f, 0.85f, 0.2f);
 
-            resultText = UIKit.Label(UIKit.Rect(rt, "Result", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -150), new Vector2(1000, 90)), "", 40, Color.white);
+            resultText = UIKit.Label(UIKit.Rect(rt, "Result", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -150), new Vector2(Mathf.Min(1000f, scrW - 40f), 90)), "", 40, Color.white);
+            UIKit.Fit(resultText, 20);
             UIKit.Label(UIKit.Rect(rt, "SkipHint", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 30), new Vector2(600, 30)),
                 Loc.Ru ? "Нажми, чтобы пропустить" : "Tap to skip", 18, new Color(0.8f, 0.8f, 0.9f));
 
@@ -98,9 +102,10 @@ namespace DragonHeist
             card.raycastTarget = false;
             var shine = UIKit.Panel(card.transform, "Shine", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -4), new Vector2(CardW - 10, 70), new Color(tc.r, tc.g, tc.b, 0.45f));
             shine.raycastTarget = false;
-            UIKit.Icon(card.transform, IconArt.Dragon(d), new Vector2(0.5f, 1), new Vector2(0, -58), 118);
-            UIKit.Label(UIKit.Rect(card.transform, "N", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 30), new Vector2(CardW - 8, 44)), Loc.DragonName(d), 16, Color.white);
-            UIKit.Label(UIKit.Rect(card.transform, "T", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 6), new Vector2(CardW - 8, 24)), Loc.TierName(d.tier), 14, Color.Lerp(tc, Color.white, 0.3f));
+            // карточка 170: иконка 4..104 от верха, имя 104..144, тир 142..166
+            UIKit.Icon(card.transform, IconArt.Dragon(d), new Vector2(0.5f, 1), new Vector2(0, -54), 100);
+            UIKit.Fit(UIKit.Inset(UIKit.Label(UIKit.Rect(card.transform, "N", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 26), new Vector2(CardW - 8, 40)), Loc.DragonName(d), 16, Color.white), 3, 2), 11);
+            UIKit.Fit(UIKit.Inset(UIKit.Label(UIKit.Rect(card.transform, "T", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 4), new Vector2(CardW - 8, 24)), Loc.TierName(d.tier), 14, Color.Lerp(tc, Color.white, 0.3f)), 3, 1), 10);
             return card;
         }
 
