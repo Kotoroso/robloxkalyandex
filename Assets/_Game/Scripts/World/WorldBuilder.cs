@@ -120,7 +120,11 @@ namespace DragonHeist
 
         static void SetupLighting()
         {
+#if UNITY_2022_2_OR_NEWER
+            var lights = Object.FindObjectsByType<Light>(FindObjectsSortMode.None);
+#else
             var lights = Object.FindObjectsOfType<Light>();
+#endif
             foreach (var l in lights) Object.Destroy(l.gameObject);
 
             var sun = new GameObject("Sun").AddComponent<Light>();

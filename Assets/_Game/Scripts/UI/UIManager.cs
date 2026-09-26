@@ -23,7 +23,11 @@ namespace DragonHeist
 
         public static UIManager Create()
         {
+#if UNITY_2022_2_OR_NEWER
+            if (FindFirstObjectByType<EventSystem>() == null)
+#else
             if (FindObjectOfType<EventSystem>() == null)
+#endif
             {
                 var es = new GameObject("EventSystem");
                 es.AddComponent<EventSystem>();
