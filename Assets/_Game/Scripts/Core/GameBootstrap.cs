@@ -33,7 +33,7 @@ namespace DragonHeist
             while (!YandexSDK.IsSdkReady() && t < 8f) { t += Time.unscaledDeltaTime; yield return null; }
 
             string lang = YandexSDK.Lang();
-            Loc.Ru = lang == "ru" || lang == "be" || lang == "kk" || lang == "uk" || lang == "uz";
+            Loc.SetLanguage(lang); // ru/be/kk/uk/uz -> русский, остальное -> английский
             InputState.Mobile = YandexSDK.IsMobile();
 
             // облачное сохранение

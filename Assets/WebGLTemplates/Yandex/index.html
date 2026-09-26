@@ -41,6 +41,7 @@
           window.ygReadySent = true;
           sdk.features.LoadingAPI.ready();
         }
+        if (window.ygReadySent) window.ygApplyBanner();
         // разметку геймплея шлём только после ready()
         if (window.ygReadySent && window.ygGameplayPending && sdk.features.GameplayAPI) {
           var g = window.ygGameplayPending;
@@ -48,6 +49,58 @@
           if (g === "start") sdk.features.GameplayAPI.start(); else sdk.features.GameplayAPI.stop();
         }
       } catch (e) { console.warn(e); }
+    };
+
+    // Sticky-баннер: приводим фактическое состояние к желаемому (window.ygBannerWanted из Unity).
+    // Баннер платформа рисует вне области игры (iframe ужимается), поэтому HUD он не перекрывает.
+    window.ygBannerWanted = false;
+    var bannerBusy = false, bannerShown = false, bannerRetry = 0, bannerTimer = null, bannerOff = false;
+    function bannerSchedule(ms) {
+      if (bannerTimer) clearTimeout(bannerTimer);
+      bannerTimer = setTimeout(function () { bannerTimer = null; window.ygApplyBanner(); }, ms);
+    }
+    window.ygApplyBanner = function () {
+      var sdk = window.ysdk;
+      if (!sdk || !sdk.adv || !window.ygReadySent || bannerBusy || bannerOff) return;
+      var want = !!window.ygBannerWanted;
+      if (!want) {
+        if (typeof sdk.adv.hideBannerAdv !== "function") return;
+        bannerBusy = true;
+        // проверяем реальный статус (баннер мог быть показан платформой), прячем только если он виден
+        var hs = typeof sdk.adv.getBannerAdvStatus === "function"
+          ? Promise.resolve(sdk.adv.getBannerAdvStatus()) : Promise.resolve({ stickyAdvIsShowing: bannerShown });
+        hs.then(function (st) {
+          if (st && !st.stickyAdvIsShowing) return st;
+          return sdk.adv.hideBannerAdv();
+        }).then(function (r) {
+          bannerShown = !!(r && r.stickyAdvIsShowing);
+        }).catch(function (e) { console.warn("hideBannerAdv", e); }).then(function () {
+          bannerBusy = false;
+          if (window.ygBannerWanted !== want || bannerShown) bannerSchedule(bannerShown ? 3000 : 0);
+        });
+        return;
+      }
+      if (typeof sdk.adv.showBannerAdv !== "function") return;
+      bannerBusy = true;
+      var status = typeof sdk.adv.getBannerAdvStatus === "function"
+        ? Promise.resolve(sdk.adv.getBannerAdvStatus()) : Promise.resolve({ stickyAdvIsShowing: bannerShown });
+      status.then(function (st) {
+        if (st && st.stickyAdvIsShowing) return st;
+        if (st && st.reason === "ADV_IS_NOT_CONNECTED") return st;
+        return sdk.adv.showBannerAdv();
+      }).then(function (r) {
+        bannerShown = !!(r && r.stickyAdvIsShowing);
+        if (!bannerShown && r && r.reason === "ADV_IS_NOT_CONNECTED") {
+          bannerOff = true; // баннеры не включены в консоли — больше не пытаемся
+          console.warn("Sticky banners are not enabled in the Yandex Games console");
+        }
+      }).catch(function (e) { console.warn("showBannerAdv", e); bannerShown = false; }).then(function () {
+        bannerBusy = false;
+        if (window.ygBannerWanted !== want) { bannerSchedule(0); return; }
+        // баннер ещё не готов / ошибка на стороне Яндекса — повторяем (5 с, 10 с, ... до 60 с)
+        if (want && !bannerShown && !bannerOff) { bannerRetry++; bannerSchedule(Math.min(60000, 5000 * bannerRetry)); }
+        else bannerRetry = 0;
+      });
     };
 
     function initYandex() {

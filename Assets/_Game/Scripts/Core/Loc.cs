@@ -54,13 +54,22 @@ namespace DragonHeist
             { "jump",         new[]{ "Прыжок", "Jump" } },
             { "action",       new[]{ "Действие", "Action" } },
             { "tut_title",    new[]{ "ОБУЧЕНИЕ", "TUTORIAL" } },
-            { "tut_1",        new[]{ "Иди по стрелкам к беговой дорожке и беги вперёд, пока скорость не станет {0}", "Follow the arrows to the treadmill and run forward until your speed is {0}" } },
-            { "tut_2",        new[]{ "Отлично! Теперь иди по стрелкам к яйцу и {0}, чтобы украсть его", "Great! Now follow the arrows to the egg and {0} to steal it" } },
-            { "tut_2_pc",     new[]{ "зажми E", "hold E" } },
-            { "tut_2_mob",    new[]{ "нажми кнопку действия", "press the action button" } },
-            { "tut_3",        new[]{ "Беги с яйцом на базу! Не дай брейнроту поймать тебя", "Run the egg back to your base! Don't let the brainrot catch you" } },
-            { "tut_4",        new[]{ "Яйцо растёт на грядке. Подойди к нему: можно ускорить рост за рекламу", "The egg is growing. Walk up to it: you can speed it up with an ad" } },
-            { "tut_5",        new[]{ "Дракон вылупился! Он приносит монеты и бонусы. Качай скорость, чтобы открывать новые зоны!", "Your dragon hatched! It earns coins and bonuses. Train speed to unlock new zones!" } },
+            // обучение: короткие шаги (панель сверху — до ~90 символов, чтобы влезало на телефоне)
+            { "tut_train",     new[]{ "Встань на беговую дорожку (стрелки) и беги вперёд. Скорость: {0} / {1}", "Step onto the treadmill (follow the arrows) and run forward. Speed: {0} / {1}" } },
+            { "tut_go_egg",    new[]{ "Отлично! Выйди в ворота «К ЯЙЦАМ» и беги по стрелкам к первому яйцу", "Great! Go through the TO THE EGGS gate and follow the arrows to the first egg" } },
+            { "tut_steal",     new[]{ "{0}, чтобы украсть яйцо. Брейнроты проснутся и погонятся за тобой!", "{0} to steal the egg. The brainrots will wake up and chase you!" } },
+            { "tut_steal_pc",  new[]{ "Удерживай <color=#FFD84A>E</color>", "Hold <color=#FFD84A>E</color>" } },
+            { "tut_steal_mob", new[]{ "Нажми <color=#FFD84A>кнопку действия</color>", "Tap the <color=#FFD84A>action button</color>" } },
+            { "tut_return",    new[]{ "Беги на базу в зелёную зону «СДАЙ ЯЙЦО СЮДА»! Не дай себя поймать", "Run back to the green BRING EGGS HERE zone! Don't get caught" } },
+            { "tut_caught",    new[]{ "Тебя поймали — яйцо вернулось. Беги к яйцу и попробуй снова!", "You got caught and the egg went back. Try again!" } },
+            { "tut_grow",      new[]{ "Яйцо растёт на грядке: {0}. Подойди к ней — реклама ускорит рост на 90%", "The egg is growing: {0}. Walk up to the plot: an ad speeds it up by 90%" } },
+            { "tut_open",      new[]{ "Яйцо готово! Подойди к грядке и {0}, чтобы открыть его", "The egg is ready! Walk to the plot and {0} to open it" } },
+            { "tut_plant",     new[]{ "Яйцо в инвентаре: нажми «Яйца» справа, выбери его и «Посадить»", "Your egg is in the inventory: tap Eggs on the right, pick it and tap Plant" } },
+            { "tut_take",      new[]{ "На грядке дракон даёт монеты, в слоте — бонусы к скорости. {0} у грядки, чтобы взять его", "On a plot a dragon earns coins, in a slot it boosts you. {0} at the plot to take it" } },
+            { "tut_skills",    new[]{ "За монеты прокачивай навыки: тренер, доход, удача. Нажми «Навыки» слева вверху", "Improve skills with coins: coach, income, luck. Tap Skills at the top left" } },
+            { "tut_done",      new[]{ "Готово! Качай скорость, открывай зоны с редкими яйцами и собери всех драконов!", "All set! Train speed, unlock zones with rarer eggs and collect every dragon!" } },
+            { "tut_act_pc",    new[]{ "нажми <color=#FFD84A>E</color>", "press <color=#FFD84A>E</color>" } },
+            { "tut_act_mob",   new[]{ "нажми <color=#FFD84A>кнопку действия</color>", "tap the <color=#FFD84A>action button</color>" } },
             { "skip",         new[]{ "Пропустить", "Skip" } },
             { "gate_locked",  new[]{ "Нужна скорость {0}", "Speed {0} required" } },
             { "gate_block",   new[]{ "Нужна скорость {0}! Качайся на беговых дорожках", "You need speed {0}! Train on treadmills" } },
@@ -93,6 +102,27 @@ namespace DragonHeist
             { "zone_title",   new[]{ "{0}", "{0}" } },
         };
 
+        /// <summary>
+        /// Язык из Yandex SDK (environment.i18n.lang, например "ru", "en", "tr"; на всякий случай понимает и "ru-RU").
+        /// ru, be, kk, uk, uz — русский интерфейс, всё остальное — английский.
+        /// </summary>
+        public static void SetLanguage(string lang)
+        {
+            string l = string.IsNullOrEmpty(lang) ? "en" : lang.Trim().ToLowerInvariant();
+            int cut = l.IndexOfAny(new[] { '-', '_' });
+            if (cut > 0) l = l.Substring(0, cut);
+            Ru = l == "ru" || l == "be" || l == "kk" || l == "uk" || l == "uz";
+        }
+
+        /// <summary>Первая буква заглавная (для фраз, которые стоят и в начале, и в середине предложения).</summary>
+        public static string Cap(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return s;
+            int i = 0;
+            if (s[0] == '<') { int close = s.IndexOf('>'); if (close > 0 && close + 1 < s.Length) i = close + 1; }
+            return s.Substring(0, i) + char.ToUpper(s[i]) + s.Substring(i + 1);
+        }
+
         public static string T(string key)
         {
             string[] v;
@@ -116,7 +146,7 @@ namespace DragonHeist
         // большие числа как в роблокс-симуляторах: K, M, B, T, Q, QK, QM, QB, QT, QQ, S, SK, ...
         static readonly string[] Suffix = { "", "K", "M", "B", "T", "Q", "QK", "QM", "QB", "QT", "QQ", "S", "SK", "SM", "SB", "ST", "SQ", "SS", "O", "OK", "OM", "OB", "OT", "OQ" };
 
-        /// <summary>1 234 -> 1.2К, как в роблокс-симуляторах.</summary>
+        /// <summary>1 234 -> 1.2K, как в роблокс-симуляторах (латинские суффиксы — одинаковые для RU и EN).</summary>
         public static string Num(double v)
         {
             if (v < 1000) return ((long)v).ToString();
@@ -127,6 +157,7 @@ namespace DragonHeist
             return s + Suffix[i];
         }
 
+        /// <summary>Таймер в формате 1:05:09 / 4:07 — одинаковый для всех языков.</summary>
         public static string Time(double seconds)
         {
             if (seconds < 0) seconds = 0;

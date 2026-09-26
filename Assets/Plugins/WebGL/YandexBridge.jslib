@@ -2,13 +2,18 @@
 // и кладётся в window.ysdk / window.yplayer. Ответы идут в Unity через SendMessage("YandexSDK", ...).
 mergeInto(LibraryManager.library, {
 
-  // ===== Стики-баннеры (включаются в консоли разработчика: "Sticky-баннеры" + показ через SDK) =====
+  // ===== Стики-баннеры =====
+  // Работают, только если в консоли разработчика включены Sticky-баннеры и опция "Использовать API для показа sticky-баннера".
+  // Unity лишь задаёт желаемое состояние; вызовы идемпотентны, реальный show/hide с проверкой getBannerAdvStatus()
+  // и повторами делает window.ygApplyBanner (index.html) — и только после LoadingAPI.ready().
   YG_ShowBanner: function () {
-    try { if (window.ysdk && window.ysdk.adv && window.ysdk.adv.showBannerAdv) window.ysdk.adv.showBannerAdv(); } catch (e) { }
+    window.ygBannerWanted = true;
+    if (window.ygApplyBanner) window.ygApplyBanner();
   },
 
   YG_HideBanner: function () {
-    try { if (window.ysdk && window.ysdk.adv && window.ysdk.adv.hideBannerAdv) window.ysdk.adv.hideBannerAdv(); } catch (e) { }
+    window.ygBannerWanted = false;
+    if (window.ygApplyBanner) window.ygApplyBanner();
   },
 
   // ===== Покупки за Яны (ysdk.getPayments) =====
