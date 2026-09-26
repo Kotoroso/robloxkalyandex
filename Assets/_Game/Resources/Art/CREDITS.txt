@@ -1,4 +1,7 @@
-Интерфейс (ui_button, ui_button_round, ui_slot, ui_header, ui_key, ui_close, ui_joystick_*, ui_jump):
+ui_button, ui_button_round, ui_header, ui_panel, ui_slot, ui_window, ui_badge_new, ui_badge_x2 — нарисованы для игры
+скриптом Docs/draw_ui_kit.py (свой набор, без сторонних лицензий; шрифт Rubik — OFL).
+
+Интерфейс (ui_key, ui_close, ui_joystick_*, ui_jump):
 основа — Kenney "UI Pack" и "Mobile Controls" (www.kenney.nl), лицензия CC0 1.0 (public domain,
 можно использовать в коммерческих играх без указания автора). Обработка: тёмная обводка в стиле Роблокса,
 перекраска кодом игры.
