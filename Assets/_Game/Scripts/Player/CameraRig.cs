@@ -10,6 +10,8 @@ namespace DragonHeist
         public float yaw = 0f, pitch = 20f, distance = 14f;
         const float MinDist = 4f, MaxDist = 32f;
         float shake;
+        float curDist = 14f;
+        int obstructFrames;
 
         public static CameraRig Create(Transform target)
         {
@@ -58,11 +60,20 @@ namespace DragonHeist
             Vector3 focus = target.position + Vector3.up * 2.6f;
             Quaternion rot = Quaternion.Euler(pitch, yaw, 0);
             Vector3 dir = rot * Vector3.back;
-            float d = distance;
+            // препятствие между камерой и игроком: реагируем, только если оно держится несколько кадров,
+            // и придвигаемся плавно — никаких рывков "на один кадр"
+            float wanted = distance;
             RaycastHit hit;
-            if (Physics.SphereCast(focus, 0.3f, dir, out hit, distance, ~0, QueryTriggerInteraction.Ignore))
-                d = Mathf.Max(1.5f, hit.distance - 0.2f);
-            Vector3 pos = focus + dir * d;
+            if (Physics.SphereCast(focus, 0.25f, dir, out hit, distance, ~0, QueryTriggerInteraction.Ignore) && hit.distance > 0.05f)
+            {
+                obstructFrames++;
+                if (obstructFrames >= 4) wanted = Mathf.Max(2f, hit.distance - 0.3f);
+            }
+            else obstructFrames = 0;
+            float dt = Time.unscaledDeltaTime;
+            curDist = wanted < curDist ? Mathf.MoveTowards(curDist, wanted, dt * 30f) : Mathf.MoveTowards(curDist, wanted, dt * 10f);
+            if (curDist <= 0f) curDist = distance;
+            Vector3 pos = focus + dir * curDist;
             if (shake > 0)
             {
                 pos += Random.insideUnitSphere * shake;

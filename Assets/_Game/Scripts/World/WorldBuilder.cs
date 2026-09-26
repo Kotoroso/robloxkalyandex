@@ -13,6 +13,8 @@ namespace DragonHeist
         public static Vector3 SpawnPoint = new Vector3(0f, 1.2f, -24f);
         public const float BaseHalfWidth = 46f;
         public static readonly List<Vector3> BotHomes = new List<Vector3>();
+        public static readonly List<Vector3> BotEntrances = new List<Vector3>();
+        public static readonly List<List<Vector3>> BotPlots = new List<List<Vector3>>();
 
         static Transform staticRoot, dynamicRoot, signs;
         static System.Random rnd;
@@ -22,6 +24,8 @@ namespace DragonHeist
             SetupLighting();
             rnd = new System.Random(42);
             BotHomes.Clear();
+            BotEntrances.Clear();
+            BotPlots.Clear();
             SkipRects.Clear();
 
             staticRoot = new GameObject("World_Static").transform;
@@ -122,7 +126,7 @@ namespace DragonHeist
             SkipRects.Add(new Rect(SpawnPoint.x - 4.5f, SpawnPoint.z - 4.5f, 9f, 9f));
 
             SpawnBoards();
-            BotPlayer.SpawnAll(dynamicRoot, BotHomes);
+            BotPlayer.SpawnAll(dynamicRoot, BotHomes, BotEntrances, BotPlots);
 
             for (int i = 0; i < 3; i++) Lamp(new Vector3(-bx + 2f, 0, -44f + i * 8f));
             FlowerBed(new Vector3(-12f, 0.6f, 5f), 8f, 1.6f);
@@ -185,10 +189,12 @@ namespace DragonHeist
             WoodSign(entrance + new Vector3(0, WallHeight + 1.4f, 0) - dirIn * 0.2f, dirIn, title, titleColor, Mathf.Min(16f, (side < 2 ? size.y : size.x) * 0.85f));
             if (!bot) return;
             var rnd2 = new System.Random((int)(center.x * 13 + center.z * 7));
+            var plotList = new List<Vector3>();
             for (int i = 0; i < 6; i++)
             {
                 float a = (i % 3 - 1), b = (i / 3 - 0.5f);
                 Vector3 p = side < 2 ? center + new Vector3(b * hx * 0.9f, 0, a * hz * 0.62f) : center + new Vector3(a * hx * 0.62f, 0, b * hz * 0.9f);
+                plotList.Add(p);
                 Blocky.Part(staticRoot, p + new Vector3(0, 0.3f, 0), new Vector3(4.6f, 0.4f, 4.6f), Mats.Studs(new Color(0.35f, 0.72f, 0.32f)), true);
                 Blocky.Part(staticRoot, p + new Vector3(0, 0.52f, 0), new Vector3(3.6f, 0.1f, 3.6f), Mats.Studs(new Color(0.48f, 0.33f, 0.2f)), false);
                 if (rnd2.Next(3) == 0)
@@ -207,6 +213,8 @@ namespace DragonHeist
                 }
             }
             BotHomes.Add(center + new Vector3(0, 0.6f, 0));
+            BotEntrances.Add(entrance + dirIn * 3f + new Vector3(0, 0.6f, 0));
+            BotPlots.Add(plotList);
         }
 
         // ===================== Пол из механических клавиш =====================
