@@ -256,7 +256,8 @@ namespace DragonHeist
             if (best != null && InputState.ActionHeld)
             {
                 if (holdTarget != best) { holdTarget = best; HoldProgress = 0; }
-                HoldProgress += best.HoldTime <= 0 ? 1f : dt / best.HoldTime;
+                // на телефоне — мгновенно по одному тапу, на ПК — короткое удержание E
+                HoldProgress += (InputState.Mobile || best.HoldTime <= 0) ? 1f : dt / best.HoldTime;
                 if (HoldProgress >= 1f)
                 {
                     HoldProgress = 0;
