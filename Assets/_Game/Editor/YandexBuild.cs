@@ -162,26 +162,52 @@ namespace DragonHeist.EditorTools
             }
         }
 
+        /// <summary>Все шейдеры, которые игра берёт через Shader.Find (мир, неон, частицы, прозрачность, небо).</summary>
+        static readonly string[] RuntimeShaders =
+        {
+            "Standard",                                   // весь мир: пластик, клавиши, персонажи, драконы
+            "Legacy Shaders/Diffuse",                     // дешёвое освещение на слабых устройствах
+            "Legacy Shaders/Particles/Alpha Blended", "Legacy Shaders/Particles/Additive",
+            "Legacy Shaders/Transparent/Diffuse", "Unlit/Color", "Unlit/Transparent", "Sprites/Default",
+            "Skybox/Procedural"
+        };
+        const string ShaderRefDir = "Assets/_Game/Resources/ShaderRefs";
+
         /// <summary>
-        /// Шейдеры, которые игра ищет через Shader.Find (частицы, неон, прозрачность, небо) —
-        /// без "Always Included" Unity вырежет их из WebGL-сборки.
+        /// Материалы создаются кодом во время игры, поэтому Unity при сборке "не видит" их шейдеры и вырезает —
+        /// в WebGL всё становится розовым. Лечим двумя способами: (1) материал-заглушка на каждый шейдер в Resources
+        /// (всё из Resources обязательно попадает в сборку), (2) шейдеры в списке Always Included.
         /// </summary>
         static void EnsureAlwaysIncludedShaders()
         {
-            string[] names =
+            // (1) материалы-заглушки в Resources/ShaderRefs
+            if (!AssetDatabase.IsValidFolder(ShaderRefDir))
             {
-                "Legacy Shaders/Particles/Alpha Blended", "Legacy Shaders/Particles/Additive",
-                "Legacy Shaders/Transparent/Diffuse", "Unlit/Color", "Skybox/Procedural",
-                "Legacy Shaders/Diffuse" // дешёвое освещение на телефонах (Mats.SetCheapLighting)
-            };
-            var gs = AssetDatabase.LoadAssetAtPath<Object>("ProjectSettings/GraphicsSettings.asset");
-            if (gs == null) return;
+                Directory.CreateDirectory(ShaderRefDir);
+                AssetDatabase.Refresh();
+            }
+            foreach (var n in RuntimeShaders)
+            {
+                var sh = Shader.Find(n);
+                if (sh == null) continue;
+                string path = ShaderRefDir + "/" + n.Replace("/", "_").Replace(" ", "") + ".mat";
+                var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+                if (m == null) { m = new Material(sh); AssetDatabase.CreateAsset(m, path); }
+                else if (m.shader != sh) { m.shader = sh; EditorUtility.SetDirty(m); }
+            }
+            AssetDatabase.SaveAssets();
+
+            // (2) список Always Included Shaders в Project Settings → Graphics
+            Object gs = UnityEngine.Rendering.GraphicsSettings.GetGraphicsSettings();
+            if (gs == null) gs = AssetDatabase.LoadAssetAtPath<Object>("ProjectSettings/GraphicsSettings.asset");
+            if (gs == null) { Debug.LogWarning("[Dragon Heist] Не нашёл GraphicsSettings — шейдеры включены только через Resources/ShaderRefs."); return; }
             var so = new SerializedObject(gs);
             var arr = so.FindProperty("m_AlwaysIncludedShaders");
             if (arr == null) return;
             bool changed = false;
-            foreach (var n in names)
+            foreach (var n in RuntimeShaders)
             {
+                if (n == "Standard") continue; // Standard целиком в Always Included — очень долгая сборка; хватает заглушки в Resources
                 var sh = Shader.Find(n);
                 if (sh == null) continue;
                 bool exists = false;

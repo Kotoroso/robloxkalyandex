@@ -25,9 +25,15 @@ namespace DragonHeist
             {
                 if (baseMat == null)
                 {
-                    var tmp = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    baseMat = new Material(tmp.GetComponent<Renderer>().sharedMaterial);
-                    Object.Destroy(tmp);
+                    // материал-заглушка со Standard лежит в Resources (его создаёт скрипт сборки) — так шейдер точно в сборке
+                    var refMat = Resources.Load<Material>("ShaderRefs/Standard");
+                    if (refMat != null) baseMat = new Material(refMat);
+                    else
+                    {
+                        var tmp = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        baseMat = new Material(tmp.GetComponent<Renderer>().sharedMaterial);
+                        Object.Destroy(tmp);
+                    }
                     SetGloss(baseMat, 0.25f);
                     if (baseMat.HasProperty("_Metallic")) baseMat.SetFloat("_Metallic", 0f);
                     standardShader = baseMat.shader;
