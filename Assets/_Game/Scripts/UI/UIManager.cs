@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -5,21 +6,41 @@ using UnityEngine.UI;
 
 namespace DragonHeist
 {
-    /// <summary>Весь интерфейс строится кодом. Адаптирован под ПК и телефоны (крупнее кнопки на мобилках).</summary>
+    /// <summary>
+    /// Весь интерфейс строится кодом в стиле роблокс-симуляторов: главное меню, HUD с иконками,
+    /// кнопки меню слева, слоты драконов снизу, подсказка действия над объектом, обучение,
+    /// магазин улучшений, перерождение, драконы, настройки, продавец и рулетка открытия яиц.
+    /// </summary>
     public class UIManager : MonoBehaviour
     {
         public static UIManager Instance;
 
-        Canvas canvas;
-        Text coinsText, speedText, rebirthText, cpsText, toastText, carryText, invText, hintText;
+        RectTransform root;
+        Text coinsText, cpsText, speedText, rebirthText, toastText, carryText, invText, hintText, heldText;
         Image toastBg, carryBg;
+        RectTransform promptRt;
         Image promptBg, promptFill;
-        Text promptText;
+        Text promptText, promptKey;
         float toastTimer;
-        GameObject rebirthPanel, dragonsPanel, shopPanel;
-        Text rebirthBody, dragonsBody, shopPlotBtnText;
-        Text soundBtnText;
+        GameObject hud, menu;
+        GameObject shopPanel, rebirthPanel, dragonsPanel, settingsPanel, sellPanel;
+        readonly List<GameObject> panels = new List<GameObject>();
+        Text rebirthBody, dragonsBody, plotBtnText;
+        Text[] upgLevel, upgCost;
+        Text soundText, musicText;
+        Image[] switchBtns;
+        Text[] sellRows; Button[] sellBtns; Text sellAllText; Text sellEmpty;
+        // слоты
+        Image[] slotBg; Text[] slotName; Image[] slotIcon;
+        // обучение
+        GameObject tutPanel; Text tutText;
         float refreshTimer;
+        bool mobile;
+
+        public bool AnyPanelOpen
+        {
+            get { foreach (var p in panels) if (p.activeSelf) return true; return menu != null && menu.activeSelf; }
+        }
 
         public static UIManager Create()
         {
@@ -41,121 +62,262 @@ namespace DragonHeist
             return ui;
         }
 
+        static readonly Color Gold = new Color(1f, 0.84f, 0.2f);
+        static readonly Color Cyan = new Color(0.35f, 0.95f, 1f);
+        static readonly Color Pink = new Color(1f, 0.55f, 1f);
+
         void Build()
         {
-            bool mobile = InputState.Mobile;
-            canvas = gameObject.AddComponent<Canvas>();
+            mobile = InputState.Mobile;
+            var canvas = gameObject.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 10;
             var scaler = gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = mobile ? new Vector2(1100, 620) : new Vector2(1366, 768);
+            scaler.referenceResolution = mobile ? new Vector2(1150, 650) : new Vector2(1400, 790);
             scaler.matchWidthOrHeight = 0.5f;
             gameObject.AddComponent<GraphicRaycaster>();
-            var root = transform;
+            root = (RectTransform)transform;
 
-            // ===== Статы слева сверху =====
-            var stats = UIKit.Panel(root, "Stats", new Vector2(0, 1), new Vector2(0, 1), new Vector2(14, -14), new Vector2(300, 150), new Color(0, 0, 0, 0.35f));
-            coinsText = StatLine(stats.transform, 0, new Color(1f, 0.85f, 0.2f));
-            cpsText = StatLine(stats.transform, 1, new Color(1f, 0.95f, 0.6f));
-            speedText = StatLine(stats.transform, 2, new Color(0.4f, 0.95f, 1f));
-            rebirthText = StatLine(stats.transform, 3, new Color(1f, 0.55f, 1f));
+            hud = UIKit.Rect(root, "HUD", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero).gameObject;
+            UIKit.Stretch((RectTransform)hud.transform);
+            var h = hud.transform;
 
-            // ===== Кнопки справа =====
-            float bw = mobile ? 170 : 190, bh = mobile ? 58 : 56;
-            UIKit.Button(root, "BtnRebirth", Loc.T("rebirth"), new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -14), new Vector2(bw, bh),
-                new Color(0.85f, 0.3f, 0.9f), () => Toggle(rebirthPanel));
-            UIKit.Button(root, "BtnDragons", Loc.T("dragons"), new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -14 - (bh + 10)), new Vector2(bw, bh),
-                new Color(1f, 0.55f, 0.15f), () => Toggle(dragonsPanel));
-            UIKit.Button(root, "BtnShop", Loc.T("shop"), new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -14 - 2 * (bh + 10)), new Vector2(bw, bh),
-                new Color(0.25f, 0.75f, 0.3f), () => Toggle(shopPanel));
-            var sb = UIKit.Button(root, "BtnSound", "", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-14, -14 - 3 * (bh + 10)), new Vector2(bw, bh),
-                new Color(0.4f, 0.45f, 0.55f), ToggleSound, 22);
-            soundBtnText = sb.GetComponentInChildren<Text>();
-            UpdateSoundText();
+            // ===== Статы слева сверху (пилюли с иконками) =====
+            coinsText = StatPill(h, 0, Icons.Coin, Gold);
+            cpsText = UIKit.Label(UIKit.Rect(h, "Cps", new Vector2(0, 1), new Vector2(0, 1), new Vector2(76, -66), new Vector2(260, 26)), "", 18, new Color(1f, 0.95f, 0.65f), TextAnchor.MiddleLeft);
+            speedText = StatPill(h, 1, Icons.Bolt, Cyan);
+            rebirthText = StatPill(h, 2, Icons.Star, Pink);
+            invText = UIKit.Label(UIKit.Rect(h, "Inv", new Vector2(0, 1), new Vector2(0, 1), new Vector2(18, -262), new Vector2(360, 30)), "", 18, new Color(1f, 0.85f, 0.4f), TextAnchor.MiddleLeft);
+
+            // ===== Кнопки меню слева по центру =====
+            float bs = mobile ? 88 : 84;
+            string[] names = { Loc.T("shop"), Loc.T("rebirth"), Loc.T("dragons"), Loc.T("settings") };
+            Sprite[] icons = { Icons.Bag, Icons.Star, Icons.Dragon, Icons.Gear };
+            Color[] cols = { new Color(0.25f, 0.78f, 0.35f), new Color(0.78f, 0.32f, 0.95f), new Color(1f, 0.55f, 0.15f), new Color(0.45f, 0.5f, 0.62f) };
+            for (int i = 0; i < 4; i++)
+            {
+                int k = i;
+                float y = (1.5f - i) * (bs + 16);
+                UIKit.Button(h, "Menu" + i, names[i], new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(16, y + (mobile ? 40 : 0)), new Vector2(bs, bs),
+                    cols[i], () => OnMenuButton(k), 15, icons[i]);
+            }
+
+            // ===== Слоты драконов снизу =====
+            BuildHotbar(h);
+            heldText = UIKit.Label(UIKit.Rect(h, "Held", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, mobile ? 112 : 104), new Vector2(700, 30)), "", 18, new Color(0.7f, 1f, 0.85f));
+
+            // ===== Обучение (сверху по центру) =====
+            var tp = UIKit.Panel(h, "Tutorial", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(720, 96), new Color(0.12f, 0.1f, 0.25f, 0.88f), 3f);
+            tutPanel = tp.gameObject;
+            var tTitle = UIKit.Label(UIKit.Rect(tp.transform, "T", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -2), new Vector2(700, 26)), Loc.T("tut_title"), 17, Gold);
+            tTitle.alignment = TextAnchor.MiddleCenter;
+            tutText = UIKit.Label(UIKit.Rect(tp.transform, "B", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-40, 8), new Vector2(600, 62)), "", 21, Color.white);
+            UIKit.Button(tp.transform, "Skip", Loc.T("skip"), new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-10, -8), new Vector2(110, 38),
+                new Color(0.5f, 0.5f, 0.6f), () => { if (Tutorial.Instance != null) Tutorial.Instance.Skip(); }, 16);
+            tutPanel.SetActive(false);
 
             // ===== Тост и баннер переноски =====
-            toastBg = UIKit.Panel(root, "Toast", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -16), new Vector2(640, 64), new Color(0, 0, 0, 0.55f));
-            toastText = UIKit.Label(toastBg.transform, "", 26, Color.white);
+            toastBg = UIKit.Panel(h, "Toast", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -118), new Vector2(680, 54), new Color(0.05f, 0.05f, 0.1f, 0.75f), 2f);
+            toastText = UIKit.Label(toastBg.transform, "", 23, Color.white);
             toastBg.raycastTarget = false;
             toastBg.gameObject.SetActive(false);
 
-            carryBg = UIKit.Panel(root, "Carry", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -90), new Vector2(560, 52), new Color(0.9f, 0.2f, 0.2f, 0.8f));
-            carryText = UIKit.Label(carryBg.transform, "", 24, Color.white);
+            carryBg = UIKit.Panel(h, "Carry", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -178), new Vector2(560, 48), new Color(0.9f, 0.2f, 0.2f, 0.85f), 3f);
+            carryText = UIKit.Label(carryBg.transform, "", 21, Color.white);
             carryBg.raycastTarget = false;
             carryBg.gameObject.SetActive(false);
 
-            var hintRt = UIKit.Rect(root, "Hint", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, mobile ? 230 : 150), new Vector2(700, 40));
-            hintText = UIKit.Label(hintRt, "", 22, new Color(1f, 1f, 0.7f));
+            hintText = UIKit.Label(UIKit.Rect(h, "Hint", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, mobile ? 250 : 190), new Vector2(760, 40)), "", 22, new Color(1f, 1f, 0.7f));
 
-            var invRt = UIKit.Rect(root, "Inv", new Vector2(0, 1), new Vector2(0, 1), new Vector2(18, -170), new Vector2(360, 34));
-            invText = UIKit.Label(invRt, "", 20, new Color(1f, 0.85f, 0.4f), TextAnchor.MiddleLeft);
+            BuildPrompt(h);
 
-            // ===== Подсказка взаимодействия / кнопка действия =====
-            Vector2 promptAnchor = mobile ? new Vector2(1, 0) : new Vector2(0.5f, 0);
-            Vector2 promptPivot = mobile ? new Vector2(1, 0) : new Vector2(0.5f, 0);
-            Vector2 promptPos = mobile ? new Vector2(-30, 190) : new Vector2(0, 60);
-            Vector2 promptSize = mobile ? new Vector2(330, 90) : new Vector2(460, 76);
-            promptBg = UIKit.Panel(root, "Prompt", promptAnchor, promptPivot, promptPos, promptSize, new Color(0.1f, 0.1f, 0.1f, 0.75f));
-            var fillImg = UIKit.Panel(promptBg.transform, "Fill", new Vector2(0, 0), new Vector2(0, 0), Vector2.zero, Vector2.zero, new Color(0.3f, 0.85f, 0.35f, 0.9f));
-            var fillRt = fillImg.rectTransform;
-            fillRt.anchorMin = Vector2.zero; fillRt.anchorMax = new Vector2(0, 1);
-            fillRt.offsetMin = Vector2.zero; fillRt.offsetMax = Vector2.zero;
-            fillImg.raycastTarget = false;
-            promptFill = fillImg;
-            promptText = UIKit.Label(promptBg.transform, "", mobile ? 26 : 24, Color.white);
+            // ===== Панели =====
+            shopPanel = BuildShop();
+            rebirthPanel = BuildRebirth();
+            dragonsPanel = BuildDragons();
+            settingsPanel = BuildSettings();
+            sellPanel = BuildSell();
+
+            if (mobile) hud.AddComponent<MobileControls>().Build(h);
+
+            BuildMenu();
+        }
+
+        Text StatPill(Transform parent, int line, Sprite icon, Color color)
+        {
+            float y = -14 - line * 66 - (line > 0 ? 22 : 0);
+            var bg = UIKit.Panel(parent, "Stat" + line, new Vector2(0, 1), new Vector2(0, 1), new Vector2(14, y), new Vector2(270, 52), new Color(0.08f, 0.08f, 0.14f, 0.78f), 3f);
+            var ic = UIKit.Icon(bg.transform, icon, new Vector2(0, 0.5f), new Vector2(26, 0), 58);
+            ic.rectTransform.anchoredPosition = new Vector2(24, 2);
+            var t = UIKit.Label(UIKit.Rect(bg.transform, "V", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(58, 0), new Vector2(206, 48)), "", 28, color, TextAnchor.MiddleLeft);
+            return t;
+        }
+
+        void BuildHotbar(Transform h)
+        {
+            int n = GameConfig.InventorySlots;
+            float s = mobile ? 78 : 74, gap = 10;
+            float total = n * s + (n - 1) * gap;
+            slotBg = new Image[n]; slotName = new Text[n]; slotIcon = new Image[n];
+            for (int i = 0; i < n; i++)
+            {
+                int k = i;
+                float x = -total / 2f + s / 2f + i * (s + gap);
+                var b = UIKit.Button(h, "Slot" + i, "", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(x, 16), new Vector2(s, s),
+                    new Color(0.15f, 0.15f, 0.22f, 0.85f), () => { if (GameManager.Instance != null) GameManager.Instance.SelectSlot(k); });
+                Destroy(b.GetComponent<ButtonBounce>());
+                slotBg[i] = b.GetComponent<Image>();
+                slotIcon[i] = UIKit.Icon(b.transform, Icons.Dragon, new Vector2(0.5f, 0.5f), new Vector2(0, 8), s * 0.55f);
+                slotName[i] = UIKit.Label(b.transform, "", 12, Color.white, TextAnchor.LowerCenter);
+                var num = UIKit.Label(UIKit.Rect(b.transform, "N", new Vector2(0, 1), new Vector2(0, 1), new Vector2(4, -2), new Vector2(24, 24)), (i + 1).ToString(), 16, Gold, TextAnchor.UpperLeft);
+                num.raycastTarget = false;
+            }
+        }
+
+        void BuildPrompt(Transform h)
+        {
+            promptBg = UIKit.Panel(h, "Prompt", new Vector2(0, 0), new Vector2(0.5f, 0.5f), Vector2.zero, mobile ? new Vector2(300, 84) : new Vector2(330, 70),
+                new Color(0.06f, 0.06f, 0.1f, 0.85f), 3f);
+            promptRt = promptBg.rectTransform;
+            var fill = UIKit.Panel(promptBg.transform, "Fill", Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero, new Color(0.3f, 0.9f, 0.4f, 0.55f));
+            fill.rectTransform.anchorMin = Vector2.zero; fill.rectTransform.anchorMax = new Vector2(0, 1);
+            fill.rectTransform.offsetMin = Vector2.zero; fill.rectTransform.offsetMax = Vector2.zero;
+            fill.raycastTarget = false;
+            promptFill = fill;
+            // клавиша "E" как в ProximityPrompt
+            var key = UIKit.Panel(promptBg.transform, "Key", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(10, 0), new Vector2(50, 50), Color.white, 2f);
+            key.raycastTarget = false;
+            promptKey = UIKit.Label(key.transform, mobile ? "!" : "E", 28, new Color(0.1f, 0.1f, 0.15f));
+            var po = promptKey.GetComponents<Outline>();
+            foreach (var o in po) o.enabled = false;
+            promptText = UIKit.Label(UIKit.Rect(promptBg.transform, "T", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(66, 0), new Vector2(mobile ? 228 : 258, 64)), "", mobile ? 21 : 20, Color.white, TextAnchor.MiddleLeft);
             if (mobile)
                 UIKit.AddPointer(promptBg.gameObject, e => InputState.TouchAction = true, e => InputState.TouchAction = false);
             else promptBg.raycastTarget = false;
             promptBg.gameObject.SetActive(false);
-
-            // ===== Панели =====
-            rebirthPanel = Modal(root, Loc.T("rebirth"), new Color(0.55f, 0.2f, 0.65f), out rebirthBody);
-            UIKit.Button(rebirthPanel.transform, "Do", Loc.T("rebirth"), new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 24), new Vector2(260, 64),
-                new Color(0.85f, 0.3f, 0.9f), () => { if (GameManager.Instance.TryRebirth()) rebirthPanel.SetActive(false); }, 28);
-
-            dragonsPanel = Modal(root, Loc.T("dragons"), new Color(0.75f, 0.4f, 0.1f), out dragonsBody);
-            dragonsBody.alignment = TextAnchor.UpperLeft;
-            dragonsBody.fontSize = 16;
-
-            shopPanel = Modal(root, Loc.T("shop"), new Color(0.15f, 0.55f, 0.2f), out Text shopBody);
-            shopBody.text = Loc.Ru
-                ? "Больше грядок — больше яиц одновременно!\nДорожки покупаются прямо на базе."
-                : "More plots — more eggs at once!\nTreadmills are bought at your base.";
-            var pb = UIKit.Button(shopPanel.transform, "BuyPlot", "", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 24), new Vector2(380, 64),
-                new Color(0.25f, 0.75f, 0.3f), () => GameManager.Instance.TryBuyPlot(), 24);
-            shopPlotBtnText = pb.GetComponentInChildren<Text>();
-
-            if (mobile) gameObject.AddComponent<MobileControls>().Build(root);
-
-            Toast(Loc.T("hint_start"), Color.white, 6f);
         }
 
-        Text StatLine(Transform parent, int line, Color c)
+        // ============================ ПАНЕЛИ ============================
+        GameObject Modal(string title, Color color, Vector2 size, out RectTransform body)
         {
-            var rt = UIKit.Rect(parent, "Line" + line, new Vector2(0, 1), new Vector2(0, 1), new Vector2(8, -6 - line * 35), new Vector2(290, 36));
-            return UIKit.Label(rt, "", 24, c, TextAnchor.MiddleLeft);
-        }
-
-        GameObject Modal(Transform root, string title, Color color, out Text body)
-        {
-            var bg = UIKit.Panel(root, "Modal_" + title, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(640, 480), color);
-            var inner = UIKit.Panel(bg.transform, "Inner", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 15), new Vector2(600, 300), new Color(0, 0, 0, 0.3f));
-            var titleRt = UIKit.Rect(bg.transform, "Title", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -10), new Vector2(560, 60));
-            UIKit.Label(titleRt, title, 38, Color.white);
-            body = UIKit.Label(inner.transform, "", 24, Color.white);
+            var bg = UIKit.Panel(root, "Modal_" + title, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -10), size, new Color(0.13f, 0.12f, 0.2f, 0.97f), 4f);
+            var header = UIKit.Panel(bg.transform, "Header", new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -4), new Vector2(size.x * 0.62f, 64), color, 4f);
+            UIKit.Label(header.transform, title, 34, Color.white);
             var go = bg.gameObject;
-            UIKit.Button(bg.transform, "Close", "X", new Vector2(1, 1), new Vector2(0.5f, 0.5f), new Vector2(-10, -10), new Vector2(56, 56),
-                new Color(0.9f, 0.25f, 0.25f), () => go.SetActive(false), 28);
+            UIKit.Button(bg.transform, "Close", "X", new Vector2(1, 1), new Vector2(0.5f, 0.5f), new Vector2(-14, -14), new Vector2(58, 58),
+                new Color(0.92f, 0.25f, 0.28f), () => go.SetActive(false), 30);
+            body = UIKit.Rect(bg.transform, "Body", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -16), new Vector2(size.x - 40, size.y - 90));
+            go.AddComponent<PopIn>();
             go.SetActive(false);
+            panels.Add(go);
             return go;
         }
 
-        void Toggle(GameObject panel)
+        GameObject BuildShop()
         {
-            bool show = !panel.activeSelf;
-            rebirthPanel.SetActive(false); dragonsPanel.SetActive(false); shopPanel.SetActive(false);
-            panel.SetActive(show);
+            RectTransform body;
+            var go = Modal(Loc.T("shop"), new Color(0.25f, 0.75f, 0.35f), new Vector2(760, 560), out body);
+            int n = GameConfig.Upgrades.Length;
+            upgLevel = new Text[n]; upgCost = new Text[n];
+            float rowH = 72;
+            for (int i = 0; i < n; i++)
+            {
+                int k = i;
+                var u = GameConfig.Upgrades[i];
+                var row = UIKit.Panel(body, "Upg" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -i * (rowH + 8)), new Vector2(700, rowH), new Color(0.2f, 0.19f, 0.3f, 1f), 2f);
+                var dot = UIKit.Panel(row.transform, "C", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(10, 0), new Vector2(12, rowH - 16), u.color);
+                dot.raycastTarget = false;
+                UIKit.Label(UIKit.Rect(row.transform, "N", new Vector2(0, 1), new Vector2(0, 1), new Vector2(30, -4), new Vector2(360, 34)), Loc.Ru ? u.nameRu : u.nameEn, 24, Color.white, TextAnchor.MiddleLeft);
+                UIKit.Label(UIKit.Rect(row.transform, "D", new Vector2(0, 0), new Vector2(0, 0), new Vector2(30, 4), new Vector2(360, 30)), Loc.Ru ? u.descRu : u.descEn, 16, new Color(0.8f, 0.85f, 1f), TextAnchor.MiddleLeft);
+                upgLevel[i] = UIKit.Label(UIKit.Rect(row.transform, "L", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(390, 0), new Vector2(110, 40)), "", 20, Gold);
+                var b = UIKit.Button(row.transform, "Buy", "", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-10, 0), new Vector2(180, 54),
+                    new Color(0.25f, 0.78f, 0.35f), () => { if (GameManager.Instance.TryBuyUpgrade(k)) RefreshPanels(); }, 20);
+                upgCost[i] = b.GetComponentInChildren<Text>();
+            }
+            var pb = UIKit.Button(body, "BuyPlot", "", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 0), new Vector2(420, 60),
+                new Color(1f, 0.6f, 0.15f), () => { GameManager.Instance.TryBuyPlot(); RefreshPanels(); }, 22);
+            plotBtnText = pb.GetComponentInChildren<Text>();
+            return go;
+        }
+
+        GameObject BuildRebirth()
+        {
+            RectTransform body;
+            var go = Modal(Loc.T("rebirth"), new Color(0.78f, 0.32f, 0.95f), new Vector2(620, 480), out body);
+            UIKit.Icon(body, Icons.Star, new Vector2(0.5f, 1), new Vector2(0, -44), 84);
+            rebirthBody = UIKit.Label(UIKit.Rect(body, "T", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -6), new Vector2(560, 220)), "", 22, Color.white);
+            UIKit.Button(body, "Do", Loc.T("rebirth"), new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 0), new Vector2(300, 66),
+                new Color(0.78f, 0.32f, 0.95f), () => { if (GameManager.Instance.TryRebirth()) rebirthPanel.SetActive(false); }, 28);
+            return go;
+        }
+
+        GameObject BuildDragons()
+        {
+            RectTransform body;
+            var go = Modal(Loc.T("dragons"), new Color(1f, 0.55f, 0.15f), new Vector2(760, 560), out body);
+            dragonsBody = UIKit.Label(body, "", 17, Color.white, TextAnchor.UpperLeft);
+            return go;
+        }
+
+        GameObject BuildSettings()
+        {
+            RectTransform body;
+            var go = Modal(Loc.T("settings"), new Color(0.45f, 0.5f, 0.62f), new Vector2(600, 470), out body);
+            var sb = UIKit.Button(body, "Sound", "", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-135, -10), new Vector2(250, 60), new Color(0.3f, 0.55f, 0.95f), ToggleSound, 22);
+            soundText = sb.GetComponentInChildren<Text>();
+            var mb = UIKit.Button(body, "Music", "", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(135, -10), new Vector2(250, 60), new Color(0.3f, 0.55f, 0.95f), ToggleMusic, 22);
+            musicText = mb.GetComponentInChildren<Text>();
+            UIKit.Label(UIKit.Rect(body, "SwT", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -100), new Vector2(540, 36)), Loc.T("switch_sound"), 22, Gold);
+            switchBtns = new Image[3];
+            Color[] swc = { new Color(0.25f, 0.45f, 1f), new Color(0.6f, 0.4f, 0.22f), new Color(0.9f, 0.25f, 0.25f) };
+            for (int i = 0; i < 3; i++)
+            {
+                int k = i;
+                var b = UIKit.Button(body, "Sw" + i, Loc.T("sw_" + i), new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -150 - i * 68), new Vector2(420, 58), swc[i], () =>
+                {
+                    SaveManager.Data.switchType = k;
+                    GameAudio.PlaySwitch(k, true);
+                    RefreshPanels();
+                }, 21);
+                switchBtns[i] = b.GetComponent<Image>();
+            }
+            return go;
+        }
+
+        GameObject BuildSell()
+        {
+            RectTransform body;
+            var go = Modal(Loc.T("sell_title"), new Color(1f, 0.75f, 0.2f), new Vector2(680, 540), out body);
+            int n = GameConfig.InventorySlots;
+            sellRows = new Text[n]; sellBtns = new Button[n];
+            for (int i = 0; i < n; i++)
+            {
+                int k = i;
+                var row = UIKit.Panel(body, "Row" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -i * 70), new Vector2(620, 62), new Color(0.2f, 0.19f, 0.3f), 2f);
+                sellRows[i] = UIKit.Label(UIKit.Rect(row.transform, "T", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(14, 0), new Vector2(390, 56)), "", 20, Color.white, TextAnchor.MiddleLeft);
+                sellBtns[i] = UIKit.Button(row.transform, "S", "", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-8, 0), new Vector2(200, 50),
+                    new Color(1f, 0.7f, 0.15f), () => { GameManager.Instance.SellSlot(k); RefreshPanels(); }, 19);
+            }
+            var all = UIKit.Button(body, "All", "", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 0), new Vector2(380, 60),
+                new Color(0.95f, 0.35f, 0.25f), () => { GameManager.Instance.SellAll(); RefreshPanels(); }, 22);
+            sellAllText = all.GetComponentInChildren<Text>();
+            sellEmpty = UIKit.Label(UIKit.Rect(body, "E", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560, 120)), Loc.T("sell_empty"), 22, new Color(0.85f, 0.85f, 0.95f));
+            return go;
+        }
+
+        public void OpenSell() { ShowOnly(sellPanel); }
+
+        void OnMenuButton(int i)
+        {
+            var p = i == 0 ? shopPanel : i == 1 ? rebirthPanel : i == 2 ? dragonsPanel : settingsPanel;
+            if (p.activeSelf) p.SetActive(false); else ShowOnly(p);
+        }
+
+        void ShowOnly(GameObject p)
+        {
+            foreach (var x in panels) x.SetActive(false);
+            p.SetActive(true);
             RefreshPanels();
         }
 
@@ -163,14 +325,77 @@ namespace DragonHeist
         {
             SaveManager.Data.soundOn = !SaveManager.Data.soundOn;
             GameAudio.SetEnabled(SaveManager.Data.soundOn);
-            UpdateSoundText();
+            RefreshPanels();
         }
 
-        void UpdateSoundText()
+        void ToggleMusic()
         {
-            soundBtnText.text = Loc.T("sound") + ": " + (SaveManager.Data.soundOn ? (Loc.Ru ? "ВКЛ" : "ON") : (Loc.Ru ? "ВЫКЛ" : "OFF"));
+            SaveManager.Data.musicOn = !SaveManager.Data.musicOn;
+            GameAudio.SetMusic(SaveManager.Data.musicOn);
+            RefreshPanels();
         }
 
+        // ============================ ГЛАВНОЕ МЕНЮ ============================
+        void BuildMenu()
+        {
+            var bg = UIKit.Rect(root, "Menu", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            UIKit.Stretch(bg);
+            var dim = bg.gameObject.AddComponent<Image>();
+            dim.color = new Color(0.05f, 0.1f, 0.25f, 0.35f);
+            menu = bg.gameObject;
+
+            var title = UIKit.Label(UIKit.Rect(bg, "Title", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 170), new Vector2(1100, 140)), Loc.T("title"), 96, Gold);
+            foreach (var o in title.GetComponents<Outline>()) o.effectDistance *= 2.2f;
+            title.gameObject.AddComponent<TitleWobble>();
+            UIKit.Label(UIKit.Rect(bg, "Sub", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 80), new Vector2(1000, 50)), Loc.T("subtitle"), 28, Color.white);
+            var eggIcon = UIKit.Icon(bg, Icons.Egg, new Vector2(0.5f, 0.5f), new Vector2(-420, 170), 110);
+            eggIcon.gameObject.AddComponent<TitleWobble>();
+            var dragIcon = UIKit.Icon(bg, Icons.Dragon, new Vector2(0.5f, 0.5f), new Vector2(420, 170), 120);
+            dragIcon.gameObject.AddComponent<TitleWobble>();
+
+            var play = UIKit.Button(bg, "Play", Loc.T("play"), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -40), new Vector2(380, 110),
+                new Color(0.3f, 0.85f, 0.35f), OnPlay, 52);
+            Destroy(play.GetComponent<ButtonBounce>());
+            play.gameObject.AddComponent<PulseScale>();
+            UIKit.Button(bg, "Set", Loc.T("settings"), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -160), new Vector2(260, 64),
+                new Color(0.45f, 0.5f, 0.62f), () => ShowOnly(settingsPanel), 24, null);
+            menu.transform.SetAsLastSibling();
+            foreach (var p in panels) p.transform.SetAsLastSibling();
+
+            hud.SetActive(false);
+            InputState.Blocked = true;
+            var rig = CameraRig.Cam != null ? CameraRig.Cam.GetComponent<CameraRig>() : null;
+            if (rig != null) rig.MenuOrbit = true;
+        }
+
+        public void SetMenuCamera()
+        {
+            var rig = CameraRig.Cam != null ? CameraRig.Cam.GetComponent<CameraRig>() : null;
+            if (rig != null) rig.MenuOrbit = menu != null && menu.activeSelf;
+        }
+
+        void OnPlay()
+        {
+            menu.SetActive(false);
+            settingsPanel.SetActive(false);
+            hud.SetActive(true);
+            InputState.Blocked = false;
+            var rig = CameraRig.Cam != null ? CameraRig.Cam.GetComponent<CameraRig>() : null;
+            if (rig != null) { rig.MenuOrbit = false; rig.yaw = 0; rig.pitch = 20; }
+            GameAudio.Play(Sfx.Success);
+            YandexSDK.GameplayStart();
+            Toast(Loc.T("hint_start"), Color.white, 5f);
+        }
+
+        // ============================ РУЛЕТКА ============================
+        public void ShowRoulette(Tier eggTier, DragonDef result, System.Action onDone)
+        {
+            var go = new GameObject("Roulette", typeof(RectTransform));
+            go.transform.SetParent(root, false);
+            go.AddComponent<Roulette>().Init((RectTransform)go.transform, eggTier, result, onDone);
+        }
+
+        // ============================ ОБНОВЛЕНИЕ ============================
         public void Toast(string msg, Color color, float time = 2.6f)
         {
             if (toastText == null) return;
@@ -178,6 +403,7 @@ namespace DragonHeist
             toastText.color = color;
             toastTimer = time;
             toastBg.gameObject.SetActive(true);
+            toastBg.transform.localScale = Vector3.one * 1.1f;
         }
 
         void Update()
@@ -185,18 +411,28 @@ namespace DragonHeist
             var gm = GameManager.Instance;
             var d = SaveManager.Data;
             if (gm == null) return;
+            InputState.Blocked = (menu != null && menu.activeSelf) || Roulette.Active;
 
-            coinsText.text = Loc.T("coins") + ": " + Loc.Num(d.coins);
+            coinsText.text = Loc.Num(d.coins);
             cpsText.text = "+" + Loc.Num(gm.CoinsPerSec) + (Loc.Ru ? " /сек" : " /s");
-            speedText.text = Loc.T("speed") + ": " + Mathf.RoundToInt(gm.WalkSpeed);
-            rebirthText.text = Loc.T("rebirths") + ": " + d.rebirths;
+            speedText.text = Loc.Num(d.speedPoints);
+            rebirthText.text = d.rebirths.ToString() + "  <size=18>x" + Loc.Num(gm.CoinMultiplier) + "</size>";
             invText.text = d.inventory.Count > 0 ? Loc.F("inventory", d.inventory.Count) : "";
 
             if (toastTimer > 0)
             {
                 toastTimer -= Time.unscaledDeltaTime;
+                toastBg.transform.localScale = Vector3.one * Mathf.MoveTowards(toastBg.transform.localScale.x, 1f, Time.unscaledDeltaTime);
                 if (toastTimer <= 0) toastBg.gameObject.SetActive(false);
             }
+
+            // обучение
+            var tut = Tutorial.Instance;
+            bool showTut = tut != null && tut.Active && hud.activeSelf;
+            if (tutPanel.activeSelf != showTut) tutPanel.SetActive(showTut);
+            if (showTut) tutText.text = tut.Text;
+
+            UpdateHotbar(gm, d);
 
             var p = PlayerController.Instance;
             if (p != null)
@@ -206,27 +442,83 @@ namespace DragonHeist
                 if (carrying)
                 {
                     carryText.text = Loc.F("carrying", Loc.TierName(p.Carrying.tier));
-                    float pulse = 0.65f + Mathf.Sin(Time.time * 6f) * 0.2f;
-                    var c = GameConfig.GetTier(p.Carrying.tier).color * 0.7f; c.a = pulse;
+                    float pulse = 0.7f + Mathf.Sin(Time.time * 6f) * 0.2f;
+                    var c = GameConfig.GetTier(p.Carrying.tier).color * 0.75f; c.a = pulse;
                     carryBg.color = c;
                 }
-
-                hintText.text = p.OnTreadmill ? Loc.T("treadmill_hint") : "";
-
-                var it = p.Current;
-                bool show = it != null;
-                if (promptBg.gameObject.activeSelf != show) promptBg.gameObject.SetActive(show);
-                if (!show) InputState.TouchAction = false;
-                if (show)
-                {
-                    promptText.text = (InputState.Mobile ? "" : "[E]  ") + it.Prompt;
-                    var rt = promptBg.rectTransform;
-                    promptFill.rectTransform.offsetMax = new Vector2(rt.rect.width * Mathf.Clamp01(p.HoldProgress), 0);
-                }
+                hintText.text = p.OnTreadmill && !(p.CurrentTreadmill != null && p.CurrentTreadmill.Training) ? Loc.T("treadmill_hint") : "";
+                UpdatePrompt(p);
             }
 
             refreshTimer -= Time.unscaledDeltaTime;
-            if (refreshTimer <= 0) { refreshTimer = 0.5f; RefreshPanels(); }
+            if (refreshTimer <= 0) { refreshTimer = 0.4f; RefreshPanels(); }
+        }
+
+        void UpdateHotbar(GameManager gm, SaveData d)
+        {
+            for (int i = 0; i < slotBg.Length; i++)
+            {
+                int id = d.dragonInv[i];
+                bool sel = d.selectedSlot == i;
+                if (id < 0)
+                {
+                    slotName[i].text = "";
+                    slotIcon[i].enabled = false;
+                    slotBg[i].color = new Color(0.15f, 0.15f, 0.22f, 0.8f);
+                }
+                else
+                {
+                    var def = GameConfig.GetDragon(id);
+                    var tc = GameConfig.GetTier(def.tier).color;
+                    slotName[i].text = Loc.DragonName(def);
+                    slotIcon[i].enabled = true;
+                    slotIcon[i].color = Color.Lerp(def.body, Color.white, 0.2f);
+                    slotBg[i].color = new Color(tc.r * 0.55f, tc.g * 0.55f, tc.b * 0.55f, 0.95f);
+                }
+                float target = sel ? 1.12f : 1f;
+                var t = slotBg[i].transform;
+                if (Mathf.Abs(t.localScale.x - target) > 0.001f)
+                    t.localScale = Vector3.one * Mathf.MoveTowards(t.localScale.x, target, Time.unscaledDeltaTime * 2f);
+                var outl = slotBg[i].GetComponents<Outline>();
+                foreach (var o in outl) o.effectColor = sel ? Gold : UIKit.Stroke;
+            }
+            int held = gm.HeldDragonId;
+            if (held >= 0)
+            {
+                var hd = GameConfig.GetDragon(held);
+                heldText.text = Loc.F("held", Loc.DragonName(hd), hd.speedPct.ToString("0"));
+            }
+            else heldText.text = "";
+        }
+
+        void UpdatePrompt(PlayerController p)
+        {
+            var it = p.Current;
+            bool show = it != null && hud.activeSelf && !AnyPanelOpen && !Roulette.Active;
+            if (promptBg.gameObject.activeSelf != show) promptBg.gameObject.SetActive(show);
+            if (!show) { InputState.TouchAction = false; return; }
+            promptText.text = it.Prompt;
+            promptFill.rectTransform.offsetMax = new Vector2(promptRt.rect.width * Mathf.Clamp01(p.HoldProgress), 0);
+
+            // позиция: над объектом (как ProximityPrompt), на мобилке — внизу справа над прыжком
+            if (mobile)
+            {
+                promptRt.anchorMin = promptRt.anchorMax = new Vector2(1, 0);
+                promptRt.anchoredPosition = new Vector2(-190, 210);
+            }
+            else
+            {
+                var cam = CameraRig.Cam;
+                Vector3 sp = cam != null ? cam.WorldToScreenPoint(it.InteractPos + Vector3.up * 3.2f) : new Vector3(Screen.width / 2f, 120f, 1f);
+                if (sp.z < 0) sp = new Vector3(Screen.width / 2f, Screen.height * 0.25f, 1f);
+                float scale = root.lossyScale.x > 0 ? root.lossyScale.x : 1f;
+                promptRt.anchorMin = promptRt.anchorMax = Vector2.zero;
+                Vector2 pos = new Vector2(sp.x / scale, sp.y / scale);
+                Vector2 size = root.rect.size;
+                pos.x = Mathf.Clamp(pos.x, 180, size.x - 180);
+                pos.y = Mathf.Clamp(pos.y, 130, size.y - 140);
+                promptRt.anchoredPosition = pos;
+            }
         }
 
         void RefreshPanels()
@@ -235,16 +527,27 @@ namespace DragonHeist
             var d = SaveManager.Data;
             if (gm == null) return;
 
+            if (shopPanel.activeSelf)
+            {
+                for (int i = 0; i < upgLevel.Length; i++)
+                {
+                    var u = GameConfig.Upgrades[i];
+                    int lvl = gm.UpgLevel(i);
+                    upgLevel[i].text = (Loc.Ru ? "Ур. " : "Lv. ") + lvl + "/" + u.maxLevel;
+                    upgCost[i].text = lvl >= u.maxLevel ? "MAX" : Loc.Num(GameConfig.UpgradeCost(i, lvl));
+                }
+                plotBtnText.text = d.plotsOwned >= GameConfig.MaxPlots ? Loc.T("plots_max") : Loc.F("buy_plot", Loc.Num(GameConfig.PlotCost(d.plotsOwned)));
+            }
             if (rebirthPanel.activeSelf)
             {
-                float nextMult = GameConfig.RebirthMultiplier(d.rebirths + 1);
-                rebirthBody.text = Loc.F("rebirth_desc", nextMult.ToString("0.#")) + "\n\n" + Loc.F("rebirth_cost", Loc.Num(gm.RebirthCost));
+                float next = GameConfig.RebirthMultiplier(d.rebirths + 1);
+                rebirthBody.text = Loc.F("rebirth_desc", next.ToString("0")) + "\n\n<color=#FFD84A>" + Loc.F("rebirth_cost", Loc.Num(gm.RebirthCost)) + "</color>";
             }
             if (dragonsPanel.activeSelf)
             {
                 var sb = new StringBuilder();
-                sb.AppendLine(Loc.F("total_bonus", gm.DragonSpeedPct.ToString("0"), Loc.Num(gm.CoinsPerSec),
-                    gm.DragonTrainPct.ToString("0"), gm.DragonJump.ToString("0.#")));
+                sb.AppendLine("<color=#FFD84A>" + Loc.F("total_bonus", gm.DragonSpeedPct.ToString("0"), Loc.Num(gm.CoinsPerSec),
+                    gm.DragonTrainPct.ToString("0"), gm.DragonJump.ToString("0.#")).Replace("\n", "   ") + "</color>");
                 sb.AppendLine();
                 if (gm.DragonCount == 0) sb.Append(Loc.T("no_dragons"));
                 for (int i = 0; i < d.plotsOwned; i++)
@@ -252,15 +555,58 @@ namespace DragonHeist
                     var pl = d.plots[i];
                     if (pl.state != (int)PlotState.Dragon) continue;
                     var def = GameConfig.GetDragon(pl.dragonId);
-                    sb.AppendLine(Loc.F("dragon_line", Loc.DragonName(def), Loc.TierName(def.tier), def.speedPct, Loc.Num(def.coinsPerSec), def.trainPct));
+                    string hex = ColorUtility.ToHtmlStringRGB(GameConfig.GetTier(def.tier).color);
+                    sb.AppendLine("<color=#" + hex + ">" + Loc.DragonName(def) + " [" + Loc.TierName(def.tier) + "]</color>  +" + def.speedPct + "% "
+                        + (Loc.Ru ? "скор." : "spd") + ", " + Loc.Num(def.coinsPerSec) + (Loc.Ru ? "/сек, +" : "/s, +") + def.trainPct + (Loc.Ru ? "% прок." : "% train"));
                 }
                 dragonsBody.text = sb.ToString();
             }
-            if (shopPanel.activeSelf)
+            if (settingsPanel.activeSelf)
             {
-                shopPlotBtnText.text = d.plotsOwned >= GameConfig.MaxPlots ? Loc.T("plots_max")
-                    : Loc.F("buy_plot", Loc.Num(GameConfig.PlotCost(d.plotsOwned)));
+                soundText.text = Loc.T("sound") + ": " + (d.soundOn ? Loc.T("on") : Loc.T("off"));
+                musicText.text = Loc.T("music") + ": " + (d.musicOn ? Loc.T("on") : Loc.T("off"));
+                for (int i = 0; i < 3; i++)
+                    foreach (var o in switchBtns[i].GetComponents<Outline>()) o.effectColor = d.switchType == i ? Gold : UIKit.Stroke;
+            }
+            if (sellPanel.activeSelf)
+            {
+                int count = 0; double total = 0;
+                for (int i = 0; i < sellRows.Length; i++)
+                {
+                    int id = d.dragonInv[i];
+                    bool has = id >= 0;
+                    sellRows[i].transform.parent.gameObject.SetActive(has);
+                    if (!has) continue;
+                    count++;
+                    var def = GameConfig.GetDragon(id);
+                    double price = gm.SlotSellPrice(i);
+                    total += price;
+                    string hex = ColorUtility.ToHtmlStringRGB(GameConfig.GetTier(def.tier).color);
+                    sellRows[i].text = "<color=#" + hex + ">" + Loc.DragonName(def) + "</color>\n<size=15>" + Loc.TierName(def.tier) + "</size>";
+                    sellBtns[i].GetComponentInChildren<Text>().text = Loc.F("sell", Loc.Num(price));
+                }
+                sellAllText.text = Loc.F("sell_all", Loc.Num(total));
+                sellAllText.transform.parent.gameObject.SetActive(count > 0);
+                sellEmpty.gameObject.SetActive(count == 0);
             }
         }
+    }
+
+    /// <summary>Заголовок меню покачивается.</summary>
+    public class TitleWobble : MonoBehaviour
+    {
+        float seed;
+        void Start() { seed = Random.value * 5f; }
+        void Update()
+        {
+            float t = Time.unscaledTime + seed;
+            transform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(t * 1.6f) * 3f);
+            transform.localScale = Vector3.one * (1f + Mathf.Sin(t * 2.2f) * 0.03f);
+        }
+    }
+
+    public class PulseScale : MonoBehaviour
+    {
+        void Update() { transform.localScale = Vector3.one * (1f + Mathf.Sin(Time.unscaledTime * 4f) * 0.04f); }
     }
 }

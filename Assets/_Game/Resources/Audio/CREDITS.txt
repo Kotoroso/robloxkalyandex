@@ -1,0 +1,40 @@
+AUDIO CREDITS
+=============
+Every file here is CC0 1.0 Universal (public domain dedication).
+https://creativecommons.org/publicdomain/zero/1.0/
+Attribution is not required. It is listed anyway so the source of each file can be traced.
+"Modified" means the file was trimmed, faded, normalized or re-encoded to Ogg Vorbis with ffmpeg.
+
+-- Kenney (kenney.nl), CC0 --
+The KenneyNL starter-kit repos are MIT-licensed for code. Each README says:
+"Assets included in this package (2D sprites, 3D models and sound effects) are CC0 licensed".
+
+jump.ogg          <- github.com/KenneyNL/Starter-Kit-3D-Platformer  sounds/jump.ogg      (unmodified)
+land.ogg          <- github.com/KenneyNL/Starter-Kit-3D-Platformer  sounds/land.ogg      (unmodified)
+coin.ogg          <- github.com/KenneyNL/Starter-Kit-3D-Platformer  sounds/coin.ogg      (unmodified)
+footstep_loop.ogg <- github.com/KenneyNL/Starter-Kit-3D-Platformer  sounds/walking.ogg   (unmodified)
+footstep.ogg      <- github.com/KenneyNL/Starter-Kit-3D-Platformer  sounds/walking.ogg   (modified: one step cut from 0.42s to 0.58s, faded, normalized)
+ui_click.ogg      <- github.com/KenneyNL/Starter-Kit-City-Builder   sounds/toggle.ogg    (unmodified)
+pickup.ogg        <- github.com/KenneyNL/Starter-Kit-Match-3        sounds/tile-swap.ogg (unmodified)
+hatch_pop.ogg     <- github.com/KenneyNL/Starter-Kit-Match-3        sounds/tile-match.ogg (unmodified)
+hit.ogg           <- github.com/KenneyNL/Starter-Kit-FPS            sounds/enemy_hurt.ogg (unmodified)
+
+-- raylib (github.com/raysan5/raylib), CC0 --
+License source: the per-folder resources/LICENSE.md tables in the raylib repo.
+
+ui_click_alt.ogg     <- examples/textures/resources/buttonfx.wav  by @raysan5 (made with rFXGen), CC0 (modified: trailing silence removed, re-encoded)
+music_background.ogg <- examples/audio/resources/country.mp3      by @emegeme ("DART that TARGET" game), CC0 (modified: re-encoded MP3 -> Ogg Vorbis q2)
+
+-- Godot demo projects (github.com/godotengine/godot-demo-projects), CC0 --
+License source: audio/audio_effects/README.md, which says "All sound effects are from Freesound and licensed under CC0".
+
+buy_success.ogg <- audio/audio_effects/sfx/Ding.wav            "Ding" by MatthewWong (freesound.org/people/MatthewWong/sounds/361564/), CC0 (modified: cut to 1.6s with fade-out, mono)
+error.ogg       <- audio/audio_effects/sfx/negative_beeps.wav  "Negative Beeps" by themusicalnomad (freesound.org/people/themusicalnomad/sounds/253886/), CC0 (modified: silence trimmed, mono)
+
+-- Generated for this project, CC0 --
+These were synthesized from scratch with a Python/numpy script (noise and waveform synthesis, no samples).
+They are original work and are dedicated to the public domain under CC0.
+
+whoosh.ogg   band-pass noise sweep, 0.5s
+levelup.ogg  rising C-major arpeggio and chord, 1.0s (for rebirth / level up)
+magic.ogg    rising shimmer or sparkle, 0.9s (for hatch / magic)

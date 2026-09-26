@@ -25,12 +25,14 @@ namespace DragonHeist.EditorTools
                 SessionState.SetBool("DH_Setup", true);
                 EnsureScene();
                 EnsureInputHandling();
+                EnsureAlwaysIncludedShaders();
             };
         }
 
         [MenuItem("Dragon Heist/1. Настроить проект под Яндекс Игры")]
         public static void Setup()
         {
+            EnsureAlwaysIncludedShaders();
             EnsureScene();
             EnsureInputHandling();
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.WebGL)
@@ -111,6 +113,43 @@ namespace DragonHeist.EditorTools
             {
                 scenes.Insert(0, new EditorBuildSettingsScene(ScenePath, true));
                 EditorBuildSettings.scenes = scenes.ToArray();
+            }
+        }
+
+        /// <summary>
+        /// Шейдеры, которые игра ищет через Shader.Find (частицы, неон, прозрачность, небо) —
+        /// без "Always Included" Unity вырежет их из WebGL-сборки.
+        /// </summary>
+        static void EnsureAlwaysIncludedShaders()
+        {
+            string[] names =
+            {
+                "Legacy Shaders/Particles/Alpha Blended", "Legacy Shaders/Particles/Additive",
+                "Legacy Shaders/Transparent/Diffuse", "Unlit/Color", "Skybox/Procedural"
+            };
+            var gs = AssetDatabase.LoadAssetAtPath<Object>("ProjectSettings/GraphicsSettings.asset");
+            if (gs == null) return;
+            var so = new SerializedObject(gs);
+            var arr = so.FindProperty("m_AlwaysIncludedShaders");
+            if (arr == null) return;
+            bool changed = false;
+            foreach (var n in names)
+            {
+                var sh = Shader.Find(n);
+                if (sh == null) continue;
+                bool exists = false;
+                for (int i = 0; i < arr.arraySize; i++)
+                    if (arr.GetArrayElementAtIndex(i).objectReferenceValue == sh) { exists = true; break; }
+                if (exists) continue;
+                arr.InsertArrayElementAtIndex(arr.arraySize);
+                arr.GetArrayElementAtIndex(arr.arraySize - 1).objectReferenceValue = sh;
+                changed = true;
+            }
+            if (changed)
+            {
+                so.ApplyModifiedProperties();
+                AssetDatabase.SaveAssets();
+                Debug.Log("[Dragon Heist] Шейдеры добавлены в Always Included.");
             }
         }
 

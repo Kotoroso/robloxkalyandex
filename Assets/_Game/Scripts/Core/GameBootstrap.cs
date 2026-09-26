@@ -48,7 +48,9 @@ namespace DragonHeist
             var player = PlayerController.Create(WorldBuilder.SpawnPoint);
             var rig = CameraRig.Create(player.transform);
             rig.yaw = 0f;
+            UIManager.Instance.SetMenuCamera();
             gm.Init();
+            Tutorial.Create();
 
             YandexSDK.GameReady();
         }

@@ -38,6 +38,12 @@ namespace DragonHeist
                 t.localScale = Vector3.one;
                 go.AddComponent<MeshFilter>().sharedMesh = RoundedMesh.Box(size, minSide * RoundFactor, RoundSteps);
             }
+            else if (type == PrimitiveType.Cube)
+            {
+                // куб запекается под размер, чтобы UV были в юнитах и студы не растягивались
+                t.localScale = Vector3.one;
+                go.AddComponent<MeshFilter>().sharedMesh = RoundedMesh.FlatBox(size);
+            }
             else
             {
                 t.localScale = size;
@@ -142,14 +148,14 @@ namespace DragonHeist
                     s.localRotation = Quaternion.Euler(Mathf.Sin(a) * 25, 0, -Mathf.Cos(a) * 25);
                 }
             }
-            if (tier == Tier.Secret || tier == Tier.Mythic) root.AddComponent<RainbowTint>().target = body.GetComponent<Renderer>();
+            if (tier >= Tier.Secret || tier == Tier.Mythic) root.AddComponent<RainbowTint>().target = body.GetComponent<Renderer>();
             return root;
         }
 
         // ================= ДРАКОН =================
         public static GameObject BuildDragon(Transform parent, DragonDef d)
         {
-            float s = 0.8f + (int)d.tier * 0.18f;
+            float s = 0.8f + Mathf.Min((int)d.tier, 11) * 0.11f;
             var root = new GameObject("Dragon_" + d.nameEn);
             root.transform.SetParent(parent, false);
             var m = Pivot(root.transform, "Model", Vector3.zero);
@@ -202,7 +208,34 @@ namespace DragonHeist
             Round = false;
             var idle = root.AddComponent<DragonIdle>();
             idle.lWing = lw; idle.rWing = rw; idle.head = head; idle.model = m;
+            AttachDragonFx(root.transform, m, head, d, s);
             return root;
+        }
+
+        /// <summary>Эффекты редких драконов: огонь, иней, аура, нимб, радуга, звёзды, пустота.</summary>
+        static void AttachDragonFx(Transform root, Transform model, Transform head, DragonDef d, float s)
+        {
+            switch (d.fx)
+            {
+                case DragonFx.Sparkle: Fx.Sparkles(root, new Vector3(0, 1.8f * s, 0), Color.Lerp(d.wing, Color.white, 0.4f), 1.5f * s, 6f); break;
+                case DragonFx.Frost: Fx.Sparkles(root, new Vector3(0, 2.2f * s, 0), new Color(0.7f, 0.95f, 1f), 1.8f * s, 8f); break;
+                case DragonFx.Fire: Fx.Flames(root, new Vector3(0, 1.2f * s, 0), 1.2f * s); break;
+                case DragonFx.Aura: Fx.Sparkles(root, new Vector3(0, 1.2f * s, 0), d.belly, 2.4f * s, 14f); break;
+                case DragonFx.Stars: Fx.Sparkles(root, new Vector3(0, 2.5f * s, 0), Color.white, 3f * s, 10f); break;
+                case DragonFx.Void: Fx.Sparkles(root, new Vector3(0, 1.5f * s, 0), new Color(0.5f, 0.1f, 1f), 2f * s, 12f); break;
+                case DragonFx.Rainbow:
+                    foreach (var r in model.GetComponentsInChildren<Renderer>())
+                        if (r.sharedMaterial == Mats.Plastic(d.body)) root.gameObject.AddComponent<RainbowTint>().target = r;
+                    Fx.Sparkles(root, new Vector3(0, 2f * s, 0), Color.white, 2f * s, 8f);
+                    break;
+                case DragonFx.Halo:
+                {
+                    var halo = Part(head, new Vector3(0, 1.1f, -0.1f), new Vector3(1.4f, 1.4f, 1f), Mats.UnlitAlpha(new Color(1f, 0.9f, 0.4f, 1f), Mats.RingTexture), false, PrimitiveType.Quad);
+                    halo.localRotation = Quaternion.Euler(90, 0, 0);
+                    Fx.Sparkles(root, new Vector3(0, 2.5f * s, 0), new Color(1f, 0.9f, 0.5f), 1.2f * s, 5f);
+                    break;
+                }
+            }
         }
 
         // ================= БРЕЙНРОТЫ =================
@@ -378,31 +411,16 @@ namespace DragonHeist
         {
             var root = Pivot(parent, "Tree", pos);
             Part(root, new Vector3(0, h * 0.35f, 0), new Vector3(1.2f, h * 0.7f, 1.2f), Mats.Plastic(new Color(0.45f, 0.3f, 0.18f)), true);
-            Part(root, new Vector3(0, h * 0.85f, 0), new Vector3(4.5f, h * 0.45f, 4.5f), Mats.Studs(new Color(0.2f, 0.62f, 0.25f), 4, 4), true);
-            Part(root, new Vector3(0, h * 1.15f, 0), new Vector3(3f, h * 0.3f, 3f), Mats.Studs(new Color(0.25f, 0.7f, 0.3f), 3, 3), true);
+            Round = true; RoundFactor = 0.25f;
+            Part(root, new Vector3(0, h * 0.85f, 0), new Vector3(4.5f, h * 0.45f, 4.5f), Mats.Plastic(new Color(0.2f, 0.62f, 0.25f)));
+            Part(root, new Vector3(0.3f, h * 1.15f, -0.2f), new Vector3(3f, h * 0.3f, 3f), Mats.Plastic(new Color(0.28f, 0.72f, 0.3f)));
+            Round = false; RoundFactor = 0.2f;
         }
 
-        /// <summary>3D-надпись, всегда повёрнутая к камере.</summary>
-        public static TextMesh Label(Transform parent, string text, Vector3 localPos, float size, Color color)
+        /// <summary>3D-надпись с обводкой, всегда повёрнутая к камере.</summary>
+        public static Label3D Label(Transform parent, string text, Vector3 localPos, float size, Color color)
         {
-            var go = new GameObject("Label");
-            go.transform.SetParent(parent, false);
-            go.transform.localPosition = localPos;
-            var tm = go.AddComponent<TextMesh>();
-            tm.font = Mats.UIFont;
-            tm.fontSize = 64;
-            tm.characterSize = size * 0.05f;
-            tm.anchor = TextAnchor.MiddleCenter;
-            tm.alignment = TextAlignment.Center;
-            tm.fontStyle = FontStyle.Bold;
-            tm.color = color;
-            tm.text = text;
-            var mr = go.GetComponent<MeshRenderer>();
-            if (tm.font != null) mr.sharedMaterial = tm.font.material;
-            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            mr.receiveShadows = false;
-            go.AddComponent<Billboard>();
-            return tm;
+            return Label3D.Create(parent, text, localPos, size, color);
         }
     }
 

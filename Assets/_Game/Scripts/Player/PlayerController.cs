@@ -42,6 +42,35 @@ namespace DragonHeist
         IInteractable holdTarget;
         float invulnerable;
         float stepTimer;
+        bool wasGrounded = true;
+        float landSquash;
+        float airTime;
+        GameObject heldModel;
+        ParticleSystem dust, speedLines;
+        bool subscribed;
+
+        void Start()
+        {
+            dust = Fx.Dust(transform);
+            speedLines = Fx.SpeedLines(avatar.root.transform);
+        }
+
+        /// <summary>Дракон из выбранного слота — в руке у персонажа.</summary>
+        public void RebuildHeld()
+        {
+            if (heldModel != null) Destroy(heldModel);
+            heldModel = null;
+            var gm = GameManager.Instance;
+            if (gm == null) return;
+            int id = gm.HeldDragonId;
+            if (id < 0) return;
+            heldModel = Blocky.BuildDragon(avatar.rArm, GameConfig.GetDragon(id));
+            heldModel.transform.localPosition = new Vector3(0, -2.3f, 0.6f);
+            heldModel.transform.localRotation = Quaternion.Euler(90f, 0, 0);
+            heldModel.transform.localScale = Vector3.one * 0.45f;
+            Blocky.NoShadows(heldModel);
+            Fx.Burst(heldModel.transform.position, GameConfig.GetTier(GameConfig.GetDragon(id).tier).color, 12, 3f, 0.3f, 0.5f);
+        }
 
         public static PlayerController Create(Vector3 spawn)
         {
@@ -74,8 +103,12 @@ namespace DragonHeist
             float walkSpeed = gm != null ? gm.WalkSpeed : GameConfig.BaseWalkSpeed;
             float jumpPower = gm != null ? gm.JumpPower : GameConfig.BaseJump;
 
+            if (!subscribed && gm != null) { gm.OnHeldChanged += RebuildHeld; subscribed = true; RebuildHeld(); }
+            for (int k = 0; k < GameConfig.InventorySlots; k++)
+                if (Input.GetKeyDown(KeyCode.Alpha1 + k) && gm != null && !InputState.Blocked) gm.SelectSlot(k);
+
             // движение относительно камеры
-            Vector2 mv = InputState.Move;
+            Vector2 mv = InputState.Blocked ? Vector2.zero : InputState.Move;
             float camYaw = CameraRig.Cam != null ? CameraRig.Cam.transform.eulerAngles.y : 0f;
             Quaternion yawRot = Quaternion.Euler(0, camYaw, 0);
             Vector3 wish = yawRot * new Vector3(mv.x, 0, mv.y);
@@ -93,10 +126,12 @@ namespace DragonHeist
                     CurrentTreadmill.Train(dt);
                 }
             }
+            bool training = OnTreadmill && CurrentTreadmill != null && CurrentTreadmill.Training;
+            Fx.SetRate(speedLines, training ? 40f : 0f);
 
             bool grounded = cc.isGrounded;
             if (grounded && velocity.y < 0) velocity.y = -2f;
-            if (InputState.JumpPressed && grounded)
+            if (InputState.JumpPressed && grounded && !InputState.Blocked)
             {
                 velocity.y = jumpPower;
                 GameAudio.Play(Sfx.Jump);
@@ -104,6 +139,17 @@ namespace DragonHeist
             velocity.y += Physics.gravity.y * 2.2f * dt;
             velocity.x = horiz.x; velocity.z = horiz.z;
             cc.Move(velocity * dt);
+
+            // приземление: звук, пыль, "сплющивание"
+            if (grounded && !wasGrounded && airTime > 0.25f)
+            {
+                GameAudio.Play(Sfx.Land, 0.7f);
+                landSquash = 1f;
+                if (dust != null) dust.Emit(8);
+            }
+            airTime = grounded ? 0 : airTime + dt;
+            wasGrounded = grounded;
+            Fx.SetRate(dust, grounded && mv.sqrMagnitude > 0.1f && walkSpeed > 18f ? Mathf.Min(30f, walkSpeed * 0.6f) : 0f);
 
             if (transform.position.y < -40f) Respawn();
 
@@ -140,34 +186,56 @@ namespace DragonHeist
 
         void Animate(float dt, float speed, bool grounded)
         {
+            float t = Time.time;
             float amount = Mathf.Clamp01(speed / 10f);
-            animPhase += dt * Mathf.Lerp(6f, 14f, Mathf.Clamp01(speed / 40f)) * (amount > 0.05f ? 1 : 0);
-            float swing = Mathf.Sin(animPhase) * 55f * amount;
-            if (!grounded) swing = 0;
+            float freq = Mathf.Lerp(7f, 15f, Mathf.Clamp01(speed / 50f));
+            animPhase += dt * freq * (amount > 0.05f ? 1 : 0);
+            float swing = Mathf.Sin(animPhase) * 60f * amount;
+            bool holding = heldModel != null;
 
+            // руки
+            Quaternion lArm, rArm;
             if (Carrying != null)
             {
-                // держим яйцо над головой
-                avatar.lArm.localRotation = Quaternion.Euler(180, 0, 12);
-                avatar.rArm.localRotation = Quaternion.Euler(180, 0, -12);
+                lArm = Quaternion.Euler(180, 0, 12);
+                rArm = Quaternion.Euler(180, 0, -12);
             }
             else if (!grounded)
             {
-                avatar.lArm.localRotation = Quaternion.Euler(170, 0, 0);
-                avatar.rArm.localRotation = Quaternion.Euler(170, 0, 0);
+                lArm = Quaternion.Euler(165, 0, 15);
+                rArm = holding ? Quaternion.Euler(-80, 0, 0) : Quaternion.Euler(165, 0, -15);
             }
             else
             {
-                avatar.lArm.localRotation = Quaternion.Euler(swing, 0, 0);
-                avatar.rArm.localRotation = Quaternion.Euler(-swing, 0, 0);
+                float idle = Mathf.Sin(t * 2f) * 3f * (1f - amount);
+                lArm = Quaternion.Euler(swing + idle, 0, -2f);
+                rArm = holding ? Quaternion.Euler(-80 + swing * 0.15f, 0, 0) : Quaternion.Euler(-swing - idle, 0, 2f);
             }
-            avatar.lLeg.localRotation = Quaternion.Euler(-swing, 0, 0);
-            avatar.rLeg.localRotation = Quaternion.Euler(swing, 0, 0);
+            float blend = 1f - Mathf.Exp(-dt * 18f);
+            avatar.lArm.localRotation = Quaternion.Slerp(avatar.lArm.localRotation, lArm, blend);
+            avatar.rArm.localRotation = Quaternion.Slerp(avatar.rArm.localRotation, rArm, blend);
+
+            // ноги (в прыжке — "ножницы" как в Роблоксе)
+            Quaternion lLeg = grounded ? Quaternion.Euler(-swing, 0, 0) : Quaternion.Euler(-25, 0, 0);
+            Quaternion rLeg = grounded ? Quaternion.Euler(swing, 0, 0) : Quaternion.Euler(15, 0, 0);
+            avatar.lLeg.localRotation = Quaternion.Slerp(avatar.lLeg.localRotation, lLeg, blend);
+            avatar.rLeg.localRotation = Quaternion.Slerp(avatar.rLeg.localRotation, rLeg, blend);
+
+            // тело: покачивание при беге, дыхание в покое, наклон вперёд на скорости, сплющивание при приземлении
+            landSquash = Mathf.MoveTowards(landSquash, 0f, dt * 5f);
+            float bob = grounded ? Mathf.Abs(Mathf.Sin(animPhase)) * 0.12f * amount : 0f;
+            float breathe = Mathf.Sin(t * 2.2f) * 0.015f * (1f - amount);
+            float lean = Mathf.Clamp(speed / 60f, 0f, 1f) * 12f;
+            avatar.model.localPosition = new Vector3(0, bob - landSquash * 0.1f, 0);
+            avatar.model.localRotation = Quaternion.Euler(lean, 0, 0);
+            float sq = 1f - landSquash * 0.12f;
+            avatar.model.localScale = new Vector3(0.6f * (2f - sq), 0.6f * (sq + breathe), 0.6f * (2f - sq));
+            if (avatar.head != null) avatar.head.localRotation = Quaternion.Euler(Mathf.Sin(t * 1.1f) * 2f * (1f - amount), Mathf.Sin(t * 0.6f) * 6f * (1f - amount), 0);
 
             if (grounded && amount > 0.1f)
             {
-                stepTimer -= dt * Mathf.Lerp(1f, 3f, Mathf.Clamp01(speed / 40f));
-                if (stepTimer <= 0) { stepTimer = 0.32f; GameAudio.Play(Sfx.Step, 0.25f); }
+                stepTimer -= dt * Mathf.Lerp(1f, 3.2f, Mathf.Clamp01(speed / 50f));
+                if (stepTimer <= 0) { stepTimer = 0.3f; GameAudio.Play(Sfx.Step, 0.35f); }
             }
         }
 

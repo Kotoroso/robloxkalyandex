@@ -68,7 +68,7 @@
         window.unityInstance = instance;
         document.querySelector("#loader").style.display = "none";
         canvas.focus();
-      }).catch(function (message) { alert(message); });
+      }).catch(function (message) { console.error(message); });
     };
     document.body.appendChild(script);
     window.addEventListener("pointerdown", function () { canvas.focus(); });

@@ -73,7 +73,7 @@ namespace DragonHeist
 #if UNITY_WEBGL && !UNITY_EDITOR
             try { YG_GameReady(); } catch { }
 #endif
-            GameplayStart();
+            // GameplayAPI.start() вызывается, когда игрок нажимает "Играть" в главном меню
         }
 
         public static void GameplayStart()

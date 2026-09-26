@@ -11,6 +11,7 @@ namespace DragonHeist
         public static Vector2 LookDelta;     // пиксели
         public static float Zoom;
         public static bool Mobile;
+        public static bool Blocked;         // открыто главное меню — персонаж не управляется
 
         // выставляются тач-контролами
         public static Vector2 TouchMove;

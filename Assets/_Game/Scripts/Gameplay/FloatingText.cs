@@ -7,7 +7,7 @@ namespace DragonHeist
     public class FloatingText : MonoBehaviour
     {
         static readonly Stack<FloatingText> pool = new Stack<FloatingText>();
-        TextMesh tm;
+        Label3D tm;
         float life;
         Color baseColor;
 

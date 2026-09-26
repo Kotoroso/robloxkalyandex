@@ -22,7 +22,7 @@ namespace DragonHeist
                 go.AddComponent<AudioListener>();
             }
             else if (cam.GetComponent<AudioListener>() == null) cam.gameObject.AddComponent<AudioListener>();
-            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.clearFlags = RenderSettings.skybox != null ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.55f, 0.78f, 1f);
             cam.nearClipPlane = 0.3f;
             cam.farClipPlane = 420f;
@@ -35,9 +35,21 @@ namespace DragonHeist
 
         public void Shake(float amount) { shake = Mathf.Max(shake, amount); }
 
+        /// <summary>В главном меню камера медленно облетает базу.</summary>
+        public bool MenuOrbit;
+
         void LateUpdate()
         {
             if (target == null) return;
+            if (MenuOrbit)
+            {
+                float a = Time.unscaledTime * 0.08f;
+                Vector3 center = new Vector3(0, 0, -8f);
+                transform.position = center + new Vector3(Mathf.Sin(a) * 38f, 22f, -Mathf.Cos(a) * 38f);
+                transform.rotation = Quaternion.LookRotation(center + Vector3.up * 2f - transform.position);
+                yaw = transform.eulerAngles.y;
+                return;
+            }
             var look = InputState.LookDelta;
             yaw += look.x * 0.25f;
             pitch = Mathf.Clamp(pitch - look.y * 0.2f, -10f, 75f);

@@ -15,7 +15,8 @@ namespace DragonHeist
         /// <param name="steps">1 = фаска (дёшево), 3+ = плавное скругление</param>
         public static Mesh Box(Vector3 size, float radius, int steps)
         {
-            radius = Mathf.Min(radius, Mathf.Min(size.x, Mathf.Min(size.y, size.z)) * 0.5f - 0.001f);
+            radius = Mathf.Max(0f, Mathf.Min(radius, Mathf.Min(size.x, Mathf.Min(size.y, size.z)) * 0.5f - 0.001f));
+            if (steps <= 0) radius = 0f;
             string key = size.x.ToString("0.00") + "_" + size.y.ToString("0.00") + "_" + size.z.ToString("0.00") + "_" + radius.ToString("0.000") + "_" + steps;
             Mesh cached;
             if (cache.TryGetValue(key, out cached) && cached != null) return cached;
@@ -49,9 +50,13 @@ namespace DragonHeist
             return mesh;
         }
 
+        /// <summary>Обычный куб с UV в юнитах мира (для стен и полов со студами).</summary>
+        public static Mesh FlatBox(Vector3 size) { return Box(size, 0f, 0); }
+
         /// <summary>Координаты вдоль оси: край → скругление → плоская часть → скругление → край.</summary>
         static float[] Samples(float h, float inner, float r, int steps)
         {
+            if (steps <= 0 || r <= 0.0001f) return new[] { -h, h };
             var list = new List<float>();
             for (int k = 0; k <= steps; k++)
             {
@@ -80,7 +85,7 @@ namespace DragonHeist
                     Vector3 nrm = d.sqrMagnitude > 1e-8f ? d.normalized : n;
                     verts.Add(c + nrm * r);
                     norms.Add(nrm);
-                    uvs.Add(new Vector2(i / (float)(nu - 1), j / (float)(nv - 1)));
+                    uvs.Add(new Vector2(su[i], sv[j])); // UV в юнитах мира — текстура не растягивается
                 }
 
             // проверяем направление обхода по первому квадрату, чтобы грань смотрела наружу

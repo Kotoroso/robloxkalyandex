@@ -37,6 +37,14 @@ namespace DragonHeist
         public int totalStolen;
         public long savedAt;
         public bool soundOn = true;
+        public bool musicOn = true;
+        public int switchType;            // звук клавиш ASMR-пола: 0 синий, 1 коричневый, 2 красный
+        public int tutorialStep;
+        public List<int> treadmillAds = new List<int>();   // сколько реклам просмотрено для открытия дорожки
+        public List<int> dragonInv = new List<int>();      // 5 слотов, -1 = пусто
+        public int selectedSlot = -1;
+        public List<int> upgrades = new List<int>();       // уровни улучшений из магазина
+        public int totalHatched;
 
         public void Normalize()
         {
@@ -45,6 +53,17 @@ namespace DragonHeist
             plotsOwned = Mathf.Clamp(plotsOwned, GameConfig.StartPlots, GameConfig.MaxPlots);
             while (plots.Count < GameConfig.MaxPlots) plots.Add(new PlotData());
             treadmillsMask |= 1;
+            if (treadmillAds == null) treadmillAds = new List<int>();
+            while (treadmillAds.Count < GameConfig.Treadmills.Length) treadmillAds.Add(0);
+            if (dragonInv == null) dragonInv = new List<int>();
+            while (dragonInv.Count < GameConfig.InventorySlots) dragonInv.Add(-1);
+            if (selectedSlot >= GameConfig.InventorySlots) selectedSlot = -1;
+            switchType = Mathf.Clamp(switchType, 0, 2);
+            if (upgrades == null) upgrades = new List<int>();
+            while (upgrades.Count < GameConfig.Upgrades.Length) upgrades.Add(0);
+            // старые сохранения: выкидываем несуществующих драконов
+            for (int i = 0; i < dragonInv.Count; i++) if (dragonInv[i] >= GameConfig.Dragons.Length) dragonInv[i] = -1;
+            foreach (var p in plots) if (p.state == 2 && (p.dragonId < 0 || p.dragonId >= GameConfig.Dragons.Length)) p.state = 0;
         }
 
         public static long Now() { return DateTimeOffset.UtcNow.ToUnixTimeSeconds(); }
