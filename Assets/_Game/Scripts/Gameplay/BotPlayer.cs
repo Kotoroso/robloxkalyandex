@@ -187,7 +187,7 @@ namespace DragonHeist
                     Vector3 step = d.normalized * Mathf.Min(sp * dt, d.magnitude);
                     var np = transform.position + step;
                     bool toMill = mill != null && (new Vector3(cur.pos.x, 0, cur.pos.z) - new Vector3(mill.transform.position.x, 0, mill.transform.position.z)).sqrMagnitude < 1f;
-                    np.y = Mathf.MoveTowards(np.y, toMill ? 0.76f : Y, dt * 4f);
+                    np.y = Mathf.MoveTowards(np.y, toMill ? mill.transform.position.y + 0.66f : Y, dt * 4f);
                     transform.position = np;
                     av.root.transform.rotation = Quaternion.Slerp(av.root.transform.rotation, Quaternion.LookRotation(d), dt * 10f);
                     moveAmount = 1f;

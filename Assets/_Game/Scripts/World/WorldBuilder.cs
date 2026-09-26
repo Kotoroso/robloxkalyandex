@@ -95,7 +95,7 @@ namespace DragonHeist
             int idx = 0;
             for (int row = 0; row < 3; row++)
                 for (int col = 0; col < 2; col++)
-                    gm.Plots.Add(BasePlot.Build(dynamicRoot, idx++, new Vector3(bx + 8.5f + col * 9.5f, 0.1f, pZ0 + 7f + row * 9f)));
+                    gm.Plots.Add(BasePlot.Build(dynamicRoot, idx++, new Vector3(bx + 8.5f + col * 9.5f, DeckTop - 0.1f, pZ0 + 7f + row * 9f)));
             // базы ботов
             Alcove(new Vector3(-bx - lDepth / 2f, 0, (lZ0 + lZ1) / 2f), new Vector2(lDepth, lZ1 - lZ0), 0, new Color(1f, 0.62f, 0.6f), (Loc.Ru ? "База " : "Base of ") + Nick(), Color.white, true);
             Alcove(new Vector3((b1X0 + b1X1) / 2f, 0, minZ - bDepth / 2f), new Vector2(b1X1 - b1X0, bDepth), 2, new Color(1f, 0.85f, 0.5f), (Loc.Ru ? "База " : "Base of ") + Nick(), Color.white, true);
@@ -103,20 +103,27 @@ namespace DragonHeist
 
             Blocky.Label(signs, Loc.T("base"), new Vector3(0, 15f, maxZ), 2.6f, new Color(1f, 0.93f, 0.55f)).text = Loc.Ru ? "К ЯЙЦАМ" : "TO THE EGGS";
             Arch(new Vector3(0, 0, maxZ), gap - 0.5f, BaseTrim);
-            // площадка сдачи яиц у ворот
-            Blocky.Part(staticRoot, new Vector3(0, 0.14f, maxZ - 5f), new Vector3(12f, 0.06f, 7f), Mats.Glow(new Color(1f, 0.85f, 0.3f)));
-            Blocky.Part(staticRoot, new Vector3(0, 0.2f, maxZ - 5f), new Vector3(11f, 0.06f, 6f), Mats.Keycaps(new Color(1f, 0.92f, 0.6f)));
-            Blocky.Label(signs, Loc.Ru ? "СДАЙ ЯЙЦО СЮДА" : "BRING EGGS HERE", new Vector3(0, 3.4f, maxZ - 5f), 1.3f, new Color(1f, 0.9f, 0.55f));
+            // площадка сдачи яиц у ворот: деревянный настил со светящейся рамкой
+            WoodDeck(new Rect(-6f, maxZ - 8.5f, 12f, 7f));
+            var gold = Mats.Glow(new Color(1f, 0.85f, 0.3f));
+            Blocky.Part(staticRoot, new Vector3(0, DeckTop + 0.05f, maxZ - 8.5f), new Vector3(12.4f, 0.12f, 0.4f), gold);
+            Blocky.Part(staticRoot, new Vector3(0, DeckTop + 0.05f, maxZ - 1.5f), new Vector3(12.4f, 0.12f, 0.4f), gold);
+            Blocky.Part(staticRoot, new Vector3(-6.2f, DeckTop + 0.05f, maxZ - 5f), new Vector3(0.4f, 0.12f, 7f), gold);
+            Blocky.Part(staticRoot, new Vector3(6.2f, DeckTop + 0.05f, maxZ - 5f), new Vector3(0.4f, 0.12f, 7f), gold);
+            Blocky.Label(signs, Loc.Ru ? "СДАЙ ЯЙЦО СЮДА" : "BRING EGGS HERE", new Vector3(0, 3.6f, maxZ - 5f), 1.3f, new Color(1f, 0.9f, 0.55f));
             SkipRects.Add(new Rect(-7f, maxZ - 9f, 14f, 8f));
 
             // зона тренажёров слева спереди
+            WoodDeck(new Rect(-46.5f, -12.5f, 45.5f, 13f));
             for (int i = 0; i < GameConfig.Treadmills.Length; i++)
-                Treadmill.Build(dynamicRoot, i, new Vector3(-43f + i * 5.8f, 0.1f, -6f), 0f);
+                Treadmill.Build(dynamicRoot, i, new Vector3(-43f + i * 5.8f, DeckTop, -6f), 0f);
             Blocky.Label(signs, Loc.Ru ? "ТРЕНАЖЁРЫ" : "TREADMILLS", new Vector3(-25.6f, 8f, -1f), 1.6f, new Color(0.6f, 0.95f, 1f));
 
             // продавец и магазин трейлов
-            SellerNPC.Build(dynamicRoot, new Vector3(-41f, 0.1f, -17f), 90f);
-            SellerNPC.Build(dynamicRoot, new Vector3(41f, 0.1f, -5f), -90f, true);
+            WoodDeck(new Rect(-45.5f, -21.5f, 9f, 9f));
+            WoodDeck(new Rect(36.5f, -9.5f, 9f, 9f));
+            SellerNPC.Build(dynamicRoot, new Vector3(-41f, DeckTop, -17f), 90f);
+            SellerNPC.Build(dynamicRoot, new Vector3(41f, DeckTop, -5f), -90f, true);
 
             // спавн по центру
             Blocky.Round = true; Blocky.RoundFactor = 0.4f;
@@ -131,6 +138,31 @@ namespace DragonHeist
             for (int i = 0; i < 3; i++) Lamp(new Vector3(-bx + 2f, 0, -44f + i * 8f));
             FlowerBed(new Vector3(-12f, 0.6f, 5f), 8f, 1.6f);
             FlowerBed(new Vector3(12f, 0.6f, 5f), 8f, 1.6f);
+        }
+
+        /// <summary>Верх клавиш пола — на этой высоте стоят настилы и объекты.</summary>
+        public const float DeckTop = 0.58f;
+
+        /// <summary>Деревянный настил из досок вровень с клавишами (под дорожками, продавцами, площадкой сдачи).</summary>
+        static void WoodDeck(Rect r)
+        {
+            Color[] tones = { new Color(0.66f, 0.45f, 0.26f), new Color(0.6f, 0.4f, 0.22f), new Color(0.7f, 0.5f, 0.3f) };
+            float h = 0.35f;
+            int n = Mathf.Max(1, Mathf.RoundToInt(r.width / 1.2f));
+            float pw = r.width / n;
+            for (int i = 0; i < n; i++)
+                Blocky.Part(staticRoot, new Vector3(r.x + pw * (i + 0.5f), DeckTop - h / 2f, r.y + r.height / 2f), new Vector3(pw - 0.08f, h, r.height), Mats.Plastic(tones[i % 3]));
+            // тёмная рамка по краю
+            var frame = Mats.Plastic(new Color(0.42f, 0.27f, 0.14f));
+            Blocky.Part(staticRoot, new Vector3(r.center.x, DeckTop - h / 2f + 0.02f, r.y), new Vector3(r.width + 0.3f, h + 0.04f, 0.3f), frame);
+            Blocky.Part(staticRoot, new Vector3(r.center.x, DeckTop - h / 2f + 0.02f, r.yMax), new Vector3(r.width + 0.3f, h + 0.04f, 0.3f), frame);
+            Blocky.Part(staticRoot, new Vector3(r.x, DeckTop - h / 2f + 0.02f, r.center.y), new Vector3(0.3f, h + 0.04f, r.height), frame);
+            Blocky.Part(staticRoot, new Vector3(r.xMax, DeckTop - h / 2f + 0.02f, r.center.y), new Vector3(0.3f, h + 0.04f, r.height), frame);
+            var col = new GameObject("DeckCollider");
+            col.transform.SetParent(dynamicRoot, false);
+            col.transform.position = new Vector3(r.center.x, (KeyFloorY + DeckTop) / 2f, r.center.y);
+            col.AddComponent<BoxCollider>().size = new Vector3(r.width, DeckTop - KeyFloorY, r.height);
+            SkipRects.Add(new Rect(r.x - 0.5f, r.y - 0.5f, r.width + 1f, r.height + 1f));
         }
 
         /// <summary>Деревянная вывеска на двух столбах: доска из досок, рамка, крупный текст на лицевой стороне.</summary>
@@ -154,7 +186,7 @@ namespace DragonHeist
             Blocky.Part(root, new Vector3(-width / 2f - 0.1f, 2.2f + h / 2f, 0), new Vector3(0.3f, h + 0.5f, 0.5f), woodDark);
             Blocky.Part(root, new Vector3(width / 2f + 0.1f, 2.2f + h / 2f, 0), new Vector3(0.3f, h + 0.5f, 0.5f), woodDark);
             // текст на лицевой стороне (не поворачивается к камере)
-            var l = Blocky.Label(root, text, new Vector3(0, 2.2f + h / 2f, 0.22f), Mathf.Clamp(width / text.Length * 1.9f, 1.4f, 3.2f), textColor);
+            var l = Blocky.Label(root, text, new Vector3(0, 2.2f + h / 2f, 0.22f), Mathf.Clamp(width / Mathf.Max(6, text.Length) * 3.1f, 2.2f, 4.2f), textColor);
             l.billboard = false;
             l.maxDistance = 160f;
             l.transform.localRotation = Quaternion.Euler(0, 180f, 0);
@@ -186,7 +218,13 @@ namespace DragonHeist
             }
             // деревянная вывеска с ником на скале над входом (смотрит внутрь спавна)
             Vector3 dirIn = side == 0 ? Vector3.right : side == 1 ? Vector3.left : Vector3.forward;
-            WoodSign(entrance + new Vector3(0, WallHeight + 1.4f, 0) - dirIn * 0.2f, dirIn, title, titleColor, Mathf.Min(16f, (side < 2 ? size.y : size.x) * 0.85f));
+            // каменная перемычка над входом — вывеска стоит на ней, а не висит в воздухе
+            float open = side < 2 ? size.y : size.x;
+            Vector3 lintelSize = side < 2 ? new Vector3(2f, 3f, open + 2f) : new Vector3(open + 2f, 3f, 2f);
+            Blocky.Part(staticRoot, entrance + new Vector3(0, WallHeight - 1.5f, 0) - dirIn * 1f, lintelSize, Mats.Studs(WallBrown), false);
+            Vector3 lintelTop = side < 2 ? new Vector3(2.4f, 1.4f, open + 2.2f) : new Vector3(open + 2.2f, 1.4f, 2.4f);
+            Blocky.Part(staticRoot, entrance + new Vector3(0, WallHeight + 0.7f, 0) - dirIn * 1f, lintelTop, Mats.Studs(WallGreen), false);
+            WoodSign(entrance + new Vector3(0, WallHeight + 1.4f, 0) - dirIn * 1f, dirIn, title, titleColor, Mathf.Min(16f, (side < 2 ? size.y : size.x) * 0.85f));
             if (!bot) return;
             var rnd2 = new System.Random((int)(center.x * 13 + center.z * 7));
             var plotList = new List<Vector3>();
@@ -195,19 +233,19 @@ namespace DragonHeist
                 float a = (i % 3 - 1), b = (i / 3 - 0.5f);
                 Vector3 p = side < 2 ? center + new Vector3(b * hx * 0.9f, 0, a * hz * 0.62f) : center + new Vector3(a * hx * 0.62f, 0, b * hz * 0.9f);
                 plotList.Add(p);
-                Blocky.Part(staticRoot, p + new Vector3(0, 0.3f, 0), new Vector3(4.6f, 0.4f, 4.6f), Mats.Studs(new Color(0.35f, 0.72f, 0.32f)), true);
-                Blocky.Part(staticRoot, p + new Vector3(0, 0.52f, 0), new Vector3(3.6f, 0.1f, 3.6f), Mats.Studs(new Color(0.48f, 0.33f, 0.2f)), false);
+                Blocky.Part(staticRoot, p + new Vector3(0, 0.45f, 0), new Vector3(4.6f, 0.7f, 4.6f), Mats.Studs(new Color(0.35f, 0.72f, 0.32f)), true);
+                Blocky.Part(staticRoot, p + new Vector3(0, 0.84f, 0), new Vector3(3.6f, 0.1f, 3.6f), Mats.Studs(new Color(0.48f, 0.33f, 0.2f)), false);
                 if (rnd2.Next(3) == 0)
                 {
                     var egg = Blocky.BuildEgg(dynamicRoot, (Tier)rnd2.Next(0, 5), 1.3f);
-                    egg.transform.position = p + new Vector3(0, 0.58f, 0);
+                    egg.transform.position = p + new Vector3(0, 0.9f, 0);
                 }
                 else
                 {
                     var list = new List<DragonDef>();
                     foreach (var dd in GameConfig.Dragons) if (!dd.exclusive && (int)dd.tier <= 6) list.Add(dd);
                     var dr = Blocky.BuildDragon(dynamicRoot, list[rnd2.Next(list.Count)]);
-                    dr.transform.position = p + new Vector3(0, 0.58f, 0);
+                    dr.transform.position = p + new Vector3(0, 0.9f, 0);
                     dr.transform.localScale = Vector3.one * 0.7f;
                     dr.transform.rotation = Quaternion.Euler(0, rnd2.Next(360), 0);
                 }

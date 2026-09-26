@@ -92,7 +92,8 @@ namespace DragonHeist
             t.screen.billboard = false;                          // лежит на экране, под тем же наклоном
             t.screen.transform.localRotation = Quaternion.Euler(-12f, 0, 0);
 
-            t.label = Blocky.Label(tr, "", new Vector3(0, 5f, 4.1f), 1.05f, Color.white);
+            t.label = Blocky.Label(tr, "", new Vector3(0, 4.6f, 4.1f), 0.8f, Color.white);
+            t.label.maxDistance = 26f; // чтобы надписи соседних дорожек не сливались издалека
 
             // красная лента-ограждение у закрытой дорожки (без коллайдера)
             t.lockRope = new GameObject("Lock");
