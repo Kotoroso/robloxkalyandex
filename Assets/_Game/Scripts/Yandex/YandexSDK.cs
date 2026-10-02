@@ -257,6 +257,7 @@ namespace DragonHeist
 
         public static void InitPayments()
         {
+            if (!GameConfig.PurchasesEnabled) return;
 #if UNITY_WEBGL && !UNITY_EDITOR
             try { YG_InitPayments(); } catch { }
 #else
@@ -299,6 +300,7 @@ namespace DragonHeist
 
         public static void Purchase(string id)
         {
+            if (!GameConfig.PurchasesEnabled) return;
 #if UNITY_WEBGL && !UNITY_EDITOR
             if (!PaymentsReady)
             {

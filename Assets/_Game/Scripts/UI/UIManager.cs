@@ -121,6 +121,7 @@ namespace DragonHeist
             Vector2 shopPos = mobile ? new Vector2(36 + cb * 2, -12) : new Vector2(12, -12 - cb - 44);
             var yb = UIKit.Button(h, "BtnYan", Loc.Ru ? "Магазин" : "Store", new Vector2(0, 1), new Vector2(0, 1), shopPos, new Vector2(shopW, shopH),
                 new Color(0.2f, 0.85f, 0.25f), () => OnMenuButton(3), mobile ? 30 : 40);
+            if (!GameConfig.PurchasesEnabled) yb.gameObject.SetActive(false); // донат-магазина нет
             var tag = UIKit.Panel(yb.transform, "New", new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -2), new Vector2(84, 26), new Color(1f, 0.85f, 0.2f), 2f);
             tag.raycastTarget = false;
             var nt = UIKit.Label(tag.transform, "NEW!", 17, Color.white);
@@ -903,7 +904,7 @@ namespace DragonHeist
                 var card = UIKit.Panel(body, "Day" + i, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2((i - (n - 1) / 2f) * (cw + 6), -6), new Vector2(cw, 220), new Color(0.2f, 0.19f, 0.3f), 2f);
                 dayCards[i] = card;
                 UIKit.Fit(UIKit.Label(UIKit.Rect(card.transform, "H", new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -4), new Vector2(cw - 4, 32)), (Loc.Ru ? "День " : "Day ") + (i + 1), 17, Gold), 12);
-                UIKit.Icon(card.transform, i == 3 || i == 6 ? Icons.Egg : (i == 1 || i == 5 ? Icons.Bolt : Icons.Coin), new Vector2(0.5f, 1), new Vector2(0, -68), 56);
+                UIKit.Icon(card.transform, i == 6 ? IconArt.Egg(Tier.Legendary, true) : i == 3 ? Icons.Egg : (i == 1 || i == 5 ? Icons.Bolt : Icons.Coin), new Vector2(0.5f, 1), new Vector2(0, -68), i == 6 ? 64 : 56); // день 7 — Драконье яйцо
                 dayTexts[i] = UIKit.Fit(UIKit.Inset(UIKit.Label(UIKit.Rect(card.transform, "T", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 6), new Vector2(cw - 6, 110)), "", 13, Color.white), 4, 4), 10);
             }
             dailyClaim = UIKit.Button(body, "Claim", Loc.Ru ? "Забрать" : "Claim", new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-150, 0), new Vector2(260, 64),
@@ -1306,7 +1307,7 @@ namespace DragonHeist
                     bool owned = gm.OwnsTrail(i);
                     bool eq = d.equippedTrail == i;
                     trailCoinBtn[i].text = owned ? (eq ? (Loc.Ru ? "Надето" : "Equipped") : (Loc.Ru ? "Надеть" : "Equip")) : "$" + Loc.Num(t.coinPrice);
-                    trailYanButtons[i].gameObject.SetActive(!owned);
+                    trailYanButtons[i].gameObject.SetActive(!owned && GameConfig.PurchasesEnabled);
                     trailYanBtn[i].text = YandexSDK.PriceText(t.productId, t.fallbackPrice).Replace(" ", "\n");
                     foreach (var o in trailCards[i].GetComponents<Outline>()) o.effectColor = eq ? Gold : UIKit.Stroke;
                 }

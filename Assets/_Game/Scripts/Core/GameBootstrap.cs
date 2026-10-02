@@ -56,7 +56,7 @@ namespace DragonHeist
             gm.Init();
             Tutorial.Create();
 
-            YandexSDK.InitPayments();
+            if (GameConfig.PurchasesEnabled) YandexSDK.InitPayments(); // покупки выключены — платежи не подключаем
             YandexSDK.FlushPending();
             YandexSDK.ShowBanner();          // не показывается, если куплено "Без рекламы"
             UIManager.Instance.StartGame();  // GameplayAPI.start() уйдёт только после LoadingAPI.ready()

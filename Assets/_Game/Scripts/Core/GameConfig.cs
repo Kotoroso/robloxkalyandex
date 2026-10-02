@@ -101,6 +101,8 @@ namespace DragonHeist
         public const int StorageSlots = 15;   // хранилище драконов (без бонусов)
         public const float AdSpeedupFactor = 0.1f;      // реклама режет оставшееся время на 90%
         public const float InterstitialCooldown = 60f;
+        /// <summary>Внутриигровые покупки за Яны выключены: нет донат-магазина, покупок трейлов за Яны, платежи не подключаются.</summary>
+        public const bool PurchasesEnabled = false;
         public const float AdInterval = 90f;            // полноэкранная реклама каждые 1.5 минуты игры
         public const float OfflineIncomeFactor = 0.5f;
         public const int OfflineMaxSeconds = 2 * 3600;

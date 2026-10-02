@@ -710,9 +710,12 @@ namespace DragonHeist
         public int DailyEggTier(int day)
         {
             if (day == 4) return HighestUnlockedTier;
-            if (day == 7) return HighestUnlockedTier + 1;
+            // день 7 — Драконье яйцо (эксклюзивные драконы теперь только из ежедневной награды)
             return -1;
         }
+
+        /// <summary>В день 7 — Драконье яйцо с эксклюзивным драконом.</summary>
+        public bool DailyPremium(int day) { return day == 7; }
 
         public string DailyText(int day)
         {
@@ -721,6 +724,7 @@ namespace DragonHeist
             if (DailySpeed(day) > 0) { if (sb.Length > 0) sb.Append("\n"); sb.Append("+" + Loc.Num(DailySpeed(day)) + (Loc.Ru ? " скорости" : " speed")); }
             int egg = DailyEggTier(day);
             if (egg >= 0) { if (sb.Length > 0) sb.Append("\n"); sb.Append((Loc.Ru ? "Яйцо: " : "Egg: ") + Loc.TierName((Tier)Mathf.Clamp(egg, 0, GameConfig.Tiers.Length - 1))); }
+            if (DailyPremium(day)) { if (sb.Length > 0) sb.Append("\n"); sb.Append(Loc.Ru ? "<color=#FFD24A>Драконье яйцо!</color>" : "<color=#FFD24A>Dragon Egg!</color>"); }
             return sb.ToString();
         }
 
@@ -733,6 +737,8 @@ namespace DragonHeist
             D.speedPoints += DailySpeed(day) * mult;
             int egg = DailyEggTier(day);
             if (egg >= 0) { AddEgg(egg); if (doubled) AddEgg(egg); }
+            if (DailyPremium(day))
+                for (int k = 0; k < mult; k++) D.inventory.Add(new EggItem { tier = (int)Tier.Legendary, dragonId = GameConfig.PremiumEggMarker });
             D.dailyStreak = day;
             D.lastDailyDay = Today;
             GameAudio.Play(Sfx.Rebirth);
